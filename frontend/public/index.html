@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Scanning Based Reward &amp; Intelligence System PoC</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Header Section -->
+    <header class="navbar">
+        <div class="container header-container">
+            <div class="logo-area">
+                <span class="bill-logo-icon" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="receiptGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#5ba3e8" />
+                                <stop offset="100%" style="stop-color:#2d6bb5" />
+                            </linearGradient>
+                            <filter id="cartoonShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-opacity="0.2" />
+                            </filter>
+                        </defs>
+                        <rect x="8" y="4" width="48" height="56" rx="6" ry="6" fill="url(#receiptGrad)"
+                            filter="url(#cartoonShadow)" />
+                        <rect x="8" y="4" width="48" height="56" rx="6" ry="6" fill="none"
+                            stroke="rgba(255,255,255,0.5)" stroke-width="2" />
+                        <line x1="14" y1="14" x2="50" y2="14" stroke="rgba(255,255,255,0.7)" stroke-width="2"
+                            stroke-linecap="round" />
+                        <line x1="14" y1="22" x2="42" y2="22" stroke="rgba(255,255,255,0.5)" stroke-width="2"
+                            stroke-linecap="round" />
+                        <line x1="14" y1="30" x2="46" y2="30" stroke="rgba(255,255,255,0.5)" stroke-width="2"
+                            stroke-linecap="round" />
+                        <line x1="14" y1="38" x2="38" y2="38" stroke="rgba(255,255,255,0.5)" stroke-width="2"
+                            stroke-linecap="round" />
+                        <circle cx="48" cy="48" r="6" fill="#ffd93d" stroke="rgba(0,0,0,0.15)" stroke-width="1" />
+                        <path d="M46 46 Q48 48 50 46" stroke="rgba(0,0,0,0.25)" stroke-width="1.5" fill="none"
+                            stroke-linecap="round" />
+                    </svg>
+                </span>
+                <div class="brand-text">
+                    <h1>AI-Powered Bill Scanning – Reward & Intelligence System</h1>
+                    <span class="team-credit">Developed by Team <span class="araj"><span class="araj-a">A</span><span
+                                class="araj-r">R</span><span class="araj-a2">A</span><span
+                                class="araj-j">J</span></span> &ndash; Group 120</span>
+                </div>
+            </div>
+            <div style="flex-grow: 1;"></div>
+            <div class="navbar-actions">
+                <a href="pdfs/1.pdf" target="_blank" class="btn btn-brochure" data-tooltip="Project Brochure">
+                    📄
+                </a>
+                <a href="https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-study-project-bits-poc-phase-3-Team-ARAJ"
+                    target="_blank" rel="noopener noreferrer" class="btn btn-github-icon"
+                    data-tooltip="visit project Respo" aria-label="Visit project repository">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="currentColor"
+                            d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.33 1.11 2.9.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.08 0-1.12.39-2.03 1.03-2.74-.1-.26-.45-1.31.1-2.73 0 0 .84-.27 2.75 1.05A9.4 9.4 0 0 1 12 6.84c.85 0 1.71.12 2.51.36 1.9-1.32 2.74-1.05 2.74-1.05.55 1.42.2 2.47.1 2.73.64.71 1.03 1.62 1.03 2.74 0 3.95-2.33 4.82-4.56 5.08.36.32.68.95.68 1.92 0 1.39-.01 2.5-.01 2.84 0 .27.18.6.69.49A10.27 10.27 0 0 0 22 12.23C22 6.58 17.52 2 12 2z" />
+                    </svg>
+                </a>
+                <button id="btn-logout" class="btn btn-logout hidden" title="Logout">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"
+                        style="vertical-align: middle;">
+                        <path fill="currentColor"
+                            d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                    </svg>
+                    <span class="btn-text" style="margin-left: 4px;">Logout</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Auth / Landing Section -->
+        <section class="landing-section" id="section-auth">
+            <!-- Hero -->
+            <div class="landing-hero">
+                <span class="hero-badge">STUDY PROJECT • Phase 3</span>
+                <h1 class="hero-title" id="hero-typing-title" data-typing-text="Turn Every Receipt |Into Rewards...">
+                    Turn
+                    Every Receipt Into Rewards...</h1>
+                <p class="hero-subtitle">An intelligent proof-of-concept system powered by Gemini AI. Scan bills, earn
+                    points, and experience the future of retail rewards.</p>
+                <div class="hero-try-wrap"
+                    style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <button id="btn-try" class="btn btn-primary btn-try">Sign In / Sign Up</button>
+                    <button id="btn-guest" class="btn btn-secondary btn-try"
+                        style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">Explore
+                        as Guest</button>
+                </div>
+                <div class="landing-features">
+                    <div class="landing-feature">
+                        <div class="landing-feature-icon">⚡</div>
+                        <h4>Instant OCR</h4>
+                        <p>AI extracts line-item data in seconds</p>
+                    </div>
+                    <div class="landing-feature">
+                        <div class="landing-feature-icon">🛡️</div>
+                        <h4>Fraud Detection</h4>
+                        <p>Duplicate scan validation built-in</p>
+                    </div>
+                    <div class="landing-feature">
+                        <div class="landing-feature-icon">🎯</div>
+                        <h4>Smart Multipliers</h4>
+                        <p>Category & streak-based rewards</p>
+                    </div>
+                    <div class="landing-feature">
+                        <div class="landing-feature-icon">🔒</div>
+                        <h4>Privacy First</h4>
+                        <p>Enterprise-grade data handling</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="landing-blur-card">
+                <h2 class="hero-title">Learn More</h2>
+                <div class="hero-content">
+                    <div class="hero-block">
+                        <h3>What is this system?</h3>
+                        <p>The Bill Scanning Reward AI System is an innovative Proof of Concept leveraging cutting-edge
+                            Gemini AI to digitize, analyze, and process retail receipts. It instantly extracts line-item
+                            data, dynamically validates duplicate scans, and calculates intelligent reward multipliers
+                            based on shopping categories and user streak behavior. It transforms routine shopping into
+                            an engaging, gamified experience while ensuring privacy and enterprise-level data handling.
+                        </p>
+                    </div>
+                    <div class="hero-block">
+                        <h3>Who is Team <span class="araj"><span class="araj-a">A</span><span
+                                    class="araj-r">R</span><span class="araj-a2">A</span><span
+                                    class="araj-j">J</span></span>?</h3>
+                        <p>Team <span class="araj"><span class="araj-a">A</span><span class="araj-r">R</span><span
+                                    class="araj-a2">A</span><span class="araj-j">J</span></span> (Group 120) consists of
+                            four passionate B.Sc. Computer Science students from BITS
+                            Pilani Digital. We engineered this secure, dynamic, and state-of-the-art rewards
+                            infrastructure.</p>
+                        <ul class="team-list">
+                            <li><strong><span class="araj-a">A</span>shfaaq Feroz</strong> (2023EBCS005)</li>
+                            <li><strong><span class="araj-r">R</span>anjeet Singh</strong> (2023EBCS457)</li>
+                            <li><strong><span class="araj-a2">A</span>rpan Chatterjee</strong> (2023EBCS399)</li>
+                            <li><strong><span class="araj-j">J</span>yoti Kataria</strong> (2023EBCS435)</li>
+                        </ul>
+                    </div>
+                    <!-- About This PoC block moved inside hero-content -->
+                    <div class="hero-block">
+                        <h3>About This PoC</h3>
+                        <p>This is a Proof of Concept simulation for the BITS Pilani final-year project powered by
+                            Gemini AI. It
+                            validates the UI flow and real ML/Reward concepts with a live backend.</p>
+                        <div class="limitations-alert">
+                            <strong>Current Limitations:</strong>
+                            <ul>
+                                <li>Fraud detection is simplified.</li>
+                                <li>Full user segmentation is not yet implemented.</li>
+                                <li>DSP export is simulated.</li>
+                                <li>OCR is powered by Google Gemini AI.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="landing-how">
+                    <div class="landing-how-box">
+                        <h3>How It Works</h3>
+                        <div class="landing-steps">
+                            <div class="landing-step">
+                                <div class="landing-step-num">1</div>
+                                <h4>Upload</h4>
+                                <p>Drop your receipt image</p>
+                            </div>
+                            <span class="step-arrow" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                            <div class="landing-step">
+                                <div class="landing-step-num">2</div>
+                                <h4>Extract</h4>
+                                <p>Gemini AI reads &amp; parses</p>
+                            </div>
+                            <span class="step-arrow" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                            <div class="landing-step">
+                                <div class="landing-step-num">3</div>
+                                <h4>Process</h4>
+                                <p>Validate &amp; categorize (ML)</p>
+                            </div>
+                            <span class="step-arrow" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                            <div class="landing-step">
+                                <div class="landing-step-num">4</div>
+                                <h4>Reward</h4>
+                                <p>Earn points instantly</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="landing-trust">
+                    <div class="landing-trust-item">🏛️ <strong>BITS Pilani</strong> Digital</div>
+                    <div class="landing-trust-item">🤖 Powered by <strong>Google Gemini AI</strong></div>
+                    <div class="landing-trust-item">👥 Group 120 — <strong>Team <span class="araj"><span
+                                    class="araj-a">A</span><span class="araj-r">R</span><span
+                                    class="araj-a2">A</span><span class="araj-j">J</span></span></strong></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- App Content (Hidden when not logged in) -->
+        <div id="app-content" class="hidden">
+            <!-- Generic Error Modal -->
+            <div class="error-modal hidden" id="error-modal" aria-hidden="true">
+                <div class="error-modal-backdrop" id="error-modal-backdrop"></div>
+                <div class="error-modal-panel">
+                    <button class="error-modal-close" id="error-modal-close" aria-label="Close">×</button>
+                    <div class="error-modal-content">
+                        <div class="error-icon" id="error-modal-icon">⚠️</div>
+                        <h3 id="error-modal-title">Error</h3>
+                        <p id="error-modal-message">An error occurred.</p>
+                        <button class="btn btn-primary btn-error-ok" id="btn-error-ok">Got it</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <section class="dashboard card">
+                <div class="dashboard-head">
+                    <h2>Your Reward Balance</h2>
+                </div>
+                <div class="balance-display">
+                    <span id="total-points" class="points-value">0</span>
+                    <span class="points-label">Points</span>
+                </div>
+                <p class="subtitle">Scan bills to earn points globally!</p>
+                <div class="dashboard-actions">
+                    <button class="btn btn-primary dashboard-action-btn" id="btn-claim-points">🎁 claim Reward</button>
+                    <button class="btn btn-primary dashboard-action-btn" id="btn-view-claimed">🕘 Reward
+                        History</button>
+                </div>
+            </section>
+
+            <!-- Demo Workspace (The Interactive PoC) -->
+            <section class="demo-workspace card">
+                <h2>PoC Demo Workspace</h2>
+
+                <div class="stepper">
+                    <div class="step active" id="step-upload">1. Upload</div>
+                    <div class="step-transition-arrow"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg></div>
+                    <div class="step" id="step-extract">2. Extract</div>
+                    <div class="step-transition-arrow"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg></div>
+                    <div class="step" id="step-process">3. Process</div>
+                    <div class="step-transition-arrow"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg></div>
+                    <div class="step" id="step-reward">4. Reward</div>
+                </div>
+
+                <!-- Stage 1: Upload -->
+                <div id="stage-upload" class="stage-content active">
+                    <div class="upload-area" id="drop-zone">
+                        <div class="upload-icon">📄</div>
+                        <h3>Upload Receipt Image</h3>
+                        <p>Drag &amp; drop your bill here or click to browse</p>
+                        <input type="file" id="file-input" accept="image/*" hidden>
+                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Select
+                            File</button>
+                    </div>
+                </div>
+
+                <!-- Stage 2: Extracting (Gemini OCR) -->
+                <div id="stage-extracting" class="stage-content hidden">
+                    <div class="processing-view">
+                        <div class="spinner"></div>
+                        <h3>AI OCR Extraction...</h3>
+                        <p>Gemini is analyzing your receipt and extracting data.</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="ocr-progress"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 3/4: Process & Reward Results -->
+                <div id="stage-results" class="stage-content hidden">
+                    <div class="results-grid">
+                        <div class="result-box data-box">
+                            <h3>Extracted Bill Data</h3>
+                            <div class="data-row"><span>Raw Merchant:</span> <strong id="val-raw-merchant">--</strong>
+                            </div>
+                            <div class="data-row"><span>Date:</span> <strong id="val-date">--</strong></div>
+                            <div class="data-row"><span>Total Amount (₹):</span> <strong id="val-total">--</strong>
+                            </div>
+                            <div class="items-list" id="val-items">
+                                <!-- Items injected via JS -->
+                            </div>
+                        </div>
+
+                        <div class="result-box intel-box">
+                            <h3>Intelligence Processing &amp; Rewards</h3>
+                            <div class="data-row"><span>Normalized Category:</span> <span class="tag"
+                                    id="val-category">--</span></div>
+                            <div class="reward-calculation">
+                                <h4>Reward Earned!</h4>
+                                <div class="earned-points-display">
+                                    +<span id="val-earned-points">0</span> Points
+                                </div>
+                                <p class="reward-logic" id="val-reward-logic">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-footer">
+                        <button class="btn btn-primary" id="btn-reset">Scan Another Bill</button>
+                        <button class="btn btn-primary" id="btn-view-digital-bill" disabled>View Digital Bill</button>
+                        <button class="btn btn-primary" id="btn-add-balance">Add to Balance</button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- History Section (Hidden by default) -->
+            <section class="history-section card" id="section-history" style="display: none;">
+                <div class="history-header">
+                    <div class="history-controls">
+                        <h2 class="history-title">Scan History</h2>
+                        <input type="text" id="history-search" class="history-search-input"
+                            placeholder="Search by merchant, date...">
+                        <select id="history-category-filter" class="history-select">
+                            <option value="all">All Categories</option>
+                            <option value="supermarket / grocery">Supermarket / Grocery</option>
+                            <option value="food & beverage">Food & Beverage</option>
+                            <option value="general retail">General Retail</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-close-history">Close</button>
+                </div>
+                <div class="table-responsive scan-history-table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Merchant</th>
+                                <th>Category</th>
+                                <th>Total (₹)</th>
+                                <th style="text-align: right;">Points</th>
+                                <th style="text-align: center;">Digital Bill</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <div id="history-loading"
+                        style="text-align: center; padding: 2rem; color: var(--text-secondary); display: none;">
+                        Loading history...
+                    </div>
+                    <div id="history-empty"
+                        style="text-align: center; padding: 2rem; color: var(--text-secondary); display: none;">
+                        No bills scanned yet.
+                    </div>
+                </div>
+            </section>
+
+            <div class="view-history-wrapper">
+                <button class="btn btn-secondary" id="btn-view-history">⟳ View Scan History</button>
+                <button class="btn btn-secondary" id="btn-view-analytics">📊 Analytics</button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Team Footer -->
+    <footer class="footer">
+        <div class="container footer-content block-footer">
+            <div class="footer-left">
+                <div class="footer-brand">Built by Team <span class="araj"><span class="araj-a">A</span><span
+                            class="araj-r">R</span><span class="araj-a2">A</span><span class="araj-j">J</span></span>
+                </div>
+                <div class="footer-details">Study Project &mdash; 2026 &mdash; BSc. CS</div>
+            </div>
+            <div class="footer-right">
+                <img src="assets/logo.svg" alt="BITS Pilani" class="footer-logo">
+                <div class="advisor-info">
+                    Advisor: <strong>Prof. Uma Sankara Rao</strong>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="welcome-intro" class="welcome-intro hidden" role="status" aria-live="polite">
+        <div class="welcome-intro-backdrop"></div>
+        <div class="welcome-intro-card">
+            <p class="welcome-intro-kicker" id="welcome-intro-kicker">Access Granted</p>
+            <h2 id="welcome-intro-text">Welcome User !</h2>
+        </div>
+    </div>
+
+    <div id="auth-modal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <div class="auth-modal-backdrop" id="auth-modal-backdrop"></div>
+        <div class="auth-modal-panel">
+            <button class="auth-modal-close" id="auth-modal-close" aria-label="Close">×</button>
+            <div class="auth-container card glass-panel">
+                <div class="auth-header">
+                    <h2 id="auth-title">Create Account</h2>
+                    <p id="auth-subtitle">Join the rewards program</p>
+                </div>
+                <form id="auth-form" class="auth-form">
+                    <div class="form-group" id="auth-name-group">
+                        <label>Full Name</label>
+                        <input type="text" id="auth-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="auth-email" required placeholder="name@bits-pilani.ac.in">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="auth-password" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit" id="auth-submit">Sign Up</button>
+                </form>
+                <div class="auth-footer">
+                    <span id="auth-switch-text">You have account?</span>
+                    <a href="#" id="auth-switch-link">Sign in</a>
+                </div>
+                <div id="auth-error" class="auth-error hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="claim-modal" class="claim-modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="claim-modal-title">
+        <div class="claim-modal-backdrop" id="claim-modal-backdrop"></div>
+        <div class="claim-modal-panel">
+            <button class="claim-modal-close" id="claim-modal-close" aria-label="Close">×</button>
+            <div class="claim-modal-header">
+                <h2 id="claim-modal-title">Rewards Voucher Vault</h2>
+                <p>Choose any voucher or try Scratch &amp; Win cards. Each reward shows required points to claim.</p>
+                <div class="claim-points-chip">
+                    Available Points: <strong id="claim-available-points">0</strong>
+                </div>
+                <div class="claim-modal-tools">
+                    <button class="btn btn-secondary btn-sm claim-nav-btn" id="btn-open-claimed-from-claim">🕘 Claimed
+                        Vouchers</button>
+                </div>
+            </div>
+            <div class="claim-cards-grid" id="claim-cards-grid"></div>
+        </div>
+    </div>
+
+    <div id="claimed-modal" class="claimed-modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="claimed-modal-title">
+        <div class="claimed-modal-backdrop" id="claimed-modal-backdrop"></div>
+        <div class="claimed-modal-panel">
+            <div class="claimed-top-actions">
+                <button class="btn btn-primary btn-sm claim-nav-btn" id="btn-open-claim-from-claimed">🎁 Claim
+                    Rewards</button>
+                <button class="claimed-modal-close" id="claimed-modal-close" aria-label="Close">×</button>
+            </div>
+            <section class="history-section claimed-history-shell">
+                <div class="history-header">
+                    <div class="history-controls">
+                        <h2 class="history-title" id="claimed-modal-title">Claimed Vouchers History</h2>
+                    </div>
+                </div>
+                <div class="table-responsive claimed-table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Title</th>
+                                <th>Code</th>
+                                <th style="text-align: right;">Points Used</th>
+                            </tr>
+                        </thead>
+                        <tbody id="claimed-table-body"></tbody>
+                    </table>
+                    <div id="claimed-loading"
+                        style="text-align: center; padding: 2rem; color: var(--text-secondary); display: none;">
+                        Loading claimed vouchers...
+                    </div>
+                    <div id="claimed-empty"
+                        style="text-align: center; padding: 2rem; color: var(--text-secondary); display: none;">
+                        No vouchers claimed yet.
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="claim-success-modal" class="claim-success-modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="claim-success-title">
+        <div class="claim-success-backdrop" id="claim-success-backdrop"></div>
+        <div class="claim-success-panel">
+            <button class="claim-success-close" id="claim-success-close" aria-label="Close">×</button>
+            <div class="party-stage" id="party-stage"></div>
+            <h2 id="claim-success-title">Voucher Claimed Successfully!</h2>
+            <p class="claim-success-subtitle">Celebration unlocked. Your redeem code is ready.</p>
+            <div class="claim-code-box">
+                <span id="claim-code-value">000000000000</span>
+                <button class="btn btn-primary" id="btn-copy-claim-code">Copy Code</button>
+            </div>
+            <p class="claim-success-points">Updated Points: <strong id="claim-success-points">0</strong></p>
+        </div>
+    </div>
+
+    <div id="digital-bill-modal" class="digital-bill-modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="digital-bill-title">
+        <div class="digital-bill-backdrop" id="digital-bill-backdrop"></div>
+        <div class="digital-bill-panel">
+            <button class="digital-bill-close" id="digital-bill-close" aria-label="Close">×</button>
+            <div class="digital-bill-sheet">
+                <h2 id="digital-bill-title">Digital Bill</h2>
+                <div class="digital-bill-meta">
+                    <div><span>Merchant</span><strong id="bill-merchant">-</strong></div>
+                    <div><span>Bill Date</span><strong id="bill-date">-</strong></div>
+                    <div><span>Category</span><strong id="bill-category">-</strong></div>
+                    <div><span>Total</span><strong id="bill-total">-</strong></div>
+                </div>
+                <div class="digital-bill-items-wrap">
+                    <table class="digital-bill-items">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th style="text-align: right;">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bill-items-body"></tbody>
+                    </table>
+                </div>
+                <p class="digital-bill-code">Receipt Ref: <span id="bill-ref-code">-</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="analytics-modal" class="analytics-modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="analytics-modal-title">
+        <div class="analytics-modal-backdrop" id="analytics-modal-backdrop"></div>
+        <div class="analytics-modal-panel">
+            <button class="analytics-modal-close" id="analytics-modal-close" aria-label="Close">×</button>
+            <div class="analytics-modal-header">
+                <h2 id="analytics-modal-title">Intelligent Analytics</h2>
+                <p id="analytics-period">Studying your scanned bills to identify shopping interests and spending
+                    patterns.</p>
+            </div>
+            <div class="analytics-modal-body">
+                <div class="analytics-loading" id="analytics-loading">
+                    <div class="analytics-progress-wrap">
+                        <div class="analytics-progress-bar"></div>
+                    </div>
+                    <span>Analyzing receipt history...</span>
+                </div>
+                <div class="analytics-empty hidden" id="analytics-empty">No receipts found yet. Scan a few bills to
+                    generate analytics.</div>
+
+                <div class="analytics-content hidden" id="analytics-content">
+                    <section class="analytics-metrics-grid">
+                        <article class="analytics-metric-card">
+                            <span class="analytics-metric-label">Total Bills</span>
+                            <strong id="analytics-total-bills">0</strong>
+                        </article>
+                        <article class="analytics-metric-card">
+                            <span class="analytics-metric-label">Total Spend</span>
+                            <strong id="analytics-total-spend">₹0</strong>
+                        </article>
+                        <article class="analytics-metric-card">
+                            <span class="analytics-metric-label">Avg Bill Value</span>
+                            <strong id="analytics-avg-bill">₹0</strong>
+                        </article>
+                        <article class="analytics-metric-card">
+                            <span class="analytics-metric-label">Points Earned</span>
+                            <strong id="analytics-total-points-earned">0</strong>
+                        </article>
+                        <article class="analytics-metric-card">
+                            <span class="analytics-metric-label">Top Category</span>
+                            <strong id="analytics-top-category-label">-</strong>
+                        </article>
+                        <article class="analytics-metric-card">
+                            <span class="analytics-metric-label">Preferred Merchant</span>
+                            <strong id="analytics-top-merchant-label">-</strong>
+                        </article>
+                    </section>
+
+                    <section class="analytics-chart-shell">
+                        <div class="analytics-donut-wrap">
+                            <div class="analytics-donut" id="analytics-category-chart" role="img"
+                                aria-label="Category distribution chart"></div>
+                            <div class="analytics-donut-center">
+                                <span>Main Interest</span>
+                                <strong id="analytics-main-interest">-</strong>
+                            </div>
+                        </div>
+                        <ul class="analytics-legend" id="analytics-legend"></ul>
+                    </section>
+
+                    <section class="analytics-insights-shell">
+                        <h3>Interest Report</h3>
+                        <ul id="analytics-insights-list"></ul>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
