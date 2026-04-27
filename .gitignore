@@ -1,1 +1,54 @@
+# Secrets
+.env
+serviceAccountKey.json
+*.key
+*.pem
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ML Models (large — use external storage or Git LFS)
+ml-service/models/*.h5
+ml-service/models/*.pt
+ml-service/models/*.pkl
+# To force-track a specific model: git add -f ml-service/models/classifier.pkl
+
+# Jupyter checkpoints
+notebooks/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Dataset images (large — store externally, only commit CSVs)
+dataset/genuine/
+dataset/tampered/
+dataset/indian/
+!dataset/genuine/.gitkeep
+!dataset/tampered/.gitkeep
+!dataset/indian/.gitkeep
+!dataset/processed/*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads / temp
+uploads/
+tmp/
+temp/
+*.tmp
+
+# IDE
+.vscode/settings.json
+
+# Git hooks (local only)
 .githooks/
+.idea/
