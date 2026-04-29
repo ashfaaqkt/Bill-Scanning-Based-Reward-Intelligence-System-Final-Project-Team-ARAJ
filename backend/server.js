@@ -1,9 +1,12 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
@@ -82,6 +85,83 @@ function looksLikeExpectedImageType(imageBuffer, mimeType) {
     return false;
 }
 
+/**
+ * Normalizes various Indian receipt date formats to YYYY-MM-DD.
+ * Handles: DD/MM/YYYY, DD-MM-YYYY, DD/MM/YY, "15 Apr 2026", "Apr 15, 2026", ISO.
+ */
+function normalizeReceiptDate(dateStr) {
+    if (!dateStr) return null;
+    const s = String(dateStr).trim();
+
+    // Already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // DD/MM/YYYY or DD-MM-YYYY
+    const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) {
+        const [, d, m, y] = dmy;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    // DD/MM/YY or DD-MM-YY
+    const dmyShort = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+    if (dmyShort) {
+        const [, d, m, y] = dmyShort;
+        const fullYear = parseInt(y) > 50 ? `19${y}` : `20${y}`;
+        return `${fullYear}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    // DD MMM YYYY (e.g. "15 Apr 2026")
+    const MONTHS = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+    const dmyText = s.match(/^(\d{1,2})\s+([a-zA-Z]{3,})\s+(\d{4})$/);
+    if (dmyText) {
+        const [, d, mon, y] = dmyText;
+        const m = MONTHS[mon.slice(0, 3).toLowerCase()];
+        if (m) return `${y}-${String(m).padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    // MMM DD, YYYY (e.g. "Apr 15, 2026")
+    const mdyText = s.match(/^([a-zA-Z]{3,})\s+(\d{1,2}),?\s+(\d{4})$/);
+    if (mdyText) {
+        const [, mon, d, y] = mdyText;
+        const m = MONTHS[mon.slice(0, 3).toLowerCase()];
+        if (m) return `${y}-${String(m).padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    // Last resort: native Date parse
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+
+    return null;
+}
+
+/**
+ * Strips currency symbols (₹, Rs., INR, $, €, commas) and returns a clean float.
+ */
+function sanitizeCurrencyValue(val) {
+    if (typeof val === 'number') return val;
+    const cleaned = String(val)
+        .replace(/Rs\.?/gi, '')
+        .replace(/INR/gi, '')
+        .replace(/[₹$€£,\s]/g, '')
+        .trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Validates all required fields on the extracted receipt object.
+ * Returns an array of error strings — empty means valid.
+ */
+function validateReceiptFields(data) {
+    const errors = [];
+    if (!data.rawMerchant || String(data.rawMerchant).trim() === '') errors.push('missing merchant name');
+    if (!data.date) errors.push('missing date');
+    if (!data.total || data.total <= 0) errors.push('invalid or missing total amount');
+    if (!Array.isArray(data.items)) errors.push('items field is not an array');
+    return errors;
+}
+
 function generateClaimCode() {
     let code = "";
     for (let i = 0; i < 12; i += 1) {
@@ -100,8 +180,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 
 const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_bits_pilani_123';
 
 // Auth Middleware
@@ -502,9 +580,20 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
 });
 
 let lastGeminiRequestTime = 0;
+const GEMINI_RATE_LIMIT_MS = 22000; // 22s gap — safe margin within 5 RPM free tier
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Generates a deterministic fingerprint for a receipt.
+ * Used for cross-user duplicate detection — same physical receipt
+ * submitted by different accounts produces the same hash.
+ */
+function generateReceiptFingerprint(merchant, date, total) {
+    const raw = `${String(merchant).trim().toLowerCase()}|${String(date).trim()}|${parseFloat(total).toFixed(2)}`;
+    return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
 app.post('/api/upload', authenticateToken, async (req, res) => {
@@ -533,11 +622,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         }
 
         // Enforce 22s gap between requests (safe margin within 5 RPM free tier limit)
-        const RATE_LIMIT_MS = 22000;
         const now = Date.now();
         const elapsed = now - lastGeminiRequestTime;
-        if (elapsed < RATE_LIMIT_MS) {
-            const waitTime = RATE_LIMIT_MS - elapsed;
+        if (elapsed < GEMINI_RATE_LIMIT_MS) {
+            const waitTime = GEMINI_RATE_LIMIT_MS - elapsed;
             console.log(`[INFO] Rate limiting: Waiting ${(waitTime / 1000).toFixed(1)}s before sending next Gemini request...`);
             await sleep(waitTime);
         }
@@ -597,19 +685,63 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             return res.status(422).json({ error: "Scan Failed: Please ensure the receipt is clear." });
         }
 
-        const total = parseFloat(receiptData.total) || 0;
+        // Sanitize currency symbols from total and every item price
+        receiptData.total = sanitizeCurrencyValue(receiptData.total);
+        if (Array.isArray(receiptData.items)) {
+            receiptData.items = receiptData.items.map(item => ({
+                ...item,
+                price: sanitizeCurrencyValue(item.price)
+            }));
+        }
 
-        // FR Compliance: 409 Conflict checks against real Firestore Database
-        const duplicateCheck = await db.collection('Receipts')
+        // Validate all required fields are present and non-empty
+        const fieldErrors = validateReceiptFields(receiptData);
+        if (fieldErrors.length > 0) {
+            console.warn('[WARN] Receipt field validation failed:', fieldErrors);
+            return res.status(422).json({ error: `Receipt data incomplete: ${fieldErrors.join(', ')}.` });
+        }
+
+        // Normalize date to YYYY-MM-DD regardless of source format
+        const normalizedDate = normalizeReceiptDate(receiptData.date);
+        if (!normalizedDate) {
+            return res.status(422).json({ error: 'Could not parse receipt date. Please try a clearer image.' });
+        }
+        receiptData.date = normalizedDate;
+
+        const total = receiptData.total;
+        const receiptFingerprint = generateReceiptFingerprint(receiptData.rawMerchant, receiptData.date, total);
+
+        // Items total cross-check: flag if sum of items deviates >15% from stated total
+        let itemsMismatch = false;
+        if (Array.isArray(receiptData.items) && receiptData.items.length > 0) {
+            const itemsSum = receiptData.items.reduce((sum, item) => sum + (item.price || 0), 0);
+            if (itemsSum > 0) {
+                const discrepancy = Math.abs(total - itemsSum) / total;
+                if (discrepancy > 0.15) {
+                    console.warn(`[WARN] Items sum ₹${itemsSum.toFixed(2)} vs stated total ₹${total.toFixed(2)} — ${(discrepancy * 100).toFixed(1)}% discrepancy`);
+                    itemsMismatch = true;
+                }
+            }
+        }
+
+        // Per-user duplicate check: same user submitting the same receipt twice
+        const userDuplicateCheck = await db.collection('Receipts')
             .where('user_id', '==', req.userId)
-            .where('merchant', '==', receiptData.rawMerchant)
-            .where('date', '==', receiptData.date)
-            .where('total', '==', total)
+            .where('receipt_fingerprint', '==', receiptFingerprint)
+            .limit(1)
             .get();
 
-        if (!duplicateCheck.empty) {
+        if (!userDuplicateCheck.empty) {
             return res.status(409).json({ error: "Duplicate receipt detected. This receipt has already been processed." });
         }
+
+        // Cross-user duplicate check: same physical receipt submitted by a different account
+        const crossUserDuplicateCheck = await db.collection('Receipts')
+            .where('receipt_fingerprint', '==', receiptFingerprint)
+            .limit(1)
+            .get();
+
+        const crossUserDuplicate = !crossUserDuplicateCheck.empty;
 
         // Processing Tier / Multipiler
         const userRef = await ensureUserExists(req.userId);
@@ -640,11 +772,12 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             total: total,
             category: receiptData.category,
             points_earned: rewardResult.points,
+            receipt_fingerprint: receiptFingerprint,
             created_at: admin.firestore.FieldValue.serverTimestamp()
         });
 
         // 3. Receipt Items Batching
-        if (receiptData.items && Array.isArray(receiptData.items)) {
+        if (receiptData.items.length > 0) {
             const batch = db.batch();
             receiptData.items.forEach(item => {
                 const itemRef = db.collection('Receipt_Items').doc();
@@ -692,12 +825,27 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
         }
 
+        // Cross-user duplicate → escalate to High regardless of ML score
+        if (crossUserDuplicate) {
+            console.warn(`[FRAUD] Cross-user duplicate detected for fingerprint ${receiptFingerprint}`);
+            fraudScore = Math.max(fraudScore, 0.85);
+            riskLevel = "High";
+        }
+
+        // Items/total mismatch → bump to at least Medium
+        if (itemsMismatch) {
+            fraudScore = Math.max(fraudScore, 0.5);
+            if (riskLevel === "Low") riskLevel = "Medium";
+        }
+
         const fraudRef = db.collection('Fraud_Scores').doc();
         await fraudRef.set({
             receipt_id: newReceiptRef.id,
             user_id: req.userId,
             score: fraudScore,
             risk_level: riskLevel,
+            cross_user_duplicate: crossUserDuplicate,
+            items_total_mismatch: itemsMismatch,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
@@ -707,7 +855,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             category: receiptData.category,
             amount: total,
             merchant: receiptData.rawMerchant
-        }).catch(err => console.warn("ML Service (Profile) update failed."));
+        }).catch(() => console.warn("ML Service (Profile) update failed."));
 
         res.json({
             success: true,
