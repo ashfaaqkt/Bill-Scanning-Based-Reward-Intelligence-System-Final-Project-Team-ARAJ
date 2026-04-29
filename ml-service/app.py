@@ -36,6 +36,10 @@ def ocr_route():
         return jsonify({"error": "image_path is required"}), 400
     
     result = ocr.extract_receipt_data(image_path)
+
+    if result.get("error") == "unreadable":
+        return jsonify(result), 422
+
     return jsonify(result)
 
 
