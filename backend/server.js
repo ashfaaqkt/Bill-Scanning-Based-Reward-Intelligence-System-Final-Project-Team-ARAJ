@@ -501,6 +501,12 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     }
 });
 
+let lastGeminiRequestTime = 0;
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
         if (!req.body || !req.body.receipt) {
@@ -526,17 +532,40 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             return res.status(422).json({ error: 'Invalid or unreadable image payload.' });
         }
 
+        // Enforce 22s gap between requests (safe margin within 5 RPM free tier limit)
+        const RATE_LIMIT_MS = 22000;
+        const now = Date.now();
+        const elapsed = now - lastGeminiRequestTime;
+        if (elapsed < RATE_LIMIT_MS) {
+            const waitTime = RATE_LIMIT_MS - elapsed;
+            console.log(`[INFO] Rate limiting: Waiting ${(waitTime / 1000).toFixed(1)}s before sending next Gemini request...`);
+            await sleep(waitTime);
+        }
+
         console.log("Processing image with Gemini...");
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [
-                { text: `Analyze this receipt image and extract the following details into a strict JSON format. If blurry/unreadable return exactly: {"error": "unreadable"}. Otherwise return: {"rawMerchant": "string", "date": "string (YYYY-MM-DD)", "total": number, "category": "string ('Supermarket / Grocery', 'Food & Beverage', or 'General Retail')", "items": [{ "name": "string", "price": number }]}` },
-                { inlineData: { data: receiptPayload, mimeType } }
+                {
+                    role: 'user',
+                    parts: [
+                        { text: `Analyze this receipt image and extract the following details into a strict JSON format. If blurry/unreadable return exactly: {"error": "unreadable"}. Otherwise return: {"rawMerchant": "string", "date": "string (YYYY-MM-DD)", "total": number, "category": "string ('Supermarket / Grocery', 'Food & Beverage', or 'General Retail')", "items": [{ "name": "string", "price": number }]}` },
+                        { inlineData: { data: receiptPayload, mimeType } }
+                    ]
+                }
             ],
             config: { responseMimeType: "application/json" }
         });
 
-        let textResponse = response.text || "";
+        // Update last request time AFTER call
+        lastGeminiRequestTime = Date.now();
+
+        let textResponse = "";
+        if (response && response.text) {
+            textResponse = response.text;
+        } else if (response && response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
+            textResponse = response.candidates[0].content.parts[0].text;
+        }
 
         let receiptData = null;
         try {
