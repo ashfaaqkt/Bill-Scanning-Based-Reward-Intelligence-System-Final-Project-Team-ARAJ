@@ -6,7 +6,7 @@
 |---|---|---|---|
 | CORD (Clova OCR) | ~1000 | Arpan | Download from github.com/clovaai/cord |
 | SROIE (ICDAR 2019) | ~973 | Arpan | Download from rrc.cvc.uab.es |
-| Indian receipts (Kozhikode) | 100 target | Jyoti | Photographed locally |
+| Indian receipts (English) | 100 target | Jyoti | Photographed locally |
 | Tampered (generated) | 100 target | Ranjeet | generate_tampered.py |
 
 ## processed/receipts_master.csv Schema
