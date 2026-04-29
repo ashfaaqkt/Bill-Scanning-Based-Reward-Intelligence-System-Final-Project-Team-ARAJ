@@ -21,6 +21,7 @@
   "homepage": "https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-study-project-bits-poc-phase-3-Team-ARAJ#readme",
   "dependencies": {
     "@google/genai": "^1.43.0",
+    "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
