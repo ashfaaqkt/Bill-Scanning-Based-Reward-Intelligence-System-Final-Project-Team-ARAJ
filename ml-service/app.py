@@ -14,6 +14,7 @@ import fraud
 import anomaly
 import user_profile
 import recommend
+import ocr
 
 load_dotenv()
 
@@ -25,6 +26,17 @@ CORS(app)
 def health():
     """Health check."""
     return jsonify({"status": "ok"})
+
+
+@app.route("/ml/ocr", methods=["POST"])
+def ocr_route():
+    data = request.get_json() or {}
+    image_path = data.get("image_path", "")
+    if not image_path:
+        return jsonify({"error": "image_path is required"}), 400
+    
+    result = ocr.extract_receipt_data(image_path)
+    return jsonify(result)
 
 
 @app.route("/ml/classify", methods=["POST"])
