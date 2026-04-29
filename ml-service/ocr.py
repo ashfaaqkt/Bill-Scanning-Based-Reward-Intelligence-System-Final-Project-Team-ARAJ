@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import cv2
 import google.generativeai as genai
 from PIL import Image
 from dotenv import load_dotenv
@@ -17,6 +18,8 @@ if api_key:
 # Global state for rate limiting
 last_request_time = 0
 RATE_LIMIT_INTERVAL = 23  # Increased slightly (22s + 1s buffer) for safety
+
+BLUR_THRESHOLD = 100  # Laplacian variance below this → image is too blurry to process
 
 # Define the extraction prompt once
 RECEIPT_PROMPT = (
@@ -41,6 +44,20 @@ def extract_receipt_data(image_path):
 
     if not api_key:
         return {"error": "GEMINI_API_KEY_MISSING"}
+
+    # Blur detection via Laplacian variance (OpenCV)
+    try:
+        img_cv = cv2.imread(image_path)
+        if img_cv is None:
+            return {"error": "unreadable", "reason": "could not load image"}
+        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+        blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
+        print(f"[INFO] Blur score (Laplacian variance): {blur_score:.2f}")
+        if blur_score < BLUR_THRESHOLD:
+            print(f"[WARN] Image rejected — blur score {blur_score:.2f} below threshold {BLUR_THRESHOLD}")
+            return {"error": "unreadable", "reason": "image_too_blurry", "blur_score": round(blur_score, 2)}
+    except Exception as e:
+        print(f"[WARN] Blur check failed: {e} — proceeding anyway")
 
     elapsed = time.time() - last_request_time
     if elapsed < RATE_LIMIT_INTERVAL:
