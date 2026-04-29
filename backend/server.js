@@ -3,9 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'serviceAccountKey.json');
 const SUPPORTED_IMAGE_MIME_TYPES = new Set([
     'image/jpeg',
@@ -95,7 +97,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../frontend/public')));
 
 const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 const jwt = require('jsonwebtoken');
@@ -641,15 +643,42 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 6. Fraud System Simulation Log
+        // 6. Fraud System - Call ML Microservice
+        let fraudScore = 0.05;
+        let riskLevel = "Low";
+        try {
+            const fraudRes = await axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
+                receipt_id: newReceiptRef.id,
+                metadata: {
+                    total: total,
+                    merchant: receiptData.rawMerchant,
+                    date: receiptData.date
+                }
+            });
+            if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
+                fraudScore = fraudRes.data.fraud_score;
+                riskLevel = fraudScore > 0.7 ? "High" : (fraudScore > 0.3 ? "Medium" : "Low");
+            }
+        } catch (mlError) {
+            console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
+        }
+
         const fraudRef = db.collection('Fraud_Scores').doc();
         await fraudRef.set({
             receipt_id: newReceiptRef.id,
             user_id: req.userId,
-            score: 0.05,
-            risk_level: "Low",
+            score: fraudScore,
+            risk_level: riskLevel,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
+
+        // 7. Update User Profile in ML Service (Async)
+        axios.post(`${ML_SERVICE_URL}/ml/update-profile`, {
+            user_id: req.userId,
+            category: receiptData.category,
+            amount: total,
+            merchant: receiptData.rawMerchant
+        }).catch(err => console.warn("ML Service (Profile) update failed."));
 
         res.json({
             success: true,
@@ -657,7 +686,9 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 ...receiptData,
                 receiptId: newReceiptRef.id,
                 rewardPoints: rewardResult.points,
-                rewardLogic: rewardResult.logicText
+                rewardLogic: rewardResult.logicText,
+                fraudScore: fraudScore,
+                riskLevel: riskLevel
             }
         });
 
