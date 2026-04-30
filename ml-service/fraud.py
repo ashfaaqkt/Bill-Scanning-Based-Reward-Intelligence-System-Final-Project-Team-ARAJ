@@ -23,8 +23,26 @@ def check_tamper_cnn(image_path: str) -> float:
 
 
 def score(image_path: str, metadata: dict, known_hashes: list = None) -> dict:
-    """Returns a placeholder fraud score and signals."""
+    """Composite fraud score from blur, duplicate, and tamper signals."""
+    known_hashes = known_hashes or []
+
+    is_blurry = check_blur(image_path)
+    is_duplicate = check_phash_duplicate(image_path, known_hashes)
+    tamper_prob = check_tamper_cnn(image_path)
+
+    # Weighted composite score; weights will be tuned once real detectors land
+    fraud_score = round(
+        0.3 * float(is_blurry)
+        + 0.4 * float(is_duplicate)
+        + 0.3 * tamper_prob,
+        4,
+    )
+
     return {
-        "fraud_score": 0.05,
-        "signals": {"blur": False, "duplicate": False, "tamper": False}
+        "fraud_score": fraud_score,
+        "signals": {
+            "blur": is_blurry,
+            "duplicate": is_duplicate,
+            "tamper": tamper_prob > 0.5,
+        },
     }
