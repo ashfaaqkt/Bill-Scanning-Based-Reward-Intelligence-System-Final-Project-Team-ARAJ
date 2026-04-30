@@ -16,6 +16,17 @@ def train(X_train, y_train):
 
 
 def predict(items_text: str, merchant: str = "") -> dict:
-    """Returns a placeholder category and confidence."""
-    # TODO: implement real prediction
-    return {"category": "Supermarket / Grocery", "confidence": 0.0}
+    """Classify receipt text into a spend category."""
+    if not os.path.exists(MODEL_PATH) or not os.path.exists(VECTORIZER_PATH):
+        return {"category": "Unknown", "confidence": 0.0, "model_ready": False}
+
+    try:
+        vectorizer = joblib.load(VECTORIZER_PATH)
+        model = joblib.load(MODEL_PATH)
+        text = f"{merchant} {items_text}".strip()
+        vec = vectorizer.transform([text])
+        category = model.predict(vec)[0]
+        confidence = float(model.predict_proba(vec).max())
+        return {"category": category, "confidence": round(confidence, 4), "model_ready": True}
+    except Exception as exc:
+        return {"category": "Unknown", "confidence": 0.0, "model_ready": False, "error": str(exc)}

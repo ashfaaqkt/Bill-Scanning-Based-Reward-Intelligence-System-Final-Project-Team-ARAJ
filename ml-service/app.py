@@ -48,6 +48,8 @@ def classify_route():
     data = request.get_json() or {}
     items_text = data.get("items_text", "")
     merchant = data.get("merchant", "")
+    if not items_text and not merchant:
+        return jsonify({"error": "items_text or merchant is required"}), 400
     result = classifier.predict(items_text, merchant)
     return jsonify(result)
 
@@ -57,7 +59,10 @@ def fraud_score_route():
     data = request.get_json() or {}
     image_path = data.get("image_path", "")
     metadata = data.get("metadata", {})
-    result = fraud.score(image_path, metadata)
+    known_hashes = data.get("known_hashes", [])
+    if not image_path:
+        return jsonify({"error": "image_path is required"}), 400
+    result = fraud.score(image_path, metadata, known_hashes)
     return jsonify(result)
 
 
