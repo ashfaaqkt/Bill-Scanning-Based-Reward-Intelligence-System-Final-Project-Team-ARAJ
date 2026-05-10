@@ -1,7 +1,14 @@
-// --- State Management ---
-let totalPoints = 0;
+/**
+ * Frontend Logic — Team ARAJ (Ashfaaq Feroz)
+ * Handles auth, receipt upload, reward claiming, history, and analytics.
+ * Vanilla JS — no framework. Communicates with backend via fetch().
+ */
 
-// --- DOM Elements ---
+// ── APP STATE ──────────────────────────────────────────────────
+let totalPoints = 0;  // In-memory points balance, synced from /api/user
+
+// ── DOM ELEMENT REFERENCES ─────────────────────────────────────
+// Stepper progress indicators (Upload → Extract → Process → Reward)
 const stepUpload = document.getElementById('step-upload');
 const stepExtract = document.getElementById('step-extract');
 const stepProcess = document.getElementById('step-process');
@@ -132,6 +139,8 @@ let currentStepIndex = 0;
 
 const STEP_SEQUENCE = [stepUpload, stepExtract, stepProcess, stepReward];
 
+// ── REWARD CATALOG DATA ────────────────────────────────────────
+// Static pool of vouchers and scratch cards shown in the claim modal
 const VOUCHER_POOL = [
     { icon: '🛒', title: 'BigBasket Voucher', offer: 'Flat ₹150 OFF on groceries' },
     { icon: '🍕', title: 'Domino\'s Voucher', offer: 'Get ₹200 OFF on orders above ₹499' },
@@ -156,7 +165,9 @@ const SCRATCH_REWARD_POOL = [
     'Win Surprise Meal Coupon'
 ];
 
-// API Auth Headers helper
+// ── SHARED HELPERS ─────────────────────────────────────────────
+
+// Builds Authorization header from JWT stored in localStorage
 function getAuthHeaders() {
     const token = localStorage.getItem('token');
     return {
@@ -194,6 +205,9 @@ function randomIntBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// ── CLAIM MODAL — CATALOG & RENDERING ─────────────────────────
+
+// Shuffles and combines 9 vouchers + 3 scratch cards into a randomised catalog
 function generateClaimCatalog() {
     const vouchers = [];
     const shuffledVouchers = shuffleArray(VOUCHER_POOL);
@@ -313,6 +327,9 @@ function getScratchRevealRatio(ctx, width, height) {
     return sampledPixels ? transparentPixels / sampledPixels : 0;
 }
 
+// ── SCRATCH CARD CANVAS ────────────────────────────────────────
+// Draws a grey overlay on a <canvas>; pointer events erase it to reveal the reward
+// Tracks reveal ratio — card is "scratched" once 42% of pixels are cleared
 function setupScratchCard(card, retries = 0) {
     if (!card) return;
     const shell = card.querySelector('[data-scratch-shell]');
@@ -799,6 +816,8 @@ async function claimRewardFromCard(card, buttonEl) {
     }
 }
 
+// ── AUTH STATE MANAGEMENT ──────────────────────────────────────
+// Checks localStorage for a JWT; shows app or landing page accordingly
 function checkAuth() {
     const token = localStorage.getItem('token');
     if (token || currentUserName === 'Guest Explorer') {
@@ -827,7 +846,8 @@ function checkAuth() {
     }
 }
 
-// --- Initialization ---
+// ── INITIALISATION ─────────────────────────────────────────────
+// On page load: check auth state and start hero typing animation
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     startHeroTyping();
@@ -862,7 +882,8 @@ function startHeroTyping() {
     typeNext();
 }
 
-// --- Auth Logic ---
+// ── AUTH MODAL & FORM ──────────────────────────────────────────
+// Handles login/signup form toggle, form submit, and JWT storage
 
 function setAuthMode(loginMode) {
     isLoginMode = loginMode;
@@ -1102,6 +1123,8 @@ btnLogout.addEventListener('click', async () => {
     checkAuth();
 });
 
+// ── POINTS SYNC ────────────────────────────────────────────────
+// Fetches live point balance from /api/user and updates all displays
 async function fetchTotalPoints() {
     try {
         const response = await fetch('/api/user', { headers: getAuthHeaders() });
@@ -1124,8 +1147,9 @@ async function fetchTotalPoints() {
     }
 }
 
-// --- Utility Functions ---
+// ── STEPPER & STAGE HELPERS ────────────────────────────────────
 
+// Advances the 4-step progress bar (Upload → Extract → Process → Reward)
 function activateStep(stepEl) {
     const nextIndex = STEP_SEQUENCE.indexOf(stepEl);
     if (nextIndex === -1) return;
@@ -1176,9 +1200,10 @@ function showStage(stageEl) {
 // Format currency
 const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
-// --- Core Logic ---
+// ── RECEIPT UPLOAD PIPELINE ────────────────────────────────────
+// File input / drag-drop → base64 encode → POST /api/upload → show results
 
-// 1. Upload Handler
+// 1. Upload Handler — wires file input and drag-and-drop zone to handleUpload()
 fileInput.addEventListener('change', handleUpload);
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -1285,7 +1310,7 @@ async function handleUpload() {
     reader.readAsDataURL(file);
 }
 
-// 2. Process Data
+// 2. Process Data — populates result fields and advances to Reward step
 function processReceiptData(receiptData) {
     activateStep(stepProcess);
 
@@ -1352,6 +1377,8 @@ function resetUI() {
     showStage(stageUpload);
 }
 
+// ── SCAN HISTORY ───────────────────────────────────────────────
+// Fetches /api/history, renders table rows, and wires the search/filter inputs
 async function loadScanHistory() {
     historyLoading.style.display = 'block';
     historyTable.style.display = 'none';
@@ -1602,7 +1629,8 @@ claimCardsGrid.addEventListener('click', async (e) => {
     }
 });
 
-// History Search & Filter Logic
+// ── HISTORY SEARCH & FILTER ─────────────────────────────────────
+// Client-side text search + category dropdown applied to the rendered table rows
 const historySearchInput = document.getElementById('history-search');
 const historyCategoryFilter = document.getElementById('history-category-filter');
 
