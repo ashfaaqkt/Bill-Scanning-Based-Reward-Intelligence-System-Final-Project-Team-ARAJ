@@ -1,18 +1,26 @@
+/**
+ * Backend Server — Team ARAJ (Ashfaaq Feroz)
+ * Node.js / Express REST API connecting the frontend, Firestore, Gemini AI, and ML microservice.
+ * Handles auth, receipt OCR pipeline, reward calculation, fraud scoring, and analytics.
+ */
+
+// ── DEPENDENCIES ───────────────────────────────────────────────
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { GoogleGenAI } = require('@google/genai');
-const admin = require('firebase-admin');
+const axios = require('axios');          // HTTP client for calling ML microservice
+const jwt = require('jsonwebtoken');     // JWT creation and verification
+const bcrypt = require('bcrypt');        // Password hashing (salt rounds = 10)
+const { GoogleGenAI } = require('@google/genai');  // Gemini AI SDK
+const admin = require('firebase-admin');            // Firestore database access
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
+// ── CONSTANTS ──────────────────────────────────────────────────
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';  // Python Flask ML service
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'serviceAccountKey.json');
-const SUPPORTED_IMAGE_MIME_TYPES = new Set([
+const SUPPORTED_IMAGE_MIME_TYPES = new Set([  // Receipt image formats accepted at upload
     'image/jpeg',
     'image/jpg',
     'image/png',
@@ -21,6 +29,8 @@ const SUPPORTED_IMAGE_MIME_TYPES = new Set([
     'image/heif'
 ]);
 
+// ── FIREBASE INITIALISATION ────────────────────────────────────
+// Connects to live Firestore using serviceAccountKey.json or env credentials (CI/cloud)
 function initializeFirebaseAdmin() {
     if (admin.apps.length > 0) return;
 
@@ -42,10 +52,14 @@ function initializeFirebaseAdmin() {
     console.log("✅ Authenticated securely with Live Firebase Firestore.");
 }
 
+// ── UTILITY HELPERS ────────────────────────────────────────────
+
+// Trims and lowercases email for consistent Firestore queries
 function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
+// Validates a base64 string (used to reject malformed image payloads)
 function isValidBase64String(value) {
     return typeof value === 'string'
         && value.length > 0
@@ -53,6 +67,7 @@ function isValidBase64String(value) {
         && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
 }
 
+// Checks magic bytes in the image buffer to confirm mimeType matches actual file content
 function looksLikeExpectedImageType(imageBuffer, mimeType) {
     if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
         return imageBuffer.length > 3
@@ -162,6 +177,7 @@ function validateReceiptFields(data) {
     return errors;
 }
 
+// Generates a random 12-digit numeric code displayed to the user after claiming a reward
 function generateClaimCode() {
     let code = "";
     for (let i = 0; i < 12; i += 1) {
@@ -182,7 +198,8 @@ app.use(express.static(path.join(__dirname, '../frontend/public')));
 const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_bits_pilani_123';
 
-// Auth Middleware
+// ── AUTH MIDDLEWARE ────────────────────────────────────────────
+// Verifies JWT from Authorization: Bearer <token> header on every protected route
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -195,7 +212,9 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// Logic Helper - Validates Reward Engine (FR Requirement)
+// ── REWARD ENGINE ──────────────────────────────────────────────
+// Points formula: ₹100 = 1 base pt → multiplied by category, tier, and streak bonuses
+// Grocery +20% | Food & Beverage +50% | Premium tier +50% | Streak +30%
 function calculateRewards(totalAmount, category, isStreak = false, tier = "Standard") {
     let points = 0;
     let logicText = "";
@@ -223,7 +242,7 @@ function calculateRewards(totalAmount, category, isStreak = false, tier = "Stand
     return { points, logicText };
 }
 
-// Ensure user node exists physically in Firestore
+// Creates a user document in Firestore if it doesn't exist, then returns its ref
 async function ensureUserExists(userId) {
     if (!userId) throw new Error("userId missing in ensureUserExists");
     const userRef = db.collection('Users').doc(userId);
@@ -239,8 +258,9 @@ async function ensureUserExists(userId) {
     return userRef;
 }
 
-// --- APIs ---
+// ── API ROUTES ─────────────────────────────────────────────────
 
+// POST /api/signup — creates new user, hashes password with bcrypt, returns 24h JWT
 app.post('/api/signup', async (req, res) => {
     try {
         const { email, password, name } = req.body || {};
@@ -270,6 +290,7 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
+// POST /api/login — verifies bcrypt password hash, returns JWT + user name
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body || {};
@@ -293,6 +314,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// GET /api/user — returns current point balance and display name (auth required)
 app.get('/api/user', authenticateToken, async (req, res) => {
     try {
         const userRef = await ensureUserExists(req.userId);
@@ -304,6 +326,8 @@ app.get('/api/user', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/history — returns all receipts scanned by this user, sorted newest-first
+// Sorted client-side to avoid requiring a Firestore composite index
 app.get('/api/history', authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection('Receipts')
@@ -334,6 +358,7 @@ app.get('/api/history', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/receipt/:id — returns single receipt + its line items; enforces ownership check
 app.get('/api/receipt/:id', authenticateToken, async (req, res) => {
     try {
         const receiptId = String(req.params.id || '').trim();
@@ -378,6 +403,7 @@ app.get('/api/receipt/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/analytics — aggregates all receipts into spend summary + category chart + insights
 app.get('/api/analytics', authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection('Receipts')
@@ -478,6 +504,7 @@ app.get('/api/analytics', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/claimed-rewards — returns all vouchers and scratch cards claimed by this user
 app.get('/api/claimed-rewards', authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection('Claimed_Rewards')
@@ -506,6 +533,8 @@ app.get('/api/claimed-rewards', authenticateToken, async (req, res) => {
     }
 });
 
+// POST /api/claim-reward — atomic Firestore transaction: deducts points + writes claim record
+// Throws INSUFFICIENT_POINTS if user balance is too low
 app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     try {
         const { type, title, offer, reward, requiredPoints } = req.body || {};
@@ -579,6 +608,8 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     }
 });
 
+// ── GEMINI RATE LIMITER (Backend) ─────────────────────────────
+// Mirrors the ML service rate limiter; enforces 22s gap between Gemini API calls
 let lastGeminiRequestTime = 0;
 const GEMINI_RATE_LIMIT_MS = 22000; // 22s gap — safe margin within 5 RPM free tier
 
@@ -596,6 +627,14 @@ function generateReceiptFingerprint(merchant, date, total) {
     return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+// POST /api/upload — the core receipt pipeline:
+//  1. Validate base64 image + MIME type
+//  2. Rate-limit gate → Gemini AI OCR extraction
+//  3. Sanitise currency + validate required fields
+//  4. Per-user and cross-user duplicate fingerprint check
+//  5. Calculate reward points (category × tier × streak multipliers)
+//  6. Write to Firestore: Receipts, Receipt_Items, Merchants, Consent_Logs, Fraud_Scores
+//  7. Call ML microservice for fraud scoring (async fallback if unreachable)
 app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
         if (!req.body || !req.body.receipt) {

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Generate tampered receipt images by adding handwritten-style overlays.
+Tampered Receipt Generator — Dataset Tool
+Adds realistic handwritten-style text overlays to genuine receipt images
+to create labelled tampered samples for training the fraud CNN (Notebook 03).
 
-Example:
+Usage:
     python dataset/generate_tampered.py \
       --input dataset/genuine \
       --output-dir dataset/tampered \
@@ -18,14 +20,20 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+# ── CONSTANTS ──────────────────────────────────────────────────
 
+# Supported input image formats
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
+
+# System font candidates — tries each in order; falls back to PIL default
 FONT_CANDIDATES = [
     "/System/Library/Fonts/Supplemental/Bradley Hand Bold.ttf",
     "/System/Library/Fonts/Supplemental/Chalkboard.ttc",
     "/System/Library/Fonts/Supplemental/Noteworthy.ttc",
     "/Library/Fonts/Arial.ttf",
 ]
+
+# Random handwritten phrases overlaid on receipts to simulate tampering
 OVERLAY_PHRASES = [
     "Paid cash",
     "Bill corrected",
@@ -37,6 +45,7 @@ OVERLAY_PHRASES = [
 ]
 
 
+# ── CLI ARGUMENT PARSER ────────────────────────────────────────
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Create handwritten-overlay tampered versions of receipt images."
@@ -72,6 +81,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# ── FONT LOADER ────────────────────────────────────────────────
+# Tries candidate fonts in order; falls back to PIL built-in default
 def load_font(size: int) -> ImageFont.ImageFont:
     for font_path in FONT_CANDIDATES:
         if Path(font_path).exists():
@@ -82,6 +93,8 @@ def load_font(size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+# ── IMAGE DISCOVERY ────────────────────────────────────────────
+# Returns list of image paths from a file or directory; applies max_images cap
 def discover_images(input_path: Path, max_images: int) -> list[Path]:
     if input_path.is_file():
         if input_path.suffix.lower() not in IMAGE_EXTENSIONS:
@@ -101,6 +114,9 @@ def discover_images(input_path: Path, max_images: int) -> list[Path]:
     return images
 
 
+# ── RANDOM AMOUNT / OVERLAY LINE BUILDERS ─────────────────────
+
+# Generates a random currency amount string like "₹ 249.50" or "+199.99"
 def random_amount(rng: random.Random) -> str:
     value = rng.randint(10, 499) + rng.choice([0.0, 0.5, 0.99])
     prefix = rng.choice(["+", "-", "Rs", "₹"])
@@ -108,7 +124,7 @@ def random_amount(rng: random.Random) -> str:
         return f"{prefix} {value:.2f}"
     return f"{prefix}{value:.2f}"
 
-
+# Builds 1–3 overlay text lines (phrase + optional amount + optional date)
 def build_overlay_lines(rng: random.Random) -> list[str]:
     lines = [rng.choice(OVERLAY_PHRASES)]
     if rng.random() > 0.5:
@@ -118,6 +134,8 @@ def build_overlay_lines(rng: random.Random) -> list[str]:
     return lines
 
 
+# ── HANDWRITING OVERLAY RENDERER ──────────────────────────────
+# Draws jittered, rotated text on a transparent RGBA layer and composites it over the receipt
 def draw_handwritten_overlay(image: Image.Image, rng: random.Random) -> Image.Image:
     base = image.convert("RGBA")
     width, height = base.size
@@ -140,12 +158,13 @@ def draw_handwritten_overlay(image: Image.Image, rng: random.Random) -> Image.Im
         scratch = Image.new("RGBA", (max(120, int(width * 0.45)), font_size + pad), (0, 0, 0, 0))
         draw = ImageDraw.Draw(scratch)
 
-        # Draw text multiple times with slight jitter for a rough handwritten look.
+        # Draw text 2–3 times with slight pixel jitter for a rough handwritten look
         for _ in range(rng.randint(2, 3)):
             jitter_x = rng.randint(-1, 1)
             jitter_y = rng.randint(-1, 1)
             draw.text((10 + jitter_x, 5 + jitter_y), line, font=font, fill=color)
 
+        # Rotate the text layer slightly and paste onto the overlay
         rotated = scratch.rotate(rng.uniform(-11, 11), expand=True, resample=Image.Resampling.BICUBIC)
         x = max(0, min(width - rotated.width, x_base + rng.randint(-35, 20)))
         y = max(0, min(height - rotated.height, y_cursor + rng.randint(-8, 10)))
@@ -156,6 +175,8 @@ def draw_handwritten_overlay(image: Image.Image, rng: random.Random) -> Image.Im
     return combined
 
 
+# ── OUTPUT PATH BUILDER ────────────────────────────────────────
+# Appends _tampered (or _tampered_01, _02…) suffix to the original filename
 def output_path_for(input_file: Path, output_dir: Path, variant: int, count: int) -> Path:
     suffix = input_file.suffix.lower() if input_file.suffix else ".jpg"
     if count == 1:
@@ -165,6 +186,8 @@ def output_path_for(input_file: Path, output_dir: Path, variant: int, count: int
     return output_dir / name
 
 
+# ── MAIN BATCH RUNNER ──────────────────────────────────────────
+# Iterates over discovered images, applies overlay, saves tampered versions
 def run(input_path: Path, output_dir: Path, count: int, max_images: int, seed: int | None) -> int:
     rng = random.Random(seed)
     images = discover_images(input_path, max_images=max_images)
@@ -188,6 +211,7 @@ def run(input_path: Path, output_dir: Path, count: int, max_images: int, seed: i
     return generated
 
 
+# ── ENTRY POINT ────────────────────────────────────────────────
 def main() -> int:
     args = parse_args()
     input_path = Path(args.input).expanduser().resolve()
