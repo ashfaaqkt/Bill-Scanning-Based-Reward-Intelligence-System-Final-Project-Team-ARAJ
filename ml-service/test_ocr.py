@@ -1,23 +1,31 @@
+"""
+OCR Batch Test Harness — Team ARAJ
+Runs extract_receipt_data() on every image in dataset/test_bills/ and saves results.
+Matches server.js fingerprint logic to detect and skip duplicate receipts.
+"""
+
 import os
 import json
 import hashlib
 from ocr import extract_receipt_data
 
-TEST_BILLS_DIR = "../dataset/test_bills"
-RESULTS_FILE = "ocr_test_results.json"
+# ── CONFIG ─────────────────────────────────────────────────────
+TEST_BILLS_DIR = "../dataset/test_bills"   # Input: test bill images
+RESULTS_FILE = "ocr_test_results.json"     # Output: extraction results + metadata
 
 
+# ── FINGERPRINT HELPER ─────────────────────────────────────────
+# Mirrors server.js generateReceiptFingerprint — must stay in sync
 def generate_receipt_fingerprint(merchant, date, total):
-    """
-    Deterministic fingerprint matching the same logic used in server.js.
-    merchant|date|total(2dp) → SHA-256 hex digest.
-    """
+    """SHA-256 of 'merchant|date|total(2dp)' — uniquely identifies a physical receipt."""
     raw = f"{str(merchant).strip().lower()}|{str(date).strip()}|{float(total):.2f}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+# ── DEDUPLICATION LOADER ───────────────────────────────────────
+# Reads previously saved results so already-processed receipts are skipped
 def load_existing_fingerprints():
-    """Load fingerprints already recorded in the results file to avoid reprocessing."""
+    """Returns a set of fingerprints from the last saved results file."""
     if not os.path.exists(RESULTS_FILE):
         return set()
     try:
@@ -34,6 +42,8 @@ def load_existing_fingerprints():
         return set()
 
 
+# ── MAIN TEST RUNNER ───────────────────────────────────────────
+# Iterates over test images, calls OCR, deduplicates, and writes JSON results
 def run_test():
     if not os.path.exists(TEST_BILLS_DIR):
         print(f"[ERROR] Directory not found: {TEST_BILLS_DIR}")
