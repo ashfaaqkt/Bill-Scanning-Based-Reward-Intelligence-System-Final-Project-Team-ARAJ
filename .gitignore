@@ -31,10 +31,21 @@ notebooks/.ipynb_checkpoints/
 dataset/genuine/
 dataset/tampered/
 dataset/indian/
+dataset/test_bills/
 !dataset/genuine/.gitkeep
 !dataset/tampered/.gitkeep
 !dataset/indian/.gitkeep
+!dataset/test_bills/.gitkeep
 !dataset/processed/*.csv
+
+# Raw images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.webp
 
 # OS
 .DS_Store

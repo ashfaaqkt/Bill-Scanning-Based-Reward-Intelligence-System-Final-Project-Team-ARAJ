@@ -1,0 +1,150 @@
+{
+    "metadata": {
+        "status": "COMPLETED",
+        "total_images": 5,
+        "processed_count": 5,
+        "failure_reason": null
+    },
+    "data": {
+        "test bill 1.jpg": {
+            "rawMerchant": "ISHAN TRADERS",
+            "date": "2026-04-13",
+            "total": 4817,
+            "category": "General Retail",
+            "items": [
+                {
+                    "name": "3/4 CPVC B. FTA",
+                    "price": 300
+                },
+                {
+                    "name": "3/4 CPVC Socket",
+                    "price": 28
+                },
+                {
+                    "name": "3/4 CPVC Tee",
+                    "price": 75
+                },
+                {
+                    "name": "3/4 CPVC B. MTA",
+                    "price": 90
+                },
+                {
+                    "name": "A/C Paras",
+                    "price": 1350
+                },
+                {
+                    "name": "12\" C-Chrom",
+                    "price": 60
+                },
+                {
+                    "name": "Table Top",
+                    "price": 60
+                },
+                {
+                    "name": "3/4 CPVC Elb",
+                    "price": 120
+                },
+                {
+                    "name": "Sink Mix Paras",
+                    "price": 2600
+                },
+                {
+                    "name": "5x3 Gi Box",
+                    "price": 45
+                },
+                {
+                    "name": "20mm Conduit Pipe",
+                    "price": 40
+                },
+                {
+                    "name": "Conduit Bush",
+                    "price": 6
+                },
+                {
+                    "name": "25mm S-S Clip",
+                    "price": 10
+                },
+                {
+                    "name": "Saddle",
+                    "price": 5
+                },
+                {
+                    "name": "3/4 CPVC Clip",
+                    "price": 28
+                }
+            ]
+        },
+        "test bill 2.jpg": {
+            "rawMerchant": "Nammo Tandoori Chai - WTP",
+            "date": "2024-04-15",
+            "total": 200.0,
+            "category": "Food & Beverage",
+            "items": [
+                {
+                    "name": "Kulhad Adrak Chai",
+                    "price": 200.0
+                }
+            ]
+        },
+        "test bill 3.jpg": {
+            "rawMerchant": "VASANSI JAIPUR PVT LTD",
+            "date": "2026-04-19",
+            "total": 1650.0,
+            "category": "General Retail",
+            "items": [
+                {
+                    "name": "TPA-0462",
+                    "price": 1650.0
+                }
+            ]
+        },
+        "test bill 4.jpg": {
+            "rawMerchant": "zudio",
+            "date": "2026-04-15",
+            "total": 3008.0,
+            "category": "General Retail",
+            "items": [
+                {
+                    "name": "WESTERN DENIM DENIM STATEMENT",
+                    "price": 899.0
+                },
+                {
+                    "name": "Women wear Denim Fashion",
+                    "price": 899.0
+                },
+                {
+                    "name": "Women wear T-Shirt Table",
+                    "price": 299.0
+                },
+                {
+                    "name": "Women wear Denim Fashion",
+                    "price": 899.0
+                },
+                {
+                    "name": "Westside Consumables",
+                    "price": 12.0
+                }
+            ]
+        },
+        "test bill 5.png": {
+            "rawMerchant": "FirstCry",
+            "date": "2026-04-25",
+            "total": 575.85,
+            "category": "General Retail",
+            "items": [
+                {
+                    "name": "Babyhug Advanced Pant Style Diapers Large (L) Size - 64 Pieces",
+                    "price": 564.97
+                },
+                {
+                    "name": "Shipping+Conveyance Charges",
+                    "price": 6.97
+                },
+                {
+                    "name": "COD Charges (Inclusive of all taxes)",
+                    "price": 3.92
+                }
+            ]
+        }
+    }
+}

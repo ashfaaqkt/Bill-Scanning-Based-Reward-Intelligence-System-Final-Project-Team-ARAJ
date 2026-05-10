@@ -1,0 +1,26 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="receiptGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#5ba3e8" />
+            <stop offset="100%" style="stop-color:#2d6bb5" />
+        </linearGradient>
+        <filter id="cartoonShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-opacity="0.2" />
+        </filter>
+    </defs>
+    <rect x="8" y="4" width="48" height="56" rx="6" ry="6" fill="url(#receiptGrad)"
+        filter="url(#cartoonShadow)" />
+    <rect x="8" y="4" width="48" height="56" rx="6" ry="6" fill="none"
+        stroke="rgba(255,255,255,0.5)" stroke-width="2" />
+    <line x1="14" y1="14" x2="50" y2="14" stroke="rgba(255,255,255,0.7)" stroke-width="2"
+        stroke-linecap="round" />
+    <line x1="14" y1="22" x2="42" y2="22" stroke="rgba(255,255,255,0.5)" stroke-width="2"
+        stroke-linecap="round" />
+    <line x1="14" y1="30" x2="46" y2="30" stroke="rgba(255,255,255,0.5)" stroke-width="2"
+        stroke-linecap="round" />
+    <line x1="14" y1="38" x2="38" y2="38" stroke="rgba(255,255,255,0.5)" stroke-width="2"
+        stroke-linecap="round" />
+    <circle cx="48" cy="48" r="6" fill="#ffd93d" stroke="rgba(0,0,0,0.15)" stroke-width="1" />
+    <path d="M46 46 Q48 48 50 46" stroke="rgba(0,0,0,0.25)" stroke-width="1.5" fill="none"
+        stroke-linecap="round" />
+</svg>
