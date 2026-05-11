@@ -43,8 +43,8 @@ def ocr_route():
 
     result = ocr.extract_receipt_data(image_path)
 
-    if result.get("error") == "unreadable":
-        return jsonify(result), 422  # Image rejected due to blur or multi-bill
+    if result.get("error") in ("unreadable", "multi_bill_detected"):
+        return jsonify(result), 422  # Image rejected due to blur or multiple receipts detected
 
     return jsonify(result)
 
