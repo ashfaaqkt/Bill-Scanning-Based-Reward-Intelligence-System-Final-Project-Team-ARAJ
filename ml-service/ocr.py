@@ -50,6 +50,48 @@ RECEIPT_PROMPT = (
     "}"
 )
 
+# ── HANDWRITING DENSITY ANOMALY DETECTOR ──────────────────────
+# Printed receipts have roughly uniform text density across horizontal bands.
+# A localised spike (e.g. a hand-scrawled price change) shows up as an outlier band.
+def _detect_density_anomaly(image_path):
+    """
+    Splits image into 10 horizontal bands, computes dark-pixel density per band.
+    Returns (anomaly_detected: bool, confidence: float 0–1).
+    Confidence is 0 if no outlier band exceeds 3× the mean density.
+    """
+    try:
+        img = cv2.imread(image_path)
+        if img is None:
+            return False, 0.0
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+
+        h, w = thresh.shape
+        band_h = max(1, h // 10)
+        densities = []
+        for i in range(10):
+            band = thresh[i * band_h: (i + 1) * band_h, :]
+            densities.append(band.sum() / (band.size * 255))
+
+        avg = sum(densities) / len(densities) if densities else 0
+        if avg == 0:
+            return False, 0.0
+
+        outliers = [d for d in densities if d > avg * 3.0 and d > 0.15]
+        if not outliers:
+            return False, 0.0
+
+        # Map outlier ratio to 0–1 confidence: 3× avg → 0, 10× avg → 1
+        max_ratio = max(outliers) / avg
+        confidence = round(min(1.0, (max_ratio - 3.0) / 7.0), 2)
+        return True, confidence
+
+    except Exception as e:
+        print(f"[WARN] Density anomaly check failed: {e}")
+        return False, 0.0
+
+
 # ── MAIN EXTRACTION FUNCTION ───────────────────────────────────
 def extract_receipt_data(image_path):
     """
@@ -112,6 +154,17 @@ def extract_receipt_data(image_path):
                         result["handwritten_flag"] = False
                     if "handwritten_details" not in result:
                         result["handwritten_details"] = None
+
+                    # Programmatic density anomaly check supplements Gemini's judgment.
+                    # Catches localised handwritten edits Gemini may miss or under-flag.
+                    density_hit, density_conf = _detect_density_anomaly(image_path)
+                    if density_hit:
+                        result["handwritten_flag"] = True
+                        tag = f"density_anomaly(confidence={density_conf})"
+                        existing = result.get("handwritten_details") or ""
+                        result["handwritten_details"] = (
+                            f"{existing} [{tag}]".strip() if existing else tag
+                        )
 
                 return result
 
