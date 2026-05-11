@@ -63,16 +63,14 @@ def classify_route():
 
 
 # ── FRAUD SCORER ───────────────────────────────────────────────
-# POST { image_path, metadata } → returns { fraud_score 0–1, signals dict }
+# POST { ocr_result, known_hashes? } → returns { fraud_score 0–1, signals dict }
+# ocr_result is the Gemini OCR JSON (may contain error, reason, handwritten_flag fields)
 @app.route("/ml/fraud-score", methods=["POST"])
 def fraud_score_route():
     data = request.get_json() or {}
-    image_path = data.get("image_path", "")
-    metadata = data.get("metadata", {})
+    ocr_result = data.get("ocr_result", {})
     known_hashes = data.get("known_hashes", [])
-    if not image_path:
-        return jsonify({"error": "image_path is required"}), 400
-    result = fraud.score(image_path, metadata, known_hashes)
+    result = fraud.score("", ocr_result, known_hashes)
     return jsonify(result)
 
 
