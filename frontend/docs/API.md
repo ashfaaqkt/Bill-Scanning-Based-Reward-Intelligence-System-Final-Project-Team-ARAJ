@@ -6,23 +6,30 @@
 
 | Method | Route | Description |
 |---|---|---|
-| POST | /auth/register | Register new user |
-| POST | /auth/login | Login, returns JWT |
+| POST | /api/signup | Register new user, returns JWT |
+| POST | /api/login | Login, returns JWT + display name |
 
 ### Receipts
 
 | Method | Route | Description |
 |---|---|---|
-| POST | /upload | Upload receipt image, triggers OCR + ML pipeline |
-| GET | /receipts | List receipts for authenticated user |
-| GET | /receipts/:id | Get single receipt details |
+| POST | /api/upload | Upload receipt image — triggers OCR + ML pipeline |
+| GET | /api/history | List all receipts for authenticated user (newest first) |
+| GET | /api/receipt/:id | Get single receipt + line items |
+
+### User
+
+| Method | Route | Description |
+|---|---|---|
+| GET | /api/user | Returns current point balance and display name |
+| GET | /api/analytics | Aggregated spend summary, category chart, insights |
 
 ### Rewards
 
 | Method | Route | Description |
 |---|---|---|
-| GET | /rewards | Get reward recommendations for user |
-| GET | /rewards/history | Get past reward events |
+| GET | /api/claimed-rewards | List all claimed vouchers and scratch cards |
+| POST | /api/claim-reward | Claim a reward (atomic point deduction) |
 
 ---
 
@@ -38,11 +45,12 @@
 
 | Method | Route | Owner | Description |
 |---|---|---|---|
-| POST | /ml/classify | Arpan | Classify receipt category |
-| POST | /ml/fraud-score | Ranjeet | Return fraud probability score |
-| POST | /ml/anomaly | Ranjeet | Detect spending anomalies |
-| POST | /ml/update-profile | Arpan | Update user interest vector |
-| POST | /ml/recommend | Arpan | Return ranked reward recommendations |
+| POST | /ml/ocr | Ashfaaq | Extract structured data from receipt image |
+| POST | /ml/classify | Arpan | Classify receipt spend category |
+| POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals |
+| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts |
+| POST | /ml/update-profile | Arpan | Update user spend interest vector |
+| POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations |
 
 ### Example: POST /ml/classify
 
@@ -53,19 +61,19 @@ Request:
 
 Response:
 ```json
-{ "category": "Groceries", "confidence": 0.91 }
+{ "category": "Supermarket / Grocery", "confidence": 0.91, "model_ready": true }
 ```
 
 ### Example: POST /ml/fraud-score
 
 Request:
 ```json
-{ "image_path": "uploads/receipt_001.jpg", "metadata": { "total": 450.00 } }
+{ "ocr_result": { "handwritten_flag": true, "error": null } }
 ```
 
 Response:
 ```json
-{ "fraud_score": 0.12, "signals": { "blur": false, "duplicate": false, "tamper": false } }
+{ "fraud_score": 0.35, "signals": { "blur": false, "duplicate": false, "tamper": true, "handwritten": true, "multi_bill": false } }
 ```
 
 ---
