@@ -937,12 +937,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         let riskLevel = "Low";
         try {
             const fraudRes = await axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
-                receipt_id: newReceiptRef.id,
-                metadata: {
-                    total: total,
-                    merchant: receiptData.rawMerchant,
-                    date: receiptData.date
-                }
+                ocr_result: receiptData
             });
             if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
                 fraudScore = fraudRes.data.fraud_score;

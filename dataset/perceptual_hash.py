@@ -4,8 +4,8 @@ Compute perceptual hash (pHash) similarity between two receipt images.
 
 Example:
     python dataset/perceptual_hash.py \
-      --image-a dataset/indian/jyoti_50_raw/Receipt\ 1.jpg \
-      --image-b dataset/tampered/Receipt\ 1_tampered.jpg
+      --image-a "dataset/indian/jyoti_50_raw/Receipt 1.jpg" \
+      --image-b "dataset/tampered/Receipt 1_tampered.jpg"
 """
 
 from __future__ import annotations
