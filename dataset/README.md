@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | CORD (Clova OCR) | ~1000 | Arpan | `dataset/genuine/` | ⚠️ NOT YET uploaded to Drive |
 | SROIE (ICDAR 2019) | ~973 | Arpan | `dataset/genuine/` | ⚠️ NOT YET uploaded to Drive |
-| Indian receipts (Jyoti raw) | 50 | Jyoti | `dataset/indian/` | ⚠️ NOT YET uploaded to Drive |
+| Indian receipts (Jyoti raw) | 50 | Jyoti | `dataset/indian/` | ✅ Uploaded to Drive |
 | Tampered (generated) | 101 images | Ranjeet | `dataset/tampered/` | ⚠️ NOT YET uploaded to Drive |
 | Test bills | 5 | Ashfaaq | `dataset/test_bills/` | ✅ In repo (used for OCR testing) |
 
