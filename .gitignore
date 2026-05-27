@@ -63,3 +63,6 @@ temp/
 # Git hooks (local only)
 .githooks/
 .idea/
+
+# Local AI assistant context — never commit
+CLAUDE.md
