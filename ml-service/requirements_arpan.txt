@@ -1,0 +1,28 @@
+# Fake Receipt Detection System - Requirements
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+opencv-python>=4.8.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# OCR
+pytesseract>=0.3.10
+
+# Image processing
+Pillow>=10.0.0
+
+# Data handling
+pandas>=2.0.0
+
+# For CORD/SROIE dataset handling
+tqdm>=4.65.0
+
+# Optional: Deep learning for advanced detection
+# tensorflow>=2.13.0
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# Optional: For visualization
+# matplotlib>=3.7.0
+# seaborn>=0.12.0
