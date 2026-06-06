@@ -53,7 +53,7 @@ class GeometricAnalyzer:
     def __init__(self,image):self.image=image;self.gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
     def analyze(self):
         r={'score':0,'flags':[],'details':{}};edges=cv2.Canny(self.gray,50,150);lines=cv2.HoughLines(edges,1,np.pi/180,100)
-        if lines and len(lines)>=4:angles=[l[0][1]*180/np.pi for l in lines];h,_=np.histogram(angles,bins=36,range=(0,180));dom=len(np.where(h>len(lines)*0.1)[0]);r['details']['persp']={'dom':dom,'sus':dom>5}
+        if lines is not None and len(lines)>=4:angles=[l[0][1]*180/np.pi for l in lines];h,_=np.histogram(angles,bins=36,range=(0,180));dom=len(np.where(h>len(lines)*0.1)[0]);r['details']['persp']={'dom':dom,'sus':dom>5}
         else:r['details']['persp']={'dom':0,'sus':False}
         _,bi=cv2.threshold(self.gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU);n,lb,st,_=cv2.connectedComponentsWithStats(bi,8)
         hts=[st[i,cv2.CC_STAT_HEIGHT]for i in range(1,n)if 20<st[i,cv2.CC_STAT_AREA]<5000]
