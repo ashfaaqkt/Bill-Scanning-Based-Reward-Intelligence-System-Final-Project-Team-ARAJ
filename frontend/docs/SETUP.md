@@ -26,7 +26,10 @@ npm install
 
 # Copy and fill in your environment variables
 cp .env.example .env
-# Edit .env with your Gemini API key, Firebase project ID, and JWT secret
+# Edit .env with your Firebase project ID and JWT secret.
+# NOTE: OCR now runs in the ML service, so the backend no longer needs GEMINI_API_KEY —
+# the Gemini key goes in ml-service/.env (see step 3). The backend forwards uploads to
+# /ml/ocr, so the ML service (step 3) MUST be running for /api/upload to work.
 
 # Place your Firebase service account JSON at:
 # backend/serviceAccountKey.json  (never commit this file)
@@ -45,8 +48,12 @@ python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
+# Create ml-service/.env with your Gemini key (ocr.py reads it):
+#   GEMINI_API_KEY=your_key_here
+
 python app.py
 # ML service runs on http://localhost:5001
+# Must be running before the backend can process /api/upload (OCR lives here).
 ```
 
 ---
@@ -65,9 +72,16 @@ npx serve .
 ## 5. Running Notebooks
 
 ```bash
+# (optional) regenerate the cleaned, train-ready CSVs first — no training happens here
+python dataset/prepare_dataset.py
+
 cd notebooks
 jupyter notebook
 ```
+
+`receipts_master.csv` is already populated (CORD + SROIE), so Notebooks 01, 02, 04, 05 run on
+the CSVs alone. Notebook 03 (fraud CNN) additionally needs the receipt **images** downloaded
+from Drive into `dataset/tampered/` and `dataset/indian/`. See `dataset/DATA_PREP.md`.
 
 ---
 
@@ -164,7 +178,7 @@ Each team member owns specific modules. Here's what each person should implement
 **Files to Work On:**
 - `dataset/` — Manage genuine, tampered, Indian receipt datasets
 - `dataset/processed/labels.csv` — Dataset labeling and validation
-- `docs/` — API.md, ARCHITECTURE.md, CONTRIBUTING.md
+- `frontend/docs/` — API.md, ARCHITECTURE.md, CONTRIBUTING.md
 - `notebooks/` — Jupyter notebooks for exploration and analysis
 
 **Key Implementation Tasks:**

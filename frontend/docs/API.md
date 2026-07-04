@@ -43,14 +43,34 @@
 
 ### ML Endpoints
 
-| Method | Route | Owner | Description |
-|---|---|---|---|
-| POST | /ml/ocr | Ashfaaq | Extract structured data from receipt image |
-| POST | /ml/classify | Arpan | Classify receipt spend category |
-| POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals |
-| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts |
-| POST | /ml/update-profile | Arpan | Update user spend interest vector |
-| POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations |
+| Method | Route | Owner | Description | Wired into `/api/upload`? |
+|---|---|---|---|---|
+| POST | /ml/ocr | Ashfaaq | Extract structured data from receipt image (Gemini, ocr.py) | ✅ yes |
+| POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals | ✅ yes |
+| POST | /ml/update-profile | Arpan | Update user spend interest vector | ✅ yes (fire-and-forget) |
+| POST | /ml/classify | Arpan | Classify receipt spend category | ❌ not yet (stub) |
+| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ❌ not yet (stub) |
+| POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations | ❌ not yet (stub) |
+
+### Example: POST /ml/ocr
+
+The backend sends the receipt as base64 (no shared filesystem). The CLI/tests may
+send `{ "image_path": "..." }` instead.
+
+Request:
+```json
+{ "image": "<base64-encoded-image>", "mimeType": "image/jpeg" }
+```
+
+Response (success):
+```json
+{ "rawMerchant": "Reliance Fresh", "date": "2026-04-15", "total": 157.50,
+  "category": "Supermarket / Grocery", "items": [{ "name": "Milk", "price": 50.0 }],
+  "handwritten_flag": false, "handwritten_details": null }
+```
+
+Rejections return HTTP 422 with `{ "error": "unreadable" }` (blur/unreadable) or
+`{ "error": "multi_bill_detected" }` (more than one receipt).
 
 ### Example: POST /ml/classify
 

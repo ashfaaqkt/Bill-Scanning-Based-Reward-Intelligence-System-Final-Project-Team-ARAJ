@@ -1,0 +1,773 @@
+user_id,category,merchant,amount,rating,is_synthetic
+synthetic_user_001,General Retail,CROSS CHANNEL NETWORK SDN. BHD.,7.95,3,1
+synthetic_user_001,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,12.20,3,1
+synthetic_user_001,General Retail,UNKNOWN,134.00,5,1
+synthetic_user_001,General Retail,UNKNOWN,38.00,3,1
+synthetic_user_001,General Retail,AEON CO. (M) BHD,31.00,5,1
+synthetic_user_001,General Retail,UNKNOWN,34000.00,5,1
+synthetic_user_001,General Retail,SYARIKAT PERNIAGAAN GIN KEE,11.13,3,1
+synthetic_user_002,Food & Beverage,UNKNOWN,261333.00,3,1
+synthetic_user_002,Food & Beverage,UNKNOWN,81000.00,3,1
+synthetic_user_002,Food & Beverage,ONE ONE THREE SEAFOOD RESTAURANT SDN BHD,59.00,4,1
+synthetic_user_002,Food & Beverage,BANH MI CAFE SDN BHD,23.25,3,1
+synthetic_user_002,Food & Beverage,UNKNOWN,79.20,5,1
+synthetic_user_002,Food & Beverage,UNKNOWN,25000.00,5,1
+synthetic_user_002,Food & Beverage,UNKNOWN,300300.00,4,1
+synthetic_user_002,Food & Beverage,UNKNOWN,25500.00,5,1
+synthetic_user_002,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,40.18,3,1
+synthetic_user_002,Supermarket / Grocery,99 SPEED MART S/B,42.35,3,1
+synthetic_user_002,Supermarket / Grocery,99 SPEED MART S/B,5.35,3,1
+synthetic_user_002,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,51.42,4,1
+synthetic_user_002,Food & Beverage,UNKNOWN,1303112.00,3,1
+synthetic_user_002,General Retail,CHEF LEE SDN BHD,96.20,4,1
+synthetic_user_002,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,51.42,3,1
+synthetic_user_003,General Retail,MR. D. I. Y. (KUCHAI) SDN BHD,11.90,4,1
+synthetic_user_003,General Retail,MR. D.I.Y. (M) SDN BHD,7.15,5,1
+synthetic_user_003,Supermarket / Grocery,GHEE HIANG GH DISTRIBUTOR & MARKETING SDN BHD,25.00,2,1
+synthetic_user_003,General Retail,UNKNOWN,48001.00,4,1
+synthetic_user_003,General Retail,UNKNOWN,31500.00,3,1
+synthetic_user_003,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,7.70,5,1
+synthetic_user_003,General Retail,WESTERN EASTERN ST TIONERY SDN. BHD,5.00,4,1
+synthetic_user_003,General Retail,KEDAI PAPAN YEW CHUAN,190.80,5,1
+synthetic_user_003,General Retail,YONGFATT ENTERPRISE,80.90,3,1
+synthetic_user_003,General Retail,TONYMOLY VIVA CITY,39.90,5,1
+synthetic_user_003,General Retail,BIRU PETROLEUM,6.40,4,1
+synthetic_user_003,Food & Beverage,RESTORAN HASSANBISTRO,15.00,2,1
+synthetic_user_003,Supermarket / Grocery,99 SPEED MART S/B,37.45,3,1
+synthetic_user_003,General Retail,UNKNOWN,94000.00,3,1
+synthetic_user_003,General Retail,UNKNOWN,36362.00,5,1
+synthetic_user_003,General Retail,UNKNOWN,1376500.00,4,1
+synthetic_user_003,General Retail,MY HAPPY PHARMACY PLT,20.50,5,1
+synthetic_user_004,Supermarket / Grocery,STAR GROCER SDN BHD,66.15,4,1
+synthetic_user_004,Food & Beverage,ONE ONE THREE SEAFOOD RESTAURANT SDN BHD,58.00,5,1
+synthetic_user_004,Food & Beverage,UNKNOWN,25500.00,4,1
+synthetic_user_004,Food & Beverage,UNKNOWN,580965.00,5,1
+synthetic_user_004,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,24.83,3,1
+synthetic_user_004,Food & Beverage,UNKNOWN,226500.00,5,1
+synthetic_user_004,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,35.88,5,1
+synthetic_user_004,Supermarket / Grocery,99 SPEED MART S/B,85.45,2,1
+synthetic_user_004,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,5.09,3,1
+synthetic_user_004,Food & Beverage,THE ROTI MAN BAKERY,20.40,3,1
+synthetic_user_004,Food & Beverage,RESTORAN HASSANBISTRO,15.00,4,1
+synthetic_user_004,Food & Beverage,UNKNOWN,87000.00,5,1
+synthetic_user_004,Supermarket / Grocery,99 SPEED MART S/B,3.30,2,1
+synthetic_user_004,General Retail,KFA SUPPLY,11.60,2,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,23.40,3,1
+synthetic_user_005,Supermarket / Grocery,YAM FRESH,8.35,3,1
+synthetic_user_005,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,34.40,2,1
+synthetic_user_005,Food & Beverage,GLOBAL FOOD EMPIRE SDN BHD,38.35,4,1
+synthetic_user_005,Supermarket / Grocery,DE LUXE CIRCLE FRESH MART SDN BHD,25.85,4,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,98.90,3,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,23.40,3,1
+synthetic_user_005,Supermarket / Grocery,UNKNOWN,5580055834.00,3,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,42.35,3,1
+synthetic_user_005,Food & Beverage,UNKNOWN,43890.00,4,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,3.30,3,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,27.90,5,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,14.20,4,1
+synthetic_user_005,Supermarket / Grocery,99 SPEED MART S/B,5.35,5,1
+synthetic_user_005,Supermarket / Grocery,YAM FRESH,8.35,4,1
+synthetic_user_005,Supermarket / Grocery,ASIA MART,32.70,5,1
+synthetic_user_006,General Retail,SYARIKAT PERNIAGAAN GIN KEE,100.17,5,1
+synthetic_user_006,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,6.70,3,1
+synthetic_user_006,General Retail,UNKNOWN,54500.00,5,1
+synthetic_user_006,General Retail,SYARIKAT PERNIAGAAN GIN KEE,5.30,3,1
+synthetic_user_006,General Retail,UNKNOWN,74000.00,3,1
+synthetic_user_006,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,6.70,5,1
+synthetic_user_006,General Retail,HIGH FIVE ENTERPRISE,95.48,5,1
+synthetic_user_006,Supermarket / Grocery,99 SPEED MART S/B,20.80,2,1
+synthetic_user_006,General Retail,KEDAI PAPAN YEW CHUAN,174.90,3,1
+synthetic_user_006,Supermarket / Grocery,99 SPEED MART S/B,3.70,3,1
+synthetic_user_006,General Retail,T.A.S LEISURE SDN BHD,102.40,4,1
+synthetic_user_006,Food & Beverage,UNKNOWN,284983.00,3,1
+synthetic_user_006,General Retail,SANYU STATIONERY SHOP,8.70,5,1
+synthetic_user_006,Food & Beverage,UNKNOWN,56650.00,2,1
+synthetic_user_006,General Retail,UNKNOWN,147600.00,5,1
+synthetic_user_006,Supermarket / Grocery,CHECKERS HYPERMARKET SDN BHD (JALAN KLANG LAMA),20.00,2,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,23.60,3,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,37.45,3,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,2.50,5,1
+synthetic_user_007,Food & Beverage,UNKNOWN,185.90,4,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,169.80,5,1
+synthetic_user_007,Supermarket / Grocery,GH DISTRIBUTOR & MARKETING SDN BHD,85.20,5,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,52.10,3,1
+synthetic_user_007,Food & Beverage,UNKNOWN,43000.00,3,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,37.45,4,1
+synthetic_user_007,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,77.20,3,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,19.90,3,1
+synthetic_user_007,Supermarket / Grocery,ELITETRAX MARKETING SDN BHD,60.00,5,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,262.20,3,1
+synthetic_user_007,Food & Beverage,UNKNOWN,90.80,2,1
+synthetic_user_007,Supermarket / Grocery,99 SPEED MART S/B,22.90,5,1
+synthetic_user_008,General Retail,LEE WAH FLORIST SDN BHD,374.20,2,1
+synthetic_user_008,General Retail,MR. D.I.Y. (M) SDN BHD,37.10,4,1
+synthetic_user_008,Food & Beverage,UNKNOWN,140800.00,4,1
+synthetic_user_008,Food & Beverage,UNKNOWN,226500.00,5,1
+synthetic_user_008,Food & Beverage,UNKNOWN,34500.00,4,1
+synthetic_user_008,General Retail,PASARAYA BORONG PINTAR SDN BHD,3.20,2,1
+synthetic_user_008,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,26.58,4,1
+synthetic_user_008,Food & Beverage,UNKNOWN,1096040.00,3,1
+synthetic_user_008,Food & Beverage,UNKNOWN,25000.00,3,1
+synthetic_user_008,Food & Beverage,UNKNOWN,836000.00,5,1
+synthetic_user_008,Supermarket / Grocery,99 SPEED MART S/B,2.10,4,1
+synthetic_user_008,General Retail,UNKNOWN,60999.00,2,1
+synthetic_user_008,Food & Beverage,RESTORAN WAN SHENG,6.00,3,1
+synthetic_user_008,Food & Beverage,CARREFOUR RESTAURANT,13.80,5,1
+synthetic_user_008,Food & Beverage,ZEN AND COFFEE 28 S/B,105.00,3,1
+synthetic_user_009,Supermarket / Grocery,99 SPEED MART S/B,169.80,4,1
+synthetic_user_009,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,4.70,5,1
+synthetic_user_009,Supermarket / Grocery,99 SPEED MART S/B,20.90,4,1
+synthetic_user_009,General Retail,UNKNOWN,62.00,2,1
+synthetic_user_009,Supermarket / Grocery,99 SPEED MART S/B,27.30,3,1
+synthetic_user_009,Supermarket / Grocery,FAMILYMART,18.80,4,1
+synthetic_user_009,General Retail,SANYU STATIONERY SHOP,8.70,2,1
+synthetic_user_009,Supermarket / Grocery,99 SPEED MART S/B,11.40,4,1
+synthetic_user_009,Food & Beverage,UNKNOWN,1096040.00,2,1
+synthetic_user_009,Food & Beverage,UNKNOWN,80501.00,3,1
+synthetic_user_010,Supermarket / Grocery,YAM FRESH,29.30,4,1
+synthetic_user_010,Supermarket / Grocery,99 SPEED MART S/B,2.50,4,1
+synthetic_user_010,Supermarket / Grocery,99 SPEED MART S/B,37.45,4,1
+synthetic_user_010,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,6.60,2,1
+synthetic_user_010,Supermarket / Grocery,99 SPEED MART S/B,52.10,3,1
+synthetic_user_010,Supermarket / Grocery,99 SPEED MART S/B,52.10,3,1
+synthetic_user_010,Supermarket / Grocery,99 SPEED MART S/B,2.10,4,1
+synthetic_user_010,Food & Beverage,MEI LET RESTAURANT,68.90,4,1
+synthetic_user_010,Supermarket / Grocery,99 SPEED MART S/B,82.80,5,1
+synthetic_user_011,Supermarket / Grocery,99 SPEED MART S/B,2.10,3,1
+synthetic_user_011,Supermarket / Grocery,99 SPEED MART S/B,137.15,5,1
+synthetic_user_011,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,12.20,4,1
+synthetic_user_011,Supermarket / Grocery,99 SPEED MART S/B,2.10,3,1
+synthetic_user_011,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,27.10,3,1
+synthetic_user_011,Supermarket / Grocery,99 SPEED MART S/B,37.45,5,1
+synthetic_user_011,Supermarket / Grocery,99 SPEED MART S/B,27.30,4,1
+synthetic_user_011,Supermarket / Grocery,99 SPEED MART S/B,72.75,5,1
+synthetic_user_011,Supermarket / Grocery,YAM FRESH,7.95,5,1
+synthetic_user_011,General Retail,MR. D.I.Y. (M) SDN BHD,15.40,2,1
+synthetic_user_012,General Retail,POPULAR BOOK CO. (M) SDN BHD,41.00,3,1
+synthetic_user_012,General Retail,UNKNOWN,90000.00,4,1
+synthetic_user_012,General Retail,WESTERN EASTERN STATIONERY SDN. BHD,1.38,4,1
+synthetic_user_012,General Retail,RSTORAN WAN SHENG,6.00,5,1
+synthetic_user_012,General Retail,KEDAI PAPAN YEW CHUAN,127.20,5,1
+synthetic_user_012,General Retail,UNKNOWN,75000.00,4,1
+synthetic_user_012,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.90,5,1
+synthetic_user_012,General Retail,SANYU STATIONERY SHOP,5.00,3,1
+synthetic_user_012,Supermarket / Grocery,99 SPEED MART S/B,45.35,2,1
+synthetic_user_012,General Retail,UNKNOWN,127678.00,4,1
+synthetic_user_012,Supermarket / Grocery,99 SPEED MART S/B,177.20,3,1
+synthetic_user_012,General Retail,UNKNOWN,65500.00,5,1
+synthetic_user_012,Food & Beverage,RESTORAN WAN SHENG,9.60,2,1
+synthetic_user_012,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,57.40,3,1
+synthetic_user_012,Supermarket / Grocery,YAM FRESH,8.35,2,1
+synthetic_user_013,General Retail,KING'S CONFECTIONERY S/B,25.15,2,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,9.90,4,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,14.20,5,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,20.90,5,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,2.10,5,1
+synthetic_user_013,General Retail,SYARIKAT PERNIAGAAN GIN KEE,101.76,4,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,10.60,5,1
+synthetic_user_013,Food & Beverage,UNKNOWN,375000.00,2,1
+synthetic_user_013,Food & Beverage,ONE ONE THREE SEAFOOD RESTAURANT SDN BHD,87.45,4,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,20.80,4,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,11.50,3,1
+synthetic_user_013,Supermarket / Grocery,CHECKERS HYPERMARKET SDN BHD (JALAN KLANG LAMA),20.00,5,1
+synthetic_user_013,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,18.80,3,1
+synthetic_user_013,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,18.80,5,1
+synthetic_user_013,Supermarket / Grocery,YAM FRESH,7.95,4,1
+synthetic_user_013,Supermarket / Grocery,99 SPEED MART S/B,14.20,4,1
+synthetic_user_013,Supermarket / Grocery,YAM FRESH,7.95,4,1
+synthetic_user_013,General Retail,YIN MA (M) SDN.BHD.,14.50,2,1
+synthetic_user_014,General Retail,POPULAR BOOK CO. (M) SDN BHD,140.65,4,1
+synthetic_user_014,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,32.46,4,1
+synthetic_user_014,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,8.95,3,1
+synthetic_user_014,General Retail,SIN LIANHAP SDN BHD,7.30,4,1
+synthetic_user_014,General Retail,SYARIKAT PERNIAGAAN GIN KEE,148.40,4,1
+synthetic_user_014,Food & Beverage,RESTORAN WAN SHENG,6.50,2,1
+synthetic_user_014,Supermarket / Grocery,99 SPEED MART S/B,137.15,2,1
+synthetic_user_014,General Retail,ANZEL ADVERTISING (M) SDN BHD,8.50,5,1
+synthetic_user_014,General Retail,TRIPLE SIX POINT ENTERPRISE 666,157.90,4,1
+synthetic_user_014,General Retail,THE STORE (MALAYSIA) SDN BHD,35.80,3,1
+synthetic_user_014,General Retail,POPULAR BOOK CO. (M) SDN BHD,31.45,4,1
+synthetic_user_014,General Retail,TRIPLE SIX POINT ENTERPRISE 666,22.60,4,1
+synthetic_user_015,Food & Beverage,UNKNOWN,49000.00,3,1
+synthetic_user_015,Food & Beverage,PANDAH INDAH PULAU KETAM RESTAURANT,93.00,5,1
+synthetic_user_015,Food & Beverage,UNKNOWN,80501.00,3,1
+synthetic_user_015,General Retail,UNKNOWN,22.00,2,1
+synthetic_user_015,Supermarket / Grocery,UNKNOWN,196350.00,4,1
+synthetic_user_015,Food & Beverage,UNKNOWN,51.00,4,1
+synthetic_user_015,General Retail,UNKNOWN,105999.00,3,1
+synthetic_user_015,Food & Beverage,UNKNOWN,74000.00,5,1
+synthetic_user_015,General Retail,AEON CO. (M) BHD,23.80,2,1
+synthetic_user_015,Supermarket / Grocery,TF VALUE-MART SDN BHD,52.80,2,1
+synthetic_user_016,General Retail,HAI-O RAYA BHD,47.70,4,1
+synthetic_user_016,General Retail,GUARDIAN HEALTH AND BEAUTY SDN BHD,108.21,3,1
+synthetic_user_016,General Retail,MR. D.I.Y. (M) SDN BHD,64.70,5,1
+synthetic_user_016,General Retail,YIN MA (M) SDN.BHD.,32.70,4,1
+synthetic_user_016,General Retail,SANYU STATIONERY SHOP,3.00,3,1
+synthetic_user_016,General Retail,SANYU STATIONERY SHOP,14.90,3,1
+synthetic_user_017,Food & Beverage,CARREFOUR RESTAURANT,13.80,3,1
+synthetic_user_017,Food & Beverage,UNKNOWN,160000.00,3,1
+synthetic_user_017,Food & Beverage,UNKNOWN,226500.00,4,1
+synthetic_user_017,General Retail,MR. D.I.Y. (M) SDN BHD,69.20,3,1
+synthetic_user_017,Food & Beverage,UNKNOWN,1198648.00,5,1
+synthetic_user_017,Food & Beverage,RESTORAN HOETIM,83.00,4,1
+synthetic_user_017,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,11.20,3,1
+synthetic_user_017,Food & Beverage,RESTORAN WAN SHENG,4.80,5,1
+synthetic_user_017,Food & Beverage,UNKNOWN,63500.00,3,1
+synthetic_user_017,Food & Beverage,MEI LET RESTAURANT,67.85,3,1
+synthetic_user_017,General Retail,KING'S CONFECTIONERY S/B,27.50,4,1
+synthetic_user_017,Food & Beverage,UNKNOWN,282000.00,4,1
+synthetic_user_017,Supermarket / Grocery,99 SPEED MART S/B,3.30,2,1
+synthetic_user_017,Food & Beverage,UNKNOWN,375000.00,4,1
+synthetic_user_018,Food & Beverage,UNKNOWN,117000.00,5,1
+synthetic_user_018,Food & Beverage,UNKNOWN,62.00,3,1
+synthetic_user_018,Food & Beverage,RESTORAN WAN SHENG,7.20,4,1
+synthetic_user_018,Food & Beverage,UNKNOWN,87000.00,5,1
+synthetic_user_018,Food & Beverage,VEG FISH FARM THAI RESTAURANT S/B,412.90,4,1
+synthetic_user_018,Food & Beverage,UNKNOWN,304326.00,3,1
+synthetic_user_018,Food & Beverage,RESTORAN WAN SHENG,7.00,5,1
+synthetic_user_018,Food & Beverage,GERBANG ALAF RESTAURANTS SDN BHD,11.10,5,1
+synthetic_user_018,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,54.15,5,1
+synthetic_user_018,Food & Beverage,RESTORAN WAN SHENG,9.60,5,1
+synthetic_user_018,Food & Beverage,RESTORAN WAN SHENG,7.20,4,1
+synthetic_user_018,Food & Beverage,UNKNOWN,376640.00,3,1
+synthetic_user_018,Food & Beverage,UNKNOWN,22000.00,4,1
+synthetic_user_018,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,19.31,5,1
+synthetic_user_018,Food & Beverage,UNKNOWN,70.60,5,1
+synthetic_user_018,Food & Beverage,RESTORAN WAN SHENG,6.50,5,1
+synthetic_user_018,General Retail,TIMES BOOKSTORES,12.37,3,1
+synthetic_user_018,Supermarket / Grocery,99 SPEED MART S/B,72.75,2,1
+synthetic_user_018,Food & Beverage,UNKNOWN,69000.00,3,1
+synthetic_user_018,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,18.00,2,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,141.50,5,1
+synthetic_user_019,Food & Beverage,UNKNOWN,22.00,2,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,14.20,4,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,108.50,3,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,14.40,3,1
+synthetic_user_019,Food & Beverage,GERBANG ALAF RESTAURANTS SDN BHD,109.05,2,1
+synthetic_user_019,Supermarket / Grocery,ASIA MART,32.70,3,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,19.90,4,1
+synthetic_user_019,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,4.70,3,1
+synthetic_user_019,Supermarket / Grocery,YAM FRESH,7.95,5,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,98.90,5,1
+synthetic_user_019,Supermarket / Grocery,99 SPEED MART S/B,2.10,4,1
+synthetic_user_019,Food & Beverage,UNKNOWN,196001.00,4,1
+synthetic_user_019,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,11.40,2,1
+synthetic_user_020,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,133.70,3,1
+synthetic_user_020,Supermarket / Grocery,99 SPEED MART S/B,23.40,3,1
+synthetic_user_020,Supermarket / Grocery,99 SPEED MART S/B,27.30,4,1
+synthetic_user_020,Food & Beverage,UNKNOWN,80000.00,2,1
+synthetic_user_020,Supermarket / Grocery,99 SPEED MART S/B,11.50,5,1
+synthetic_user_020,Supermarket / Grocery,99 SPEED MART S/B,42.35,4,1
+synthetic_user_020,General Retail,PLATINUM RACKING SDN BHD,23.00,4,1
+synthetic_user_020,Supermarket / Grocery,YAM FRESH,8.35,3,1
+synthetic_user_020,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,18.80,4,1
+synthetic_user_020,Supermarket / Grocery,FUYI MINI MARKET,9.00,3,1
+synthetic_user_020,General Retail,MR. D.I.Y. (M) SDN BHD,15.40,4,1
+synthetic_user_020,Food & Beverage,UNKNOWN,300300.00,3,1
+synthetic_user_020,General Retail,SYARIKAT PERNIAGAAN GIN KEE,100.17,3,1
+synthetic_user_020,Supermarket / Grocery,ECO-SHOP MARKETING SDN BHD,16.30,4,1
+synthetic_user_020,Supermarket / Grocery,99 SPEED MART S/B,169.80,4,1
+synthetic_user_020,General Retail,UNKNOWN,25.00,2,1
+synthetic_user_021,General Retail,SEGI CASH & CARRY SDN.BHD,27.00,2,1
+synthetic_user_021,General Retail,SANYU STATIONERY SHOP,3.90,3,1
+synthetic_user_021,Supermarket / Grocery,99 SPEED MART S/B,213.00,4,1
+synthetic_user_021,Supermarket / Grocery,99 SPEED MART S/B,2.10,4,1
+synthetic_user_021,Supermarket / Grocery,GH DISTRIBUTOR & MARKETING SDN BHD,85.20,4,1
+synthetic_user_021,Food & Beverage,UNKNOWN,541620.00,3,1
+synthetic_user_021,Supermarket / Grocery,FAMILYMART,18.80,4,1
+synthetic_user_021,Supermarket / Grocery,FAMILYMART,18.80,4,1
+synthetic_user_021,Food & Beverage,GERBANG ALAF RESTAURANTS SDN BHD,11.10,3,1
+synthetic_user_022,General Retail,OWNER BY CASTLE BLUE S/B,189.75,4,1
+synthetic_user_022,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.20,4,1
+synthetic_user_022,Supermarket / Grocery,99 SPEED MART S/B,22.90,3,1
+synthetic_user_022,General Retail,UNKNOWN,426195.00,5,1
+synthetic_user_022,General Retail,MR. D.I.Y. (M) SDN BHD,38.00,4,1
+synthetic_user_022,Supermarket / Grocery,99 SPEED MART S/B,4.00,3,1
+synthetic_user_023,Food & Beverage,RESTORAN WAN SHENG,19.40,3,1
+synthetic_user_023,General Retail,HASHA PETROKIOSK,50.00,5,1
+synthetic_user_023,General Retail,UNKNOWN,19850.00,4,1
+synthetic_user_023,General Retail,POPULAR BOOK CO. (M) SDN BHD,12.15,4,1
+synthetic_user_023,General Retail,FY EAGLE ENTERPRISE,52.00,3,1
+synthetic_user_023,General Retail,UNKNOWN,599955.00,5,1
+synthetic_user_023,Food & Beverage,RESTORAN WAN SHENG,5.00,3,1
+synthetic_user_023,General Retail,SIN LIANHAP SDN BHD,7.30,4,1
+synthetic_user_024,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,25.84,3,1
+synthetic_user_024,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,39.87,5,1
+synthetic_user_024,Supermarket / Grocery,99 SPEED MART S/B,2.50,3,1
+synthetic_user_024,Food & Beverage,UNKNOWN,160000.00,5,1
+synthetic_user_024,Food & Beverage,UNKNOWN,580965.00,4,1
+synthetic_user_024,General Retail,FIVE STAR CASH & CARRY,90.00,4,1
+synthetic_user_024,Food & Beverage,UNKNOWN,185394.00,4,1
+synthetic_user_024,Food & Beverage,UNKNOWN,79.20,4,1
+synthetic_user_024,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,14.47,4,1
+synthetic_user_024,Food & Beverage,UNKNOWN,97500.00,3,1
+synthetic_user_024,Supermarket / Grocery,99 SPEED MART S/B,27.90,3,1
+synthetic_user_024,Food & Beverage,RESTORAN WAN SHENG,4.80,3,1
+synthetic_user_024,Food & Beverage,DOMINO'S PIZZA,21.60,5,1
+synthetic_user_025,General Retail,UNKNOWN,75500.00,3,1
+synthetic_user_025,Supermarket / Grocery,DE LUXE CIRCLE FRESH MART SDN BHD,12.00,4,1
+synthetic_user_025,Food & Beverage,UNKNOWN,242528.00,4,1
+synthetic_user_025,Food & Beverage,GERBANG ALAF RESTAURANTS SDN BHD,47.15,3,1
+synthetic_user_025,Food & Beverage,FTOF NOODLE HOUSE,31.60,3,1
+synthetic_user_025,Food & Beverage,UNKNOWN,43500.00,4,1
+synthetic_user_025,Food & Beverage,PACIFIC ASIAN FOOD DELIGHTS S/B,78.50,3,1
+synthetic_user_025,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.20,4,1
+synthetic_user_025,Food & Beverage,UNKNOWN,154000.00,5,1
+synthetic_user_025,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,23.35,3,1
+synthetic_user_025,Supermarket / Grocery,99 SPEED MART S/B,11.50,2,1
+synthetic_user_025,Food & Beverage,UNKNOWN,49500.00,5,1
+synthetic_user_026,General Retail,UNKNOWN,156090.00,5,1
+synthetic_user_026,General Retail,UNKNOWN,85000.00,3,1
+synthetic_user_026,General Retail,UNKNOWN,259.00,4,1
+synthetic_user_026,General Retail,BEYOND BROTHERS HARDWARE,63.60,3,1
+synthetic_user_026,General Retail,SYARIKAT PERNIAGAAN GIN KEE,116.28,5,1
+synthetic_user_026,Supermarket / Grocery,99 SPEED MART S/B,3.70,2,1
+synthetic_user_026,General Retail,AEON CO. (M) BHD,8.95,4,1
+synthetic_user_026,Supermarket / Grocery,ECO-SHOP MARKETING SDN BHD,16.30,4,1
+synthetic_user_026,General Retail,THE STORE (MALAYSIA) SDN BHD,35.80,5,1
+synthetic_user_026,General Retail,UNKNOWN,14999.00,5,1
+synthetic_user_026,General Retail,SANYU STATIONERY SHOP,12.00,4,1
+synthetic_user_026,General Retail,PRINT EXPERT SDN BHD,119.55,3,1
+synthetic_user_026,General Retail,PASARAYA BORONG PINTAR SDN BHD,1.45,5,1
+synthetic_user_026,General Retail,SYARIKAT PERNIAGAAN GIN KEE,60.95,5,1
+synthetic_user_026,General Retail,PELITA SAMUDRA PERTAMA (M) SDN BHD.,61.70,4,1
+synthetic_user_026,General Retail,SYARIKAT PERNIAGAAN GIN KEE,47.70,4,1
+synthetic_user_026,General Retail,POPULAR BOOK CO. (M) SDN BHD,21.00,5,1
+synthetic_user_026,General Retail,TED HENG STATIONERY & BOOKS,153.35,5,1
+synthetic_user_026,General Retail,AIK HUAT HARDWARE ENTERPRISE (SETIA ALAM) SDN BHD,28.00,5,1
+synthetic_user_027,Food & Beverage,RESTORAN DE COFFEE O,11.60,5,1
+synthetic_user_027,General Retail,GOLDEN KEY MAKER,10.00,3,1
+synthetic_user_027,Food & Beverage,UNKNOWN,80300.00,5,1
+synthetic_user_027,Supermarket / Grocery,YAM FRESH,29.30,4,1
+synthetic_user_027,Food & Beverage,ONE ONE THREE SEAFOOD RESTAURANT SDN BHD,52.00,5,1
+synthetic_user_027,General Retail,AIK HUAT HARDWARE ENTERPRISE (SETIA ALAM) SDN BHD,16.00,2,1
+synthetic_user_027,General Retail,THE TOAST F&B SDN BHD,18.90,2,1
+synthetic_user_027,Food & Beverage,B & BEST RESTAURANT,14.85,3,1
+synthetic_user_027,Food & Beverage,RESTORAN WAN SHENG,4.80,3,1
+synthetic_user_027,Food & Beverage,UNKNOWN,441350.00,4,1
+synthetic_user_028,General Retail,UNKNOWN,49000.00,5,1
+synthetic_user_028,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,5.09,4,1
+synthetic_user_028,Supermarket / Grocery,99 SPEED MART S/B,182.00,3,1
+synthetic_user_028,Food & Beverage,RESTORAN WAN SHENG,4.80,3,1
+synthetic_user_028,Food & Beverage,UNKNOWN,54600.00,2,1
+synthetic_user_028,Supermarket / Grocery,99 SPEED MART S/B,71.60,4,1
+synthetic_user_028,General Retail,SANYU STATIONERY SHOP,2.00,4,1
+synthetic_user_028,General Retail,ADVANCO COMPANY,7.00,3,1
+synthetic_user_028,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,22.90,5,1
+synthetic_user_028,General Retail,POPULAR BOOK CO. (M) SDN BHD,21.00,5,1
+synthetic_user_028,Supermarket / Grocery,99 SPEED MART S/B,42.35,3,1
+synthetic_user_028,General Retail,MOONLIGHT CAKE HOUSE SDN BHD,14.20,5,1
+synthetic_user_029,General Retail,UNKNOWN,56000.00,4,1
+synthetic_user_029,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.20,4,1
+synthetic_user_029,Food & Beverage,UNKNOWN,228.00,3,1
+synthetic_user_029,Food & Beverage,GARDENIA BAKERIES (KI ) SDN BHD,33.05,3,1
+synthetic_user_029,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,32.46,3,1
+synthetic_user_029,Food & Beverage,CARREFOUR RESTAURANT,13.80,5,1
+synthetic_user_029,General Retail,IKANO HANDEL SDN BHD,22.00,3,1
+synthetic_user_029,Food & Beverage,RESTORAN WAN SHENG,4.60,3,1
+synthetic_user_029,General Retail,UNKNOWN,20000.00,3,1
+synthetic_user_029,Food & Beverage,UNKNOWN,29000.00,5,1
+synthetic_user_029,Food & Beverage,THE CUT STEAKHOUSE &BURGERS,167.55,4,1
+synthetic_user_029,Food & Beverage,UNKNOWN,49500.00,5,1
+synthetic_user_029,Food & Beverage,GUDANG HASIL RESTAURANT SDN BHD,15.80,4,1
+synthetic_user_029,Food & Beverage,UNKNOWN,117000.00,3,1
+synthetic_user_029,Food & Beverage,UNKNOWN,541620.00,5,1
+synthetic_user_029,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,35.88,5,1
+synthetic_user_029,Supermarket / Grocery,FAMILYMART,18.80,2,1
+synthetic_user_029,General Retail,UNKNOWN,111000.00,2,1
+synthetic_user_029,General Retail,UNKNOWN,22.00,4,1
+synthetic_user_029,Food & Beverage,UNKNOWN,21000.00,4,1
+synthetic_user_030,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,18.00,3,1
+synthetic_user_030,General Retail,UNKNOWN,25.00,2,1
+synthetic_user_030,Supermarket / Grocery,OJC MARKETING SDN BHD,193.00,3,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,20.80,5,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,213.00,4,1
+synthetic_user_030,Supermarket / Grocery,YAM FRESH,7.95,5,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,2.50,4,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,31.80,5,1
+synthetic_user_030,Supermarket / Grocery,ANEKA INTERTRADE MARKETING SDN BHD,6.85,5,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,169.80,5,1
+synthetic_user_030,General Retail,MR. D.I.Y. (M) SDN BHD,14.90,3,1
+synthetic_user_030,Supermarket / Grocery,OJC MARKETING SDN BHD,193.00,3,1
+synthetic_user_030,Food & Beverage,CT281 - TEALIVE SHELL KEPONG OTTOGO ENTERPRISE,8.60,4,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,2.10,3,1
+synthetic_user_030,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,34.21,2,1
+synthetic_user_030,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,18.00,5,1
+synthetic_user_030,General Retail,PU TIEN (M) SDN BHD,36.96,3,1
+synthetic_user_030,Supermarket / Grocery,99 SPEED MART S/B,23.60,4,1
+synthetic_user_031,Supermarket / Grocery,STAR GROCER SDN BHD,66.15,4,1
+synthetic_user_031,General Retail,BECON STATIONER BECON ENTERPRISE SDN BHD,247.55,2,1
+synthetic_user_031,Food & Beverage,UNKNOWN,76000.00,4,1
+synthetic_user_031,Food & Beverage,TOKYO KITCHEN (CITTA MALL) TOKYO KITCHEN SDN BHD,113.80,4,1
+synthetic_user_031,Food & Beverage,UNKNOWN,655292.00,4,1
+synthetic_user_031,Food & Beverage,DOMINO'S PIZZA TAMAN UNIVERSITI,6.70,4,1
+synthetic_user_031,Food & Beverage,UNKNOWN,34500.00,5,1
+synthetic_user_031,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,81.00,2,1
+synthetic_user_031,Food & Beverage,UNKNOWN,177500.00,5,1
+synthetic_user_031,Supermarket / Grocery,99 SPEED MART S/B,20.90,2,1
+synthetic_user_031,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,1.73,5,1
+synthetic_user_031,Food & Beverage,UNKNOWN,466.62,4,1
+synthetic_user_031,Food & Beverage,DOMINO'S PIZZA TAMAN UNIVERSITI,6.70,4,1
+synthetic_user_031,General Retail,UNKNOWN,41.58,3,1
+synthetic_user_032,General Retail,YONG CEN ENTERPRISE,19.10,5,1
+synthetic_user_032,General Retail,MENTAI INITIAL SDN BHD,41.50,4,1
+synthetic_user_032,General Retail,UNKNOWN,54000.00,4,1
+synthetic_user_032,Food & Beverage,UNKNOWN,128700.00,3,1
+synthetic_user_032,General Retail,SANYU STATIONERY SHOP,12.40,4,1
+synthetic_user_032,General Retail,ELKEN SERVICE SDN BHD,250.00,5,1
+synthetic_user_032,Supermarket / Grocery,ANEKA INTERTRADE MARKETING SDN BHD,23.80,2,1
+synthetic_user_032,General Retail,NADEJE PLATINUM SDN BHD,51.30,4,1
+synthetic_user_032,Food & Beverage,UNKNOWN,261333.00,2,1
+synthetic_user_032,General Retail,WESTERN EASTERN STATIONERY SDN. BHD,42.88,4,1
+synthetic_user_033,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,81.00,5,1
+synthetic_user_033,Supermarket / Grocery,99 SPEED MART S/B,15.90,4,1
+synthetic_user_033,Supermarket / Grocery,99 SPEED MART S/B,10.60,4,1
+synthetic_user_033,Supermarket / Grocery,GHEE HIANG GH DISTRIBUTOR & MARKETING SDN BHD,25.00,5,1
+synthetic_user_033,Supermarket / Grocery,ASIA MART,32.70,3,1
+synthetic_user_033,Supermarket / Grocery,ASIA MART,32.70,5,1
+synthetic_user_033,Supermarket / Grocery,99 SPEED MART S/B,2.10,5,1
+synthetic_user_033,Supermarket / Grocery,99 SPEED MART S/B,2.10,4,1
+synthetic_user_034,Supermarket / Grocery,99 SPEED MART S/B,262.20,3,1
+synthetic_user_034,Food & Beverage,GERBANG ALAF RESTAURANTS SDN BHD,12.80,5,1
+synthetic_user_034,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,59.31,5,1
+synthetic_user_034,Food & Beverage,UNKNOWN,1277.00,4,1
+synthetic_user_034,Food & Beverage,UNKNOWN,127500.00,4,1
+synthetic_user_034,Supermarket / Grocery,99 SPEED MART S/B,182.00,3,1
+synthetic_user_034,Food & Beverage,UNKNOWN,261333.00,4,1
+synthetic_user_034,Supermarket / Grocery,99 SPEED MART S/B,141.50,3,1
+synthetic_user_034,Food & Beverage,UNKNOWN,80300.00,5,1
+synthetic_user_035,Food & Beverage,UNKNOWN,43890.00,3,1
+synthetic_user_035,Supermarket / Grocery,99 SPEED MART S/B,2.10,2,1
+synthetic_user_035,General Retail,UNKNOWN,83716.00,4,1
+synthetic_user_035,General Retail,BEMED (SP) SDN. BHD.,165.00,4,1
+synthetic_user_035,Food & Beverage,UNKNOWN,58.00,2,1
+synthetic_user_035,General Retail,YONG TAT HARDWARE TRADING,100.90,3,1
+synthetic_user_035,General Retail,GREEN LANE PHARMACY SDN BHD,34.80,5,1
+synthetic_user_035,Supermarket / Grocery,99 SPEED MART S/B,2.10,2,1
+synthetic_user_035,General Retail,PLATINUM RACKING SDN BHD,23.00,4,1
+synthetic_user_035,General Retail,LIM SENG THO HARDWARE TRADING,8.40,4,1
+synthetic_user_035,Supermarket / Grocery,FAMILYMART,18.80,2,1
+synthetic_user_035,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.90,3,1
+synthetic_user_035,General Retail,UNKNOWN,23400.00,4,1
+synthetic_user_035,General Retail,SANYU STATIONERY SHOP,5.00,5,1
+synthetic_user_035,Supermarket / Grocery,99 SPEED MART S/B,11.40,2,1
+synthetic_user_035,General Retail,UNKNOWN,39000.00,5,1
+synthetic_user_035,General Retail,MR. D.I.Y. (M) SDN BHD,5.00,5,1
+synthetic_user_035,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.20,5,1
+synthetic_user_035,General Retail,MR. D.I.Y. (M) SDN BHD,2.10,5,1
+synthetic_user_036,General Retail,TRIPLE SIX POINT ENTERPRISE 666,157.90,5,1
+synthetic_user_036,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,60.24,3,1
+synthetic_user_036,General Retail,UNKNOWN,74000.00,4,1
+synthetic_user_036,General Retail,AEON CO. (M) BHD,75.00,4,1
+synthetic_user_036,General Retail,POPULAR BOOK CO. (M) SDN BHD,140.65,5,1
+synthetic_user_036,General Retail,THE STORE (MALAYSIA) SDN BHD,35.80,4,1
+synthetic_user_036,General Retail,FY EAGLE ENTERPRISE,7.00,4,1
+synthetic_user_036,General Retail,AEON CO. (M) BHD,127.35,3,1
+synthetic_user_036,General Retail,SYARIKAT PERNIAGAAN GIN KEE,47.70,4,1
+synthetic_user_036,General Retail,SANYU STATIONERY SHOP,3.00,5,1
+synthetic_user_036,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,38.55,4,1
+synthetic_user_036,General Retail,PERNIAGAAN RIANG RIA,22.60,4,1
+synthetic_user_036,General Retail,UNKNOWN,33.50,4,1
+synthetic_user_037,Food & Beverage,RESTORAN WAN SHENG,2.40,2,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,213.00,3,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,2.10,4,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,10.60,4,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,11.50,4,1
+synthetic_user_037,Supermarket / Grocery,MAKASSAR FRESH MARKET S/B,40.00,5,1
+synthetic_user_037,Supermarket / Grocery,FAMILYMART,18.80,3,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,20.90,5,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,182.00,5,1
+synthetic_user_037,General Retail,IKANO HANDEL SDN BHD,46.20,2,1
+synthetic_user_037,Supermarket / Grocery,GH DISTRIBUTOR & MARKETING SDN BHD,85.20,5,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,262.20,4,1
+synthetic_user_037,General Retail,NSK TRADE CITY-SELAYANG,9.00,3,1
+synthetic_user_037,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,133.70,4,1
+synthetic_user_037,Supermarket / Grocery,FAMILYMART,18.80,3,1
+synthetic_user_037,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,8.10,4,1
+synthetic_user_037,Supermarket / Grocery,YAM FRESH,8.35,5,1
+synthetic_user_037,Supermarket / Grocery,99 SPEED MART S/B,31.80,4,1
+synthetic_user_038,Supermarket / Grocery,99 SPEED MART S/B,3.30,3,1
+synthetic_user_038,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,46.65,3,1
+synthetic_user_038,Supermarket / Grocery,99 SPEED MART S/B,5.35,5,1
+synthetic_user_038,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,8.45,4,1
+synthetic_user_038,Supermarket / Grocery,MAKASSAR FRESH MARKET S/B,40.00,5,1
+synthetic_user_038,Supermarket / Grocery,99 SPEED MART S/B,15.90,3,1
+synthetic_user_038,Supermarket / Grocery,99 SPEED MART S/B,3.70,5,1
+synthetic_user_038,Supermarket / Grocery,99 SPEED MART S/B,27.30,4,1
+synthetic_user_038,Supermarket / Grocery,99 SPEED MART S/B,2.10,5,1
+synthetic_user_039,Food & Beverage,UNKNOWN,21000.00,5,1
+synthetic_user_039,Food & Beverage,LAVENDER CONFECTIONERY & BAKERY S/B,12.30,3,1
+synthetic_user_039,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,38.55,4,1
+synthetic_user_039,Food & Beverage,UNKNOWN,135500.00,4,1
+synthetic_user_039,Food & Beverage,HAPPY SNACKS ENTERPRISE,26.82,3,1
+synthetic_user_039,General Retail,UNKNOWN,145900.00,3,1
+synthetic_user_039,Food & Beverage,DOMINO'S PIZZA,39.60,4,1
+synthetic_user_039,Food & Beverage,UNKNOWN,22.00,5,1
+synthetic_user_039,Supermarket / Grocery,99 SPEED MART S/B,11.50,2,1
+synthetic_user_039,Food & Beverage,MEI LET RESTAURANT,67.85,5,1
+synthetic_user_039,Food & Beverage,MEI LET RESTAURANT,68.90,3,1
+synthetic_user_039,Supermarket / Grocery,ANEKA INTERTRADE MARKETING SDN BHD,6.85,3,1
+synthetic_user_039,Food & Beverage,UNKNOWN,61.50,4,1
+synthetic_user_039,Food & Beverage,UNKNOWN,120.00,4,1
+synthetic_user_039,Food & Beverage,UNKNOWN,76000.00,3,1
+synthetic_user_039,Food & Beverage,UNKNOWN,49500.00,5,1
+synthetic_user_039,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,46.65,2,1
+synthetic_user_039,Food & Beverage,DOMINO'S PIZZA,25.60,5,1
+synthetic_user_040,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,23.56,2,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,182.00,3,1
+synthetic_user_040,General Retail,THE TOAST F&B SDN BHD,71.10,4,1
+synthetic_user_040,Supermarket / Grocery,STAR GROCER SDN BHD,66.15,4,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,9.90,3,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,177.20,3,1
+synthetic_user_040,Supermarket / Grocery,ECO-SHOP MARKETING SDN BHD,16.30,5,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,37.45,5,1
+synthetic_user_040,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,52.45,4,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,61.65,3,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,108.50,5,1
+synthetic_user_040,General Retail,HON HWA HARDWARE TRADING,277.00,2,1
+synthetic_user_040,General Retail,AEON CO. (M) BHD,42.50,4,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,82.80,4,1
+synthetic_user_040,Supermarket / Grocery,99 SPEED MART S/B,82.80,4,1
+synthetic_user_040,Supermarket / Grocery,UNKNOWN,196350.00,4,1
+synthetic_user_040,Food & Beverage,UNKNOWN,87000.00,4,1
+synthetic_user_040,Supermarket / Grocery,GH DISTRIBUTOR & MARKETING SDN BHD,85.20,5,1
+synthetic_user_041,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,79.26,4,1
+synthetic_user_041,Supermarket / Grocery,99 SPEED MART S/B,14.20,4,1
+synthetic_user_041,Food & Beverage,UNKNOWN,110000.00,3,1
+synthetic_user_041,Food & Beverage,RESTORAN WAN SHENG,62.80,3,1
+synthetic_user_041,Food & Beverage,UNKNOWN,25000.00,3,1
+synthetic_user_041,Food & Beverage,UNKNOWN,1241790.00,5,1
+synthetic_user_041,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,14.47,4,1
+synthetic_user_041,Food & Beverage,ONE ONE THREE SEAFOOD RESTAURANT SDN BHD,65.70,5,1
+synthetic_user_042,Supermarket / Grocery,ASIA MART,32.70,5,1
+synthetic_user_042,Supermarket / Grocery,99 SPEED MART S/B,9.90,4,1
+synthetic_user_042,Supermarket / Grocery,99 SPEED MART S/B,13.60,5,1
+synthetic_user_042,Supermarket / Grocery,99 SPEED MART S/B,82.80,4,1
+synthetic_user_042,Food & Beverage,RESTORAN WAN SHENG,7.80,3,1
+synthetic_user_042,Supermarket / Grocery,DE LUXE CIRCLE FRESH MART SDN BHD,25.85,4,1
+synthetic_user_042,General Retail,SYARIKAT PERNIAGAAN GIN KEE,60.95,2,1
+synthetic_user_042,Supermarket / Grocery,99 SPEED MART S/B,108.50,5,1
+synthetic_user_042,Supermarket / Grocery,99 SPEED MART S/B,11.40,3,1
+synthetic_user_042,Supermarket / Grocery,99 SPEED MART S/B,72.75,4,1
+synthetic_user_043,Supermarket / Grocery,99 SPEED MART S/B,2.10,3,1
+synthetic_user_043,Food & Beverage,RESTORAN WAN SHENG,4.60,4,1
+synthetic_user_043,Food & Beverage,UNKNOWN,103000.00,5,1
+synthetic_user_043,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,77.20,4,1
+synthetic_user_043,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,41.44,5,1
+synthetic_user_043,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,52.45,4,1
+synthetic_user_043,Food & Beverage,UNKNOWN,54.60,3,1
+synthetic_user_043,Food & Beverage,GUDANG HASIL RESTAURANT SDN BHD,15.80,4,1
+synthetic_user_043,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,53.96,3,1
+synthetic_user_043,General Retail,KHE ELECTRICAL TRADING,101.75,3,1
+synthetic_user_043,Food & Beverage,ONE ONE THREE SEAFOOD RESTAURANT SDN BHD,59.00,3,1
+synthetic_user_043,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,5.09,4,1
+synthetic_user_043,Food & Beverage,PACIFIC ASIAN FOOD DELIGHTS S/B,78.50,4,1
+synthetic_user_043,Food & Beverage,UNKNOWN,128700.00,3,1
+synthetic_user_043,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,55.14,4,1
+synthetic_user_044,General Retail,UNKNOWN,1220.50,5,1
+synthetic_user_044,General Retail,IN-SPARKLE TRADING SDN BHD,250.00,4,1
+synthetic_user_044,Food & Beverage,UNKNOWN,125000.00,2,1
+synthetic_user_044,General Retail,UNKNOWN,70.00,4,1
+synthetic_user_044,General Retail,YHM MID VALLEY,21.60,4,1
+synthetic_user_044,General Retail,PELITA SAMUDRA PERTAMA (M) SDN BHD.,61.70,4,1
+synthetic_user_044,General Retail,UNKNOWN,705000.00,5,1
+synthetic_user_045,Supermarket / Grocery,99 SPEED MART S/B,213.00,3,1
+synthetic_user_045,General Retail,UNKNOWN,41500.00,3,1
+synthetic_user_045,Supermarket / Grocery,ECO-SHOP MARKETING SDN BHD,16.30,2,1
+synthetic_user_045,General Retail,SEMBOYAN TEGAS SDN BHD,27.00,4,1
+synthetic_user_045,General Retail,POPULAR BOOK CO. (M) SDN BHD,30.70,3,1
+synthetic_user_045,Supermarket / Grocery,99 SPEED MART S/B,2.50,3,1
+synthetic_user_045,General Retail,SKL DAMANSARA ENTERPRISE,28.80,5,1
+synthetic_user_045,General Retail,SYARIKAT PERNIAGAAN GIN KEE,23.32,4,1
+synthetic_user_045,Supermarket / Grocery,99 SPEED MART S/B,141.50,3,1
+synthetic_user_045,Food & Beverage,DI HUAN YA RESTAURANT,35.00,4,1
+synthetic_user_046,General Retail,SANYU STATIONERY SHOP,7.00,5,1
+synthetic_user_046,Supermarket / Grocery,99 SPEED MART S/B,141.50,3,1
+synthetic_user_046,General Retail,PASARAYA CINWA SDN BHD,14.20,3,1
+synthetic_user_046,General Retail,UNKNOWN,231.00,4,1
+synthetic_user_046,General Retail,PASAR MINI JIN SENG,28.60,5,1
+synthetic_user_046,General Retail,MR. D.I.Y. (M) SDN BHD,26.10,4,1
+synthetic_user_046,Food & Beverage,UNKNOWN,726495.00,4,1
+synthetic_user_046,Food & Beverage,UNKNOWN,51.00,4,1
+synthetic_user_046,General Retail,ADVANCO COMPANY,10.45,3,1
+synthetic_user_046,General Retail,UNKNOWN,70000.00,5,1
+synthetic_user_046,Supermarket / Grocery,99 SPEED MART S/B,3.70,4,1
+synthetic_user_047,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,48.04,2,1
+synthetic_user_047,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,133.70,2,1
+synthetic_user_047,General Retail,YONGFATT ENTERPRISE,80.90,5,1
+synthetic_user_047,General Retail,TANJONGMAS BOOKCENTRE (PJ) SDN BHD,62.00,4,1
+synthetic_user_047,Supermarket / Grocery,ECO-SHOP MARKETING SDN BHD,16.30,4,1
+synthetic_user_047,General Retail,AEON CO. (M) SDN BHD,10.20,4,1
+synthetic_user_047,General Retail,SANYU STATIONERY SHOP,3.00,5,1
+synthetic_user_047,General Retail,ALI BABA INTERNATIONAL SDN BHD,23.80,3,1
+synthetic_user_047,Supermarket / Grocery,99 SPEED MART S/B,2.10,3,1
+synthetic_user_047,General Retail,UNKNOWN,58.50,4,1
+synthetic_user_047,Food & Beverage,SANG KEE CHERAS RESTAURANT,2.50,3,1
+synthetic_user_047,Food & Beverage,RESTORAN WAN SHENG,9.60,2,1
+synthetic_user_047,General Retail,TONYMOLY VIVA CITY,48.95,3,1
+synthetic_user_047,General Retail,GUARDIAN HEALTH AND BEAUTY SDN BHD,12.00,3,1
+synthetic_user_047,General Retail,UNKNOWN,28000.00,3,1
+synthetic_user_047,General Retail,TEO HENG STATIONERY & BOOKS,4.90,4,1
+synthetic_user_047,Food & Beverage,UNKNOWN,287.60,2,1
+synthetic_user_048,Food & Beverage,UNKNOWN,408683.00,3,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,39.78,4,1
+synthetic_user_048,Food & Beverage,UNKNOWN,94999.00,4,1
+synthetic_user_048,Food & Beverage,RESTORAN WAN SHENG,9.10,5,1
+synthetic_user_048,Food & Beverage,UNKNOWN,87000.00,3,1
+synthetic_user_048,Food & Beverage,UNKNOWN,57.20,3,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,31.05,5,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,19.31,3,1
+synthetic_user_048,Food & Beverage,UNKNOWN,140800.00,4,1
+synthetic_user_048,Food & Beverage,RESTAURANT SIN DU,170.00,3,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,36.55,5,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,54.15,4,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,26.58,4,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,27.10,5,1
+synthetic_user_048,Supermarket / Grocery,99 SPEED MART S/B,5.35,3,1
+synthetic_user_048,Food & Beverage,UNKNOWN,583968.00,5,1
+synthetic_user_048,Supermarket / Grocery,99 SPEED MART S/B,45.35,4,1
+synthetic_user_048,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,24.83,3,1
+synthetic_user_048,Food & Beverage,UNKNOWN,287760.00,5,1
+synthetic_user_048,Food & Beverage,DOMINO'S PIZZA,21.60,5,1
+synthetic_user_049,General Retail,UNKNOWN,87.00,3,1
+synthetic_user_049,Food & Beverage,UNKNOWN,282.00,4,1
+synthetic_user_049,General Retail,SUPER NINETY NINE SDN.BHD.,3.00,3,1
+synthetic_user_049,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,1.52,5,1
+synthetic_user_049,Food & Beverage,GERBANG ALAF RESTAURANTS SDN BHD,18.90,5,1
+synthetic_user_049,Food & Beverage,UNKNOWN,304326.00,4,1
+synthetic_user_049,Food & Beverage,UNKNOWN,1241790.00,4,1
+synthetic_user_049,Food & Beverage,RESTORAN WAN SHENG,4.60,5,1
+synthetic_user_050,General Retail,YONGFATT ENTERPRISE,80.90,5,1
+synthetic_user_050,General Retail,YONG CEN ENTERPRISE,19.10,3,1
+synthetic_user_050,General Retail,KEDAI PAPAN YEW CHUAN,84.80,3,1
+synthetic_user_050,General Retail,BECON STATIONER BECON ENTERPRISE SDN BHD,247.55,5,1
+synthetic_user_050,Food & Beverage,UNKNOWN,152000.00,4,1
+synthetic_user_050,General Retail,SEMBOYAN TEGAS SDN BHD,27.00,5,1
+synthetic_user_051,Supermarket / Grocery,CHECKERS HYPERMARKET SDN BHD (JALAN KLANG LAMA),20.00,4,1
+synthetic_user_051,Supermarket / Grocery,99 SPEED MART S/B,4.00,4,1
+synthetic_user_051,Supermarket / Grocery,99 SPEED MART S/B,14.20,5,1
+synthetic_user_051,General Retail,UNKNOWN,145900.00,4,1
+synthetic_user_051,Supermarket / Grocery,GHEE HIANG GH DISTRIBUTOR & MARKETING SDN BHD,25.00,5,1
+synthetic_user_051,Supermarket / Grocery,99 SPEED MART S/B,15.90,4,1
+synthetic_user_051,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,68.41,3,1
+synthetic_user_051,Supermarket / Grocery,99 SPEED MART S/B,52.10,5,1
+synthetic_user_051,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,4.70,4,1
+synthetic_user_052,General Retail,TEO HENG STATIONERY & BOOKS,1.05,4,1
+synthetic_user_052,General Retail,MR. D.I.Y. (M) SDN BHD,21.50,4,1
+synthetic_user_052,General Retail,GL HANDICRAFT & TAIL ORING,102.00,5,1
+synthetic_user_052,General Retail,CROSS CHANNEL NETWORK SDN. BHD.,6.35,4,1
+synthetic_user_052,General Retail,COSWAY (M) SDN BHD,111.90,5,1
+synthetic_user_052,General Retail,KOH SENG HARDWARE,5.30,4,1
+synthetic_user_052,Supermarket / Grocery,99 SPEED MART S/B,72.75,2,1
+synthetic_user_052,General Retail,GUARDIAN HEALTH AND BEAUTY SDN BHD,13.78,3,1
+synthetic_user_052,General Retail,RSTORAN WAN SHENG,6.00,5,1
+synthetic_user_052,General Retail,KEDAI PAPAN YEW CHUAN,174.90,3,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,20.90,5,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,11.40,5,1
+synthetic_user_053,Supermarket / Grocery,BROADVIEW MARKETING SDN BHD,4.70,3,1
+synthetic_user_053,General Retail,UNKNOWN,57900.00,4,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,5.35,4,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,14.20,3,1
+synthetic_user_053,Supermarket / Grocery,UNKNOWN,5580055834.00,5,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,27.30,5,1
+synthetic_user_053,Food & Beverage,RESTORAN HWA MUI SUTERA SDN BHD,91.50,4,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,11.50,4,1
+synthetic_user_053,Supermarket / Grocery,FUYI MINI MARKET,9.00,3,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,137.15,5,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,213.00,4,1
+synthetic_user_053,Supermarket / Grocery,OJC MARKETING SDN BHD,170.00,4,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,72.75,3,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,19.90,5,1
+synthetic_user_053,Supermarket / Grocery,FAMILYMART,18.80,4,1
+synthetic_user_053,Supermarket / Grocery,99 SPEED MART S/B,22.90,5,1
+synthetic_user_053,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,46.65,5,1
+synthetic_user_054,Food & Beverage,UNKNOWN,16500.00,4,1
+synthetic_user_054,Food & Beverage,RESTORAN WAN SHENG,62.80,5,1
+synthetic_user_054,Food & Beverage,UNKNOWN,110000.00,3,1
+synthetic_user_054,Food & Beverage,GARDENIA BAKERIES (KL) SDN BHD,53.96,5,1
+synthetic_user_054,Supermarket / Grocery,99 SPEED MART S/B,13.60,3,1
+synthetic_user_054,Food & Beverage,UNKNOWN,45000.00,4,1
+synthetic_user_054,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,46.65,3,1
+synthetic_user_054,Food & Beverage,UNKNOWN,287.60,3,1
+synthetic_user_054,Food & Beverage,UNKNOWN,120.00,4,1
+synthetic_user_054,Food & Beverage,UNKNOWN,69000.00,5,1
+synthetic_user_055,General Retail,BERRY'S CAKE HOUSE,11.25,4,1
+synthetic_user_055,Supermarket / Grocery,99 SPEED MART S/B,9.90,3,1
+synthetic_user_055,General Retail,SYARIKAT PERNIAGAAN GIN KEE,72.08,5,1
+synthetic_user_055,General Retail,PROSPER NIAGA,100.00,5,1
+synthetic_user_055,General Retail,UNKNOWN,599955.00,5,1
+synthetic_user_055,Food & Beverage,TIMELESS KITCHENETTE SDN BHD,593.10,4,1
+synthetic_user_055,General Retail,UNKNOWN,39200.00,4,1
+synthetic_user_055,General Retail,MR. D.I.Y. (M) SDN BHD,5.00,5,1
+synthetic_user_055,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,12.50,5,1
+synthetic_user_055,General Retail,SANYU STATIONERY SHOP,8.70,5,1
+synthetic_user_055,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,133.70,4,1
+synthetic_user_055,General Retail,MR. D.I.Y. (M) SDN BHD,68.10,4,1
+synthetic_user_055,General Retail,ANZEL ADVERTISING (M) SDN BHD,8.50,3,1
+synthetic_user_055,General Retail,POPULAR BOOK CO. (M) SDN BHD,30.10,5,1
+synthetic_user_055,General Retail,ADVANCO COMPANY,7.00,3,1
+synthetic_user_056,Food & Beverage,UNKNOWN,260150.00,4,1
+synthetic_user_056,Supermarket / Grocery,GH DISTRIBUTOR & MARKETING SDN BHD,85.20,4,1
+synthetic_user_056,Supermarket / Grocery,99 SPEED MART S/B,37.45,4,1
+synthetic_user_056,Food & Beverage,UNKNOWN,505428.00,4,1
+synthetic_user_056,Supermarket / Grocery,99 SPEED MART S/B,19.90,3,1
+synthetic_user_056,Supermarket / Grocery,TF VALUE-MART SDN BHD,52.80,5,1
+synthetic_user_056,Supermarket / Grocery,99 SPEED MART S/B,182.00,3,1
+synthetic_user_056,General Retail,UNKNOWN,96.00,2,1
+synthetic_user_056,Supermarket / Grocery,99 SPEED MART S/B,2.50,5,1
+synthetic_user_056,Supermarket / Grocery,99 SPEED MART S/B,14.20,3,1
+synthetic_user_056,Supermarket / Grocery,99 SPEED MART S/B,108.50,3,1
+synthetic_user_057,Food & Beverage,RESTAURANT JIAWEI JIAWEI HOUSE,65.20,3,1
+synthetic_user_057,General Retail,KEDAI PAPAN YEW CHUAN,361.46,4,1
+synthetic_user_057,General Retail,CHEF LEE SDN BHD,96.20,5,1
+synthetic_user_057,Supermarket / Grocery,99 SPEED MART S/B,262.20,2,1
+synthetic_user_057,General Retail,HUGO TRADING SDN BHD,40.80,4,1
+synthetic_user_057,General Retail,BHPETROL PERMAS JAYA 2,50.00,3,1
+synthetic_user_057,Supermarket / Grocery,99 SPEED MART S/B,37.45,3,1
+synthetic_user_057,General Retail,SYARIKAT PERNIAGAAN GIN KEE,60.95,5,1
+synthetic_user_057,General Retail,UNKNOWN,83799.00,3,1
+synthetic_user_057,General Retail,UNKNOWN,62.00,4,1
+synthetic_user_057,General Retail,AEON CO. (M) BHD,38.60,5,1
+synthetic_user_057,Supermarket / Grocery,YAM FRESH,7.95,4,1
+synthetic_user_057,Supermarket / Grocery,99 SPEED MART S/B,20.80,2,1
+synthetic_user_057,General Retail,TANJONGMAS BOOKCENTRE (PJ) SDN BHD,4.30,3,1
+synthetic_user_057,General Retail,MR. D.I.Y. (KUCHAI) SDN BHD,22.90,5,1
+synthetic_user_057,Supermarket / Grocery,99 SPEED MART S/B,169.80,3,1
+synthetic_user_057,General Retail,SATU KAMPUNG ENTERPRISE SDN BHD,20.00,3,1
+synthetic_user_058,Supermarket / Grocery,99 SPEED MART S/B,72.75,3,1
+synthetic_user_058,General Retail,SEGI CASH & CARRY SDN. BHD.,50.45,3,1
+synthetic_user_058,Supermarket / Grocery,GHEE HIANG GH DISTRIBUTOR & MARKETING SDN BHD,25.00,3,1
+synthetic_user_058,Supermarket / Grocery,VIVOPAC MARKETING SDN BHD,52.45,5,1
+synthetic_user_058,Supermarket / Grocery,99 SPEED MART S/B,27.30,4,1
+synthetic_user_058,Supermarket / Grocery,99 SPEED MART S/B,20.90,5,1
+synthetic_user_058,Supermarket / Grocery,YAM FRESH,8.35,5,1
+synthetic_user_058,Supermarket / Grocery,99 SPEED MART S/B,262.20,5,1
+synthetic_user_059,Food & Beverage,RESTORAN WAN SHENG,4.80,3,1
+synthetic_user_059,General Retail,C W KHOO HARDWARE SDN BHD,21.20,4,1
+synthetic_user_059,General Retail,HUGO TRADING SDN BHD,40.80,4,1
+synthetic_user_059,General Retail,UNKNOWN,57.00,4,1
+synthetic_user_059,Supermarket / Grocery,99 SPEED MART S/B,14.20,2,1
+synthetic_user_059,General Retail,SYARIKAT PERNIAGAAN GIN KEE,6.36,5,1
+synthetic_user_059,General Retail,IKANO HANDEL SDN BHD,73.30,3,1
+synthetic_user_059,General Retail,UNIHAKKA INTERNATIONAL SDN BHD,9.20,5,1
+synthetic_user_059,General Retail,KHE ELECTRICAL TRADING,101.75,4,1
+synthetic_user_059,General Retail,DE MAXIMUM THAI EXPRESS SDN BHD,30.70,3,1
+synthetic_user_059,General Retail,ECONSAVE CASH & CARRY (FC) S/B,5.15,5,1
+synthetic_user_059,Supermarket / Grocery,BENS INDEPENDENT GROCER SDN. BHD,77.20,2,1
+synthetic_user_060,Supermarket / Grocery,99 SPEED MART S/B,14.40,2,1
+synthetic_user_060,Food & Beverage,UNKNOWN,76000.00,2,1
+synthetic_user_060,General Retail,UNKNOWN,54500.00,5,1
+synthetic_user_060,General Retail,MR. D.I.Y. (M) SDN BHD,2.10,4,1
+synthetic_user_060,General Retail,AMANO MALAYSIA SDN BHD,1.00,5,1
+synthetic_user_060,General Retail,KEDAI PAPAN YEW CHUAN,121.90,3,1
+synthetic_user_060,General Retail,DE JELITA STESEN MINYAK,60.00,4,1
+synthetic_user_060,General Retail,ADVANCO COMPANY,10.45,5,1
+synthetic_user_060,General Retail,UNKNOWN,28.00,4,1
+synthetic_user_060,General Retail,SEGI CASH & CARRY SDN. BHD.,145.10,4,1
+synthetic_user_060,General Retail,GUARDIAN HEALTH AND BEAUTY SDN BHD,2.28,4,1
+synthetic_user_060,Food & Beverage,UNKNOWN,127500.00,3,1
+synthetic_user_060,General Retail,UNKNOWN,53020.00,5,1
+synthetic_user_060,General Retail,UNKNOWN,159638.00,3,1
+synthetic_user_060,General Retail,BIRU PETROLEUM,6.40,5,1
+synthetic_user_060,Food & Beverage,UNKNOWN,34500.00,2,1
+synthetic_user_060,General Retail,POPULAR BOOK CO. (M) SDN BHD,31.45,5,1

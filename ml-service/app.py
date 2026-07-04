@@ -33,15 +33,21 @@ def health():
 
 
 # ── OCR ENDPOINT ───────────────────────────────────────────────
-# POST { image_path } → calls Gemini AI, returns structured receipt JSON
+# POST { image, mimeType } (base64 from the backend) → calls Gemini AI, returns
+# structured receipt JSON. Legacy { image_path } is still accepted for the CLI/tests.
 @app.route("/ml/ocr", methods=["POST"])
 def ocr_route():
     data = request.get_json() or {}
+    image_b64 = data.get("image", "")
+    mime_type = data.get("mimeType", "image/jpeg")
     image_path = data.get("image_path", "")
-    if not image_path:
-        return jsonify({"error": "image_path is required"}), 400
 
-    result = ocr.extract_receipt_data(image_path)
+    if image_b64:
+        result = ocr.extract_receipt_data_from_base64(image_b64, mime_type)
+    elif image_path:
+        result = ocr.extract_receipt_data(image_path)
+    else:
+        return jsonify({"error": "image (base64) or image_path is required"}), 400
 
     if result.get("error") in ("unreadable", "multi_bill_detected"):
         return jsonify(result), 422  # Image rejected due to blur or multiple receipts detected

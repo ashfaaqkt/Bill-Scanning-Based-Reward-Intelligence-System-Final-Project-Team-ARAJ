@@ -7,6 +7,8 @@ Pipeline: blur check → rate-limit gate → Gemini model fallback chain → JSO
 import os
 import json
 import time
+import base64
+import tempfile
 import cv2
 import google.generativeai as genai
 from PIL import Image
@@ -104,15 +106,18 @@ def extract_receipt_data(image_path):
         return {"error": "GEMINI_API_KEY_MISSING"}
 
     # STEP 1 — Blur detection via OpenCV Laplacian variance
-    # Rejects images too blurry for reliable OCR before wasting an API call
+    # Rejects images too blurry for reliable OCR before wasting an API call.
+    # If OpenCV cannot decode the format (e.g. HEIC/WEBP without codecs), we skip
+    # the blur gate and let Gemini (via PIL) attempt extraction rather than reject.
     try:
         img_cv = cv2.imread(image_path)
         if img_cv is None:
-            return {"error": "unreadable", "reason": "could not load image"}
-        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
-        if blur_score < BLUR_THRESHOLD:
-            return {"error": "unreadable", "reason": "image_too_blurry", "blur_score": round(blur_score, 2)}
+            print("[WARN] OpenCV could not decode image - skipping blur check, deferring to Gemini")
+        else:
+            gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+            blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
+            if blur_score < BLUR_THRESHOLD:
+                return {"error": "unreadable", "reason": "image_too_blurry", "blur_score": round(blur_score, 2)}
     except Exception as e:
         print(f"[WARN] Blur check failed: {e} - proceeding anyway")
 
@@ -182,6 +187,48 @@ def extract_receipt_data(image_path):
     except Exception as e:
         last_request_time = time.time()
         return {"error": "SYSTEM_FAILURE", "message": str(e)}
+
+# ── BASE64 ENTRY POINT (for the Node.js backend) ──────────────
+# The backend holds the uploaded receipt as an in-memory base64 string and does
+# not share a filesystem with this service, so it cannot pass a path. We decode
+# to a short-lived temp file and run the exact same path-based pipeline above,
+# then clean up — keeping the cv2/PIL layers (blur, density anomaly) unchanged.
+_MIME_SUFFIX = {
+    "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png",
+    "image/webp": ".webp", "image/heic": ".heic", "image/heif": ".heif",
+}
+
+
+def extract_receipt_data_from_base64(image_b64, mime_type="image/jpeg"):
+    """
+    Decode a base64 receipt image to a temp file and run the full OCR pipeline.
+    Returns the same structured dict / error dict as extract_receipt_data().
+    """
+    if not api_key:
+        return {"error": "GEMINI_API_KEY_MISSING"}
+
+    try:
+        image_bytes = base64.b64decode(image_b64)
+    except Exception as e:
+        return {"error": "unreadable", "reason": f"invalid base64: {e}"}
+
+    if not image_bytes:
+        return {"error": "unreadable", "reason": "empty image payload"}
+
+    suffix = _MIME_SUFFIX.get((mime_type or "").lower().strip(), ".jpg")
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(image_bytes)
+            tmp_path = tmp.name
+        return extract_receipt_data(tmp_path)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError as e:
+                print(f"[WARN] Could not remove temp OCR file {tmp_path}: {e}")
+
 
 if __name__ == "__main__":
     import sys

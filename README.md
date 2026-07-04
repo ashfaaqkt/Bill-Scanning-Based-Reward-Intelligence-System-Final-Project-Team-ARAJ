@@ -17,16 +17,15 @@ A production-grade AI + ML system where consumers scan retail receipts, extract 
 ## Repository Structure
 ```
 /
-├── backend/          Node.js + Express + Firebase + Gemini API
-├── frontend/         Static HTML / CSS / JS UI
-├── ml-service/       Python Flask ML microservice
+├── backend/          Node.js + Express + Firebase (delegates OCR to ml-service)
+├── frontend/         Static HTML / CSS / JS UI (docs live in frontend/docs/)
+├── ml-service/       Python Flask ML microservice (Gemini OCR + ML models)
 ├── dataset/          Receipt dataset (CSVs tracked, images external)
 ├── notebooks/        Jupyter training experiments
-├── report/           Final year project report
-└── docs/             Setup, API docs, architecture, contribution guide
+└── report/           Final year project report
 ```
 
-See docs/SETUP.md for full local setup instructions.
+See frontend/docs/SETUP.md for full local setup instructions.
 
 ---
 
@@ -36,16 +35,17 @@ See docs/SETUP.md for full local setup instructions.
 
 | Document | Purpose | For Whom |
 |---|---|---|
-| **[SETUP.md](docs/SETUP.md)** | Local development environment setup, team member implementation guide | All team members, anyone setting up locally |
-| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | System design, data flow, ML pipeline structure, tech stack | Architects, lead dev, anyone understanding the system |
-| **[API.md](docs/API.md)** | Complete API reference for backend and ML service endpoints | Backend dev, frontend dev, integration testing |
-| **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | Contribution guidelines, Git workflow, code standards | All team members before making changes |
+| **[SETUP.md](frontend/docs/SETUP.md)** | Local development environment setup, team member implementation guide | All team members, anyone setting up locally |
+| **[ARCHITECTURE.md](frontend/docs/ARCHITECTURE.md)** | System design, data flow, ML pipeline structure, tech stack | Architects, lead dev, anyone understanding the system |
+| **[API.md](frontend/docs/API.md)** | Complete API reference for backend and ML service endpoints | Backend dev, frontend dev, integration testing |
+| **[CONTRIBUTING.md](frontend/docs/CONTRIBUTING.md)** | Contribution guidelines, Git workflow, code standards | All team members before making changes |
+| **[dataset/DATA_PREP.md](dataset/DATA_PREP.md)** | Prepared training-data outputs, schemas, and caveats | Anyone training the ML models |
 
 **Start Here:**
-1. **New to the project?** → Read [SETUP.md](docs/SETUP.md) to get your environment running
-2. **Need to understand the system?** → Read [ARCHITECTURE.md](docs/ARCHITECTURE.md)
-3. **Building an API call?** → Check [API.md](docs/API.md)
-4. **Making a contribution?** → Follow [CONTRIBUTING.md](docs/CONTRIBUTING.md)
+1. **New to the project?** → Read [SETUP.md](frontend/docs/SETUP.md) to get your environment running
+2. **Need to understand the system?** → Read [ARCHITECTURE.md](frontend/docs/ARCHITECTURE.md)
+3. **Building an API call?** → Check [API.md](frontend/docs/API.md)
+4. **Making a contribution?** → Follow [CONTRIBUTING.md](frontend/docs/CONTRIBUTING.md)
 
 ---
 

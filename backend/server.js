@@ -14,7 +14,6 @@ const cors = require('cors');
 const axios = require('axios');          // HTTP client for calling ML microservice
 const jwt = require('jsonwebtoken');     // JWT creation and verification
 const bcrypt = require('bcrypt');        // Password hashing (salt rounds = 10)
-const { GoogleGenAI } = require('@google/genai');  // Gemini AI SDK
 const admin = require('firebase-admin');            // Firestore database access
 
 // ── CONSTANTS ──────────────────────────────────────────────────
@@ -262,7 +261,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 
-const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_bits_pilani_123';
 
 // ── AUTH MIDDLEWARE ────────────────────────────────────────────
@@ -675,15 +673,6 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     }
 });
 
-// ── GEMINI RATE LIMITER (Backend) ─────────────────────────────
-// Mirrors the ML service rate limiter; enforces 22s gap between Gemini API calls
-let lastGeminiRequestTime = 0;
-const GEMINI_RATE_LIMIT_MS = 22000; // 22s gap — safe margin within 5 RPM free tier
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 /**
  * Generates a deterministic fingerprint for a receipt.
  * Used for cross-user duplicate detection — same physical receipt
@@ -696,7 +685,7 @@ function generateReceiptFingerprint(merchant, date, total) {
 
 // POST /api/upload — the core receipt pipeline:
 //  1. Validate base64 image + MIME type
-//  2. Rate-limit gate → Gemini AI OCR extraction
+//  2. Forward image to ML service /ml/ocr (ocr.py) → rate-limit gate + Gemini extraction
 //  3. Sanitise currency + validate required fields
 //  4. Per-user and cross-user duplicate fingerprint check
 //  5. Calculate reward points (category × tier × streak multipliers)
@@ -706,10 +695,6 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
         if (!req.body || !req.body.receipt) {
             return res.status(400).json({ error: 'No image data provided.' });
-        }
-
-        if (!ai) {
-            return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
         }
 
         const mimeType = String(req.body.mimeType || 'image/jpeg').toLowerCase().trim();
@@ -727,68 +712,49 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             return res.status(422).json({ error: 'Invalid or unreadable image payload.' });
         }
 
-        // Enforce 22s gap between requests (safe margin within 5 RPM free tier limit)
-        const now = Date.now();
-        const elapsed = now - lastGeminiRequestTime;
-        if (elapsed < GEMINI_RATE_LIMIT_MS) {
-            const waitTime = GEMINI_RATE_LIMIT_MS - elapsed;
-            console.log(`[INFO] Rate limiting: Waiting ${(waitTime / 1000).toFixed(1)}s before sending next Gemini request...`);
-            await sleep(waitTime);
-        }
-
-        console.log("Processing image with Gemini...");
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        { text: `Analyze this receipt image and extract the following details into a strict JSON format. If blurry/unreadable return exactly: {"error": "unreadable"}. Otherwise return: {"rawMerchant": "string", "date": "string (YYYY-MM-DD)", "total": number, "category": "string ('Supermarket / Grocery', 'Food & Beverage', or 'General Retail')", "items": [{ "name": "string", "price": number }]}` },
-                        { inlineData: { data: receiptPayload, mimeType } }
-                    ]
-                }
-            ],
-            config: { responseMimeType: "application/json" }
-        });
-
-        // Update last request time AFTER call
-        lastGeminiRequestTime = Date.now();
-
-        let textResponse = "";
-        if (response && response.text) {
-            textResponse = response.text;
-        } else if (response && response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
-            textResponse = response.candidates[0].content.parts[0].text;
-        }
-
+        // Hand the image to the ML service OCR pipeline (ml-service/ocr.py):
+        // blur check → rate-limit gate → Gemini extraction (with model fallback) →
+        // multi-bill / handwriting / density-anomaly checks → structured JSON.
+        // Gemini is invoked there, not here, so it runs exactly once per upload.
+        console.log("Processing image via ML OCR service (Gemini)...");
         let receiptData = null;
         try {
-            // Remove markdown code block syntax robustly
-            let cleanedText = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-            // Try to parse the cleaned text directly first
-            try {
-                receiptData = JSON.parse(cleanedText);
-            } catch (initialParseErr) {
-                // Fallback: aggressive extraction for hallucinated text around JSON
-                const startIndex = cleanedText.indexOf('{');
-                const endIndex = cleanedText.lastIndexOf('}');
-
-                if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-                    const jsonString = cleanedText.substring(startIndex, endIndex + 1);
-                    receiptData = JSON.parse(jsonString);
-                } else {
-                    throw initialParseErr; // Throw if no brackets found
-                }
+            const ocrRes = await axios.post(`${ML_SERVICE_URL}/ml/ocr`, {
+                image: receiptPayload,
+                mimeType
+            });
+            receiptData = ocrRes.data;
+        } catch (ocrErr) {
+            // ocr.py / app.py map blur + multi-bill rejections to HTTP 422
+            const status = ocrErr.response && ocrErr.response.status;
+            const body = (ocrErr.response && ocrErr.response.data) || {};
+            if (status === 422) {
+                const reason = body.error === 'multi_bill_detected'
+                    ? 'Multiple receipts detected. Please scan one receipt at a time.'
+                    : 'Scan Failed: Please ensure the receipt is clear.';
+                return res.status(422).json({ error: reason });
             }
-        } catch (e) {
-            console.error("Gemini Parse Failure. Raw Output was:", textResponse);
-            return res.status(500).json({ error: "The AI model returned an unreadable format. Please try again." });
+            console.error('[ERROR] OCR service unreachable:', ocrErr.message);
+            return res.status(503).json({ error: 'OCR service is unavailable. Please try again shortly.' });
         }
 
-        // FR Compliance: 422 Unprocessable Entity
-        if (receiptData.error === "unreadable") {
-            return res.status(422).json({ error: "Scan Failed: Please ensure the receipt is clear." });
+        if (!receiptData || typeof receiptData !== 'object') {
+            return res.status(500).json({ error: 'The OCR service returned an unexpected response.' });
+        }
+
+        // Surface OCR-level error payloads (returned with HTTP 200 by the ML service)
+        if (receiptData.error) {
+            if (receiptData.error === 'unreadable') {
+                return res.status(422).json({ error: 'Scan Failed: Please ensure the receipt is clear.' });
+            }
+            if (receiptData.error === 'multi_bill_detected') {
+                return res.status(422).json({ error: 'Multiple receipts detected. Please scan one receipt at a time.' });
+            }
+            if (receiptData.error === 'GEMINI_API_KEY_MISSING') {
+                return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the ML service.' });
+            }
+            console.error('[ERROR] OCR extraction failed:', receiptData);
+            return res.status(502).json({ error: 'The AI model could not process this receipt. Please try again.' });
         }
 
         // Sanitize currency symbols from total and every item price
