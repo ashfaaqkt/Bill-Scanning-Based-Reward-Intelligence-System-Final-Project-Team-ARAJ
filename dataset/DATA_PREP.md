@@ -23,7 +23,7 @@ Originals (`receipts_master.csv`, `labels.csv`) are untouched.
   (binary, genuine=0) and `binary_eligible` (genuine/tampered only).
 - Splits: `fraud_train.csv` / `fraud_val.csv` (stratified 80/20 over genuine+tampered).
 - Label counts: {'tampered': 129, 'genuine': 65, 'multi_bill': 5, 'handwritten': 1}
-- **Images present locally: 0/200** — the rest live on Google Drive (gitignored).
+- **Images present locally: 200/200** — the rest live on Google Drive (gitignored).
   See `missing_images_report.csv`. The CNN cannot train until those images are downloaded into
   `dataset/tampered/` and `dataset/indian/`. PDF entries (`needs_pdf_conversion=1`) must be rasterised first.
 - `processed_labels_arpan.csv` is **quarantined** (not used): its detector verdicts were computed on
