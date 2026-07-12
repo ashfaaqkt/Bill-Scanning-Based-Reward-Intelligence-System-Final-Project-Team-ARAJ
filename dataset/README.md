@@ -43,6 +43,7 @@ dataset/
   build_receipts_master.py   ← builds receipts_master.csv from CORD + SROIE + labels
   download_annotations.py    ← fetches CORD/SROIE annotation files
   prepare_dataset.py         ← cleans/splits data into the train-ready files above (no training)
+  flatten_images.py          ← flattens Drive-downloaded images (nested → flat) so labels.csv paths resolve
   rasterize_pdfs.py          ← converts the 23 PDF receipts in indian/ to JPG (for the fraud CNN)
   generate_tampered.py       ← creates tampered variants (brightness, duplicate_copy, number_overwrite, handwritten)
   exact_duplicate_check.py   ← flags exact duplicate receipts from CSV
@@ -67,6 +68,20 @@ image_path, label, labelled_by, notes
 ```
 Labels: `genuine` / `tampered` / `multi_bill` / `handwritten`
 (current counts: 129 tampered · 65 genuine · 5 multi_bill · 1 handwritten)
+
+## 🖼️ Image setup (do this after downloading images from Drive)
+
+Images are gitignored, so each member must download the folders from Drive and run these
+two scripts to make them usable (the Drive folders arrive **nested**, but `labels.csv` and
+`fraud_manifest.csv` expect **flat** paths):
+
+```bash
+# 1. download tampered/ and indian/ image folders from Drive (links in the table above)
+python dataset/flatten_images.py    # nested subfolders → flat; fixes messy filenames
+python dataset/rasterize_pdfs.py    # convert the 23 PDF receipts → JPG for the CNN
+```
+
+Both are safe to re-run. After this, all 200 images resolve and NB 03 (fraud CNN) can train.
 
 ## Prepared training data
 

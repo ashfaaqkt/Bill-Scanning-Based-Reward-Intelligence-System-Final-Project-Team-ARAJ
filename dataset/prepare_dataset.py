@@ -284,8 +284,9 @@ Originals (`receipts_master.csv`, `labels.csv`) are untouched.
   `dataset/processed/firestore_receipts.csv` (gitignored — regenerate on demand). Currently sparse
   (~19 receipts / 3 users), so combine with the synthetic set until real usage grows.
 
-## Related scripts
-- `dataset/rasterize_pdfs.py` — PDF receipts → JPG for the fraud CNN.
+## Related scripts (image + data pipeline)
+- `dataset/flatten_images.py` — flatten Drive-downloaded images (nested → flat) so labels resolve. Run first.
+- `dataset/rasterize_pdfs.py` — PDF receipts → JPG for the fraud CNN. Run after flatten.
 - `backend/export_firestore.js` — export real user receipt history for NB 04 / anomaly.
 
 ## Not done here (by design)
