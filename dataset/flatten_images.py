@@ -48,11 +48,20 @@ def main():
 
     rows = list(csv.DictReader(open(LABELS, newline="", encoding="utf-8")))
 
-    # Pool of every file currently sitting under tampered/ and indian/ (nested or flat)
-    tampered_src = [p for p in glob.glob(str(ROOT / "tampered" / "**" / "*"), recursive=True)
-                    if os.path.isfile(p) and p.lower().endswith(IMG_EXT)]
-    indian_src = [p for p in glob.glob(str(ROOT / "indian" / "**" / "*"), recursive=True)
-                  if os.path.isfile(p) and p.lower().endswith(IMG_EXT)]
+    # Source pool = images sitting in NESTED subfolders only (the Drive layout).
+    # We exclude files already flattened directly into dataset/{tampered,indian}/ —
+    # otherwise a re-run matches the flat copy (parent 'indian'/'tampered') and loses
+    # the real category folder, corrupting indian_category_folders.csv. Sorted
+    # deepest-first so the nested original always wins.
+    def nested_images(sub):
+        base = ROOT / sub
+        files = [p for p in glob.glob(str(base / "**" / "*"), recursive=True)
+                 if os.path.isfile(p) and p.lower().endswith(IMG_EXT)
+                 and Path(p).parent != base]           # skip already-flat copies
+        return sorted(files, key=lambda p: -len(Path(p).parts))
+
+    tampered_src = nested_images("tampered")
+    indian_src = nested_images("indian")
 
     copied = skipped = unresolved = 0
     missing = []
