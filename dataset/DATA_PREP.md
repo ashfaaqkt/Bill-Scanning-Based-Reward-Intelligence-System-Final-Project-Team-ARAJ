@@ -16,24 +16,34 @@ Originals (`receipts_master.csv`, `labels.csv`) are untouched.
 - SROIE's original `items_text` was actually the **address** — moved to the `address` column;
   SROIE has no per-item text, CORD has no merchant.
 - `category_3class` is a keyword heuristic (imperfect) — provided as an alternative target, not ground truth.
+  For the 100 Indian receipts, real spend-category labels were recovered from the Drive folder
+  structure into `indian_category_folders.csv` (Restaurant/Grocery/Pharmacy/etc.) — candidate ground truth.
 - `total` is numeric but currencies differ by source (CORD≈IDR, SROIE≈MYR). `date` normalised to YYYY-MM-DD where present.
+- **Status (NB 02): TRAINED** — 3-model comparison (LogReg / Linear SVM / Random Forest) on the 3-class
+  target; Random Forest won (test macro-F1 0.942 / acc 0.944). `classifier.pkl` + `tfidf.pkl` in `ml-service/models/`.
 
 ## NB 03 — Fraud detection data
 - `fraud_manifest.csv` — 200 rows from `labels.csv`. Columns include `is_tampered`
   (binary, genuine=0) and `binary_eligible` (genuine/tampered only).
 - Splits: `fraud_train.csv` / `fraud_val.csv` (stratified 80/20 over genuine+tampered).
 - Label counts: {'tampered': 129, 'genuine': 65, 'multi_bill': 5, 'handwritten': 1}
-- **Images present locally: 200/200** — the rest live on Google Drive (gitignored).
-  See `missing_images_report.csv`. The CNN cannot train until those images are downloaded into
-  `dataset/tampered/` and `dataset/indian/`. PDF entries (`needs_pdf_conversion=1`) must be rasterised first.
+- **Images present locally: 200/200** ✅ — all downloaded from Drive and flattened into
+  `dataset/tampered/` (100) and `dataset/indian/` (100). The 23 PDF receipts were rasterised to JPG via
+  `dataset/rasterize_pdfs.py`, so all 200 are pixel-ready for the CNN.
 - `processed_labels_arpan.csv` is **quarantined** (not used): its detector verdicts were computed on
   mock/generated images with monkey-patched OCR, so every row reads "LIKELY AUTHENTIC" — invalid.
 
 ## NB 04 — Recommender data
-- `synthetic_user_interactions.csv` — 772 rows across 60 users.
-- **SYNTHETIC** (`is_synthetic=1`): there is no real `user_id` data in the repo (it lives in Firestore).
-  Use only as a placeholder so the SVD/collaborative-filter notebook runs; replace with a Firestore export for real results.
+- `synthetic_user_interactions.csv` — 772 rows across 60 users (`is_synthetic=1`).
+- **Real user data now available:** `backend/export_firestore.js` exports live receipt history to
+  `dataset/processed/firestore_receipts.csv` (gitignored — regenerate on demand). Currently sparse
+  (~19 receipts / 3 users), so combine with the synthetic set until real usage grows.
+
+## Related scripts
+- `dataset/rasterize_pdfs.py` — PDF receipts → JPG for the fraud CNN.
+- `backend/export_firestore.js` — export real user receipt history for NB 04 / anomaly.
 
 ## Not done here (by design)
-- No training, no `.pkl`/`.pt`, no notebook edits.
-- Fraud CNN images + Firestore user export remain external blockers.
+- This script only cleans/splits/documents — no training happens in it.
+- Remaining external work: collect more real user activity (Firestore) for a meaningful collaborative filter;
+  train the fraud CNN (NB 03) on Colab GPU.

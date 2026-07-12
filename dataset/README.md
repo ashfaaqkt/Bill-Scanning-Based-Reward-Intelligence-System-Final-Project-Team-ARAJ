@@ -6,11 +6,11 @@
 |---|---|---|---|---|
 | CORD (Clova OCR) | 800 annotations | Arpan | `dataset/temp_cord/` (JSON tracked, images external) | ✅ 800 rows |
 | SROIE (ICDAR 2019) | 973 annotations | Arpan | `dataset/temp_sroie/` (entity `.txt` tracked, images external) | ✅ 973 rows |
-| Indian receipts (Jyoti) | 100 | Jyoti | `dataset/indian/` (gitignored, on Drive) | labelled in `labels.csv` |
-| Tampered (generated) | 100 | Ranjeet | `dataset/tampered/` (gitignored, on Drive) | labelled in `labels.csv` |
+| Indian receipts (Jyoti) | 100 | Jyoti | `dataset/indian/` (gitignored) | ✅ Downloaded + flattened; 23 PDFs rasterised to JPG |
+| Tampered (generated) | 100 | Ranjeet | `dataset/tampered/` (gitignored) | ✅ Downloaded + flattened |
 | Test bills | 5 | Ashfaaq | `dataset/test_bills/` | ✅ in repo (OCR smoke testing) |
 
-> **Note:** `receipts_master.csv` is now **populated (1,973 rows)** from the CORD + SROIE annotations — it does **not** require the images to be downloaded. The receipt **images** (genuine / tampered / Indian) are still only on Drive and are needed for the fraud CNN (Notebook 03).
+> **Note:** `receipts_master.csv` is **populated (1,973 rows)** from the CORD + SROIE annotations. All 200 receipt **images** (100 tampered + 100 Indian) are now **downloaded locally and pixel-ready** — `fraud_manifest.csv` shows 200/200 present, so the fraud CNN (Notebook 03) is unblocked. NB 02 (category classifier) is **trained** (Random Forest, test macro-F1 0.94).
 
 | Member | Dataset | Drive Link |
 |---|---|---|
@@ -24,8 +24,8 @@
 dataset/
   temp_cord/          ← CORD JSON annotations (tracked); images/ external
   temp_sroie/         ← SROIE entity .txt annotations (tracked); images/ external
-  indian/             ← Jyoti's Indian receipt photos (gitignored, on Drive)
-  tampered/           ← Ranjeet's tampered images (gitignored, on Drive)
+  indian/             ← Jyoti's Indian receipt photos (gitignored; downloaded locally, 100 incl. rasterised PDFs)
+  tampered/           ← Ranjeet's tampered images (gitignored; downloaded locally, 100)
   genuine/            ← original source images (gitignored)
   test_bills/         ← 5 sample bills for OCR smoke testing (in repo)
   processed/
@@ -34,19 +34,25 @@ dataset/
     processed_labels_arpan.csv    ← detector output — QUARANTINED (see below), do not use
     category_dataset.csv          ← cleaned spend-category data for NB 02 (generated)
     category_{train,val,test}.csv ← stratified 70/15/15 splits (generated)
-    fraud_manifest.csv            ← fraud labels + image availability for NB 03 (generated)
+    fraud_manifest.csv            ← fraud labels + image availability for NB 03 (generated; 200/200 present)
     fraud_{train,val}.csv         ← stratified 80/20 genuine/tampered splits (generated)
     missing_images_report.csv     ← which referenced images exist locally (generated)
     synthetic_user_interactions.csv ← SYNTHETIC user×category data for NB 04 (generated)
+    indian_category_folders.csv   ← real spend-category labels for Indian receipts (from Drive folder names)
+    firestore_receipts.csv        ← real user receipt history exported from Firestore (GITIGNORED — regenerate)
   build_receipts_master.py   ← builds receipts_master.csv from CORD + SROIE + labels
   download_annotations.py    ← fetches CORD/SROIE annotation files
   prepare_dataset.py         ← cleans/splits data into the train-ready files above (no training)
+  rasterize_pdfs.py          ← converts the 23 PDF receipts in indian/ to JPG (for the fraud CNN)
   generate_tampered.py       ← creates tampered variants (brightness, duplicate_copy, number_overwrite, handwritten)
   exact_duplicate_check.py   ← flags exact duplicate receipts from CSV
   perceptual_hash.py         ← pHash image similarity comparison tool
   fraud_detector.py          ← standalone multi-signal fraud scorer
   process_labels_arpan.py    ← runs Arpan's detector over labels.csv (needs real images — see below)
 ```
+
+> Real user history for the recommender (NB 04) is exported by `backend/export_firestore.js`
+> → `dataset/processed/firestore_receipts.csv` (gitignored; currently sparse ~19 receipts / 3 users).
 
 ## Schemas
 
