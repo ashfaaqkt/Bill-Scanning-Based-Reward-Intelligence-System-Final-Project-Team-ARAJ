@@ -18,6 +18,7 @@ const admin = require('firebase-admin');            // Firestore database access
 
 // ── CONSTANTS ──────────────────────────────────────────────────
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';  // Python Flask ML service
+const CLASSIFIER_MIN_CONFIDENCE = 0.45;  // below this, keep Gemini's category instead of the classifier's
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'serviceAccountKey.json');
 const SUPPORTED_IMAGE_MIME_TYPES = new Set([  // Receipt image formats accepted at upload
     'image/jpeg',
@@ -785,6 +786,31 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         const receiptDate = normalizedDate;
         const total = receiptData.total;
         const receiptFingerprint = generateReceiptFingerprint(rawMerchant, receiptDate, total);
+
+        // Category: prefer the trained ML classifier (Notebook 02), fall back to Gemini's.
+        // Non-breaking: if the ML service or model is unavailable, we keep the OCR category.
+        // We keep Gemini's original as gemini_category for transparency/comparison.
+        const geminiCategory = receiptData.category;
+        try {
+            const itemsText = Array.isArray(receiptData.items)
+                ? receiptData.items.map(it => it.name).filter(Boolean).join(', ')
+                : '';
+            const classifyRes = await axios.post(`${ML_SERVICE_URL}/ml/classify`, {
+                items_text: itemsText,
+                merchant: rawMerchant
+            });
+            const ml = classifyRes.data || {};
+            if (ml.model_ready && ml.category && ml.confidence >= CLASSIFIER_MIN_CONFIDENCE) {
+                receiptData.category = ml.category;
+                receiptData.ml_confidence = ml.confidence;
+                console.log(`[INFO] Category from classifier: ${ml.category} (conf ${ml.confidence}); Gemini said ${geminiCategory}`);
+            } else {
+                console.log(`[INFO] Classifier not confident/ready (${JSON.stringify(ml)}); keeping Gemini category ${geminiCategory}`);
+            }
+        } catch (clsErr) {
+            console.warn('[WARN] /ml/classify unreachable — keeping Gemini category.', clsErr.message);
+        }
+        receiptData.gemini_category = geminiCategory;
 
         // Items total cross-check: flag if sum of items deviates >15% from stated total
         let itemsMismatch = false;
