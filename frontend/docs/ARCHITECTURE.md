@@ -38,13 +38,15 @@ User (Browser)
 1. Frontend sends the receipt as base64 to `POST /api/upload`
 2. Backend validates the image (MIME + base64 + byte sniff) in memory — no `uploads/` folder
 3. Backend calls `POST /ml/ocr` — **ocr.py** runs the 5-layer pipeline (blur → rate-limit → Gemini 2.5 Flash → multi-bill / handwriting / density anomaly) and returns structured JSON
-4. Backend does dedup (SHA-256 fingerprint + fuzzy merchant) and computes reward points
-5. Backend writes receipt + line items + logs to Firestore
-6. Backend calls `POST /ml/fraud-score` — passes the OCR result (incl. `handwritten_flag`) → fraud probability
-7. Backend calls `POST /ml/update-profile` (fire-and-forget) to update the user interest vector
-8. Response sent back to frontend with extracted data + reward result
+4. Backend calls `POST /ml/classify` — **classifier.py** (trained Notebook 02) sets the category when confident (confidence ≥ 0.45); otherwise the Gemini category is kept
+5. Backend does dedup (SHA-256 fingerprint + fuzzy merchant) and computes reward points
+6. Backend writes receipt + line items + logs to Firestore
+7. Backend calls `POST /ml/fraud-score` — passes the OCR result (incl. `handwritten_flag`) → fraud probability
+8. Backend calls `POST /ml/update-profile` (fire-and-forget) to update the user interest vector
+9. Response sent back to frontend with extracted data + reward result (category + gemini_category)
 
-> **Not yet wired:** `/ml/classify`, `/ml/anomaly`, `/ml/recommend` exist as routes but are not called from `/api/upload` yet — category currently comes from the OCR step, and reward offers are static. These get wired once the models are trained.
+> **Wired:** `/ml/classify` is now called from `/api/upload` — the trained Notebook 02 classifier sets the category when it is confident (confidence ≥ 0.45), otherwise the OCR/Gemini category is kept (both are returned as `category` + `gemini_category`).
+> **Not yet wired:** `/ml/anomaly` and `/ml/recommend` exist as routes but are not called yet — anomaly scoring is unused and reward offers are still static. These get wired once their models (NB 03/04/05) are trained.
 
 ## ML Pipeline (ml-service)
 
@@ -55,7 +57,7 @@ Receipt Image
       │
       ├── fraud.py        → OCR-signal fraud score [LIVE]; pHash + tamper CNN [stub]
       │
-      ├── classifier.py   → TF-IDF + Random Forest → category label   [stub, not wired]
+      ├── classifier.py   → TF-IDF + Random Forest → category label   [TRAINED + WIRED, conf-gated]
       │
       ├── anomaly.py      → Isolation Forest → spending anomaly score  [stub, not wired]
       │

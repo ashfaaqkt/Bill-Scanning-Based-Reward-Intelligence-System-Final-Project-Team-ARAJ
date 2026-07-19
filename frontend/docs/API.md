@@ -48,7 +48,7 @@
 | POST | /ml/ocr | Ashfaaq | Extract structured data from receipt image (Gemini, ocr.py) | ✅ yes |
 | POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals | ✅ yes |
 | POST | /ml/update-profile | Arpan | Update user spend interest vector | ✅ yes (fire-and-forget) |
-| POST | /ml/classify | Arpan | Classify receipt spend category | ❌ not yet (stub) |
+| POST | /ml/classify | Arpan | Classify receipt spend category | ✅ yes (trained; used when confidence ≥ 0.45, else Gemini category) |
 | POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ❌ not yet (stub) |
 | POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations | ❌ not yet (stub) |
 
@@ -81,8 +81,17 @@ Request:
 
 Response:
 ```json
-{ "category": "Supermarket / Grocery", "confidence": 0.91, "model_ready": true }
+{ "category": "Food & Beverage", "confidence": 0.7967, "model_ready": true }
 ```
+
+Powered by the trained Notebook 02 model (`classifier.pkl` + `tfidf.pkl`, Random Forest). If the
+model files are absent, it returns `{ "model_ready": false }` and the backend keeps Gemini's category.
+`/api/upload` uses the classifier's category only when `model_ready` **and** `confidence ≥ 0.45`;
+otherwise it falls back to the OCR/Gemini category. The upload response includes both the final
+`category` and `gemini_category` (plus `ml_confidence` when the classifier was used).
+
+> Served model must be trained in the ml-service venv: `ml-service/.venv/bin/python ml-service/train_classifier.py`
+> (matches the serving sklearn version — see ARCHITECTURE.md).
 
 ### Example: POST /ml/fraud-score
 
