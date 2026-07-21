@@ -178,7 +178,7 @@ Each team member owns specific modules. Here's what each person should implement
 **Files to Work On:**
 - `dataset/` — Manage genuine, tampered, Indian receipt datasets
 - `dataset/processed/labels.csv` — Dataset labeling and validation
-- `frontend/docs/` — API.md, ARCHITECTURE.md, CONTRIBUTING.md
+- `docs/` — API.md, ARCHITECTURE.md, CONTRIBUTING.md
 - `notebooks/` — Jupyter notebooks for exploration and analysis
 
 **Key Implementation Tasks:**
