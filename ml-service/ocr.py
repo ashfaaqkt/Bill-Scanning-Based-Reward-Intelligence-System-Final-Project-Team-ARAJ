@@ -10,7 +10,7 @@ import time
 import base64
 import tempfile
 import cv2
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 from dotenv import load_dotenv
 
@@ -21,8 +21,7 @@ load_dotenv(env_path)
 
 # Configure Gemini client with API key from .env
 api_key = os.getenv("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key) if api_key else None
 
 # ── RATE LIMIT STATE ───────────────────────────────────────────
 # Tracks last Gemini call time; enforces 23s gap to stay within 5 RPM free tier
@@ -151,8 +150,10 @@ def extract_receipt_data(image_path):
         for model_name in models_to_try:
             try:
                 print(f"[INFO] Attempting OCR with {model_name}...")
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content([RECEIPT_PROMPT, img])
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[RECEIPT_PROMPT, img],
+                )
 
                 last_request_time = time.time()
 
