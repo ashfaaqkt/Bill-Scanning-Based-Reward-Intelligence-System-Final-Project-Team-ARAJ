@@ -33,6 +33,12 @@ RATE_LIMIT_INTERVAL = 23  # 22s gap + 1s safety buffer
 # Laplacian variance below this value → image too blurry to extract reliably
 BLUR_THRESHOLD = 100
 
+# Laplacian variance is not resolution-invariant: a sharp receipt shot at high
+# resolution sits in a large smooth background that dilutes the whole-image
+# variance below the threshold (false "unreadable"). Normalise the long edge to
+# this size before scoring so the threshold means the same thing at any resolution.
+BLUR_NORMALIZE_MAX_DIM = 1280
+
 # ── GEMINI EXTRACTION PROMPT ───────────────────────────────────
 # Instructs Gemini to detect multi-bill, blur, handwriting, and extract structured JSON
 RECEIPT_PROMPT = (
@@ -115,6 +121,12 @@ def extract_receipt_data(image_path):
             print("[WARN] OpenCV could not decode image - skipping blur check, deferring to Gemini")
         else:
             gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+            # Normalise long edge to keep the blur score resolution-independent
+            h, w = gray.shape
+            longest = max(h, w)
+            if longest > BLUR_NORMALIZE_MAX_DIM:
+                scale = BLUR_NORMALIZE_MAX_DIM / longest
+                gray = cv2.resize(gray, (int(w * scale), int(h * scale)))
             blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
             if blur_score < BLUR_THRESHOLD:
                 return {"error": "unreadable", "reason": "image_too_blurry", "blur_score": round(blur_score, 2)}
