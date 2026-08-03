@@ -49,7 +49,7 @@
 | POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals | ✅ yes |
 | POST | /ml/update-profile | Arpan | Update user spend interest vector | ✅ yes (fire-and-forget) |
 | POST | /ml/classify | Arpan | Classify receipt spend category | ✅ yes (trained; used when confidence ≥ 0.45, else Gemini category) |
-| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ❌ not yet (stub) |
+| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ✅ yes (endpoint wired; model still a stub → returns 0.05) |
 | POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations | ❌ not yet (stub) |
 
 ### Example: POST /ml/ocr

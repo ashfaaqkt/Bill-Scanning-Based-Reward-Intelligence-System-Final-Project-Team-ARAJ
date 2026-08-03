@@ -952,6 +952,28 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             if (riskLevel === "Low") riskLevel = "Medium";
         }
 
+        // 6b. Spending Anomaly - Call ML Microservice (Isolation Forest)
+        //     Flags a transaction amount that is statistically unusual for this user/category.
+        let anomalyScore = 0.05;
+        let anomalyFlag = false;
+        try {
+            const anomalyRes = await axios.post(`${ML_SERVICE_URL}/ml/anomaly`, {
+                user_id: req.userId,
+                amount: total,
+                category: receiptData.category,
+                date: receiptData.date
+            });
+            if (anomalyRes.data && anomalyRes.data.anomaly_score !== undefined) {
+                anomalyScore = anomalyRes.data.anomaly_score;
+                anomalyFlag = anomalyRes.data.is_anomaly === true;
+            }
+        } catch (mlError) {
+            console.warn("ML Service (Anomaly) unreachable, using simulation defaults.");
+        }
+
+        // An anomalous spend is a fraud-adjacent signal → nudge risk to at least Medium.
+        if (anomalyFlag && riskLevel === "Low") riskLevel = "Medium";
+
         const fraudRef = db.collection('Fraud_Scores').doc();
         await fraudRef.set({
             receipt_id: newReceiptRef.id,
@@ -960,6 +982,8 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             risk_level: riskLevel,
             cross_user_duplicate: crossUserDuplicate,
             items_total_mismatch: itemsMismatch,
+            anomaly_score: anomalyScore,
+            anomaly_flag: anomalyFlag,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
@@ -979,7 +1003,9 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 rewardPoints: rewardResult.points,
                 rewardLogic: rewardResult.logicText,
                 fraudScore: fraudScore,
-                riskLevel: riskLevel
+                riskLevel: riskLevel,
+                anomalyScore: anomalyScore,
+                anomalyFlag: anomalyFlag
             }
         });
 
