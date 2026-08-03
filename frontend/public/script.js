@@ -851,7 +851,76 @@ function checkAuth() {
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     startHeroTyping();
+    initConsentGate();
 });
+
+// ── DATA CONSENT / TERMS & CONDITIONS GATE ─────────────────────
+// Simple educational consent flow: on first visit, ask the user to accept
+// how their receipt data is handled. Choice is stored in localStorage so it
+// only appears once. Frontend-only — no backend wiring.
+const CONSENT_KEY = 'dataConsentAccepted';
+
+function hasDataConsent() {
+    return localStorage.getItem(CONSENT_KEY) === 'true';
+}
+
+function initConsentGate() {
+    const modal = document.getElementById('consent-modal');
+    if (!modal) return;
+
+    const checkbox = document.getElementById('consent-checkbox');
+    const acceptBtn = document.getElementById('consent-accept');
+    const declineBtn = document.getElementById('consent-decline');
+    const declinedMsg = document.getElementById('consent-declined-msg');
+
+    // Already consented → never show again
+    if (hasDataConsent()) return;
+
+    const openModal = () => {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    };
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    };
+
+    // Accept button enables only once the checkbox is ticked
+    if (checkbox && acceptBtn) {
+        checkbox.addEventListener('change', () => {
+            acceptBtn.disabled = !checkbox.checked;
+            if (checkbox.checked && declinedMsg) declinedMsg.classList.add('hidden');
+        });
+    }
+
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', () => {
+            if (!checkbox || !checkbox.checked) return;
+            localStorage.setItem(CONSENT_KEY, 'true');
+            closeModal();
+        });
+    }
+
+    if (declineBtn) {
+        declineBtn.addEventListener('click', () => {
+            // Educational: consent is required to proceed — keep the gate up.
+            if (declinedMsg) declinedMsg.classList.remove('hidden');
+        });
+    }
+
+    openModal();
+}
+
+// Expose a way to re-open the terms later (e.g. from a footer link)
+function showConsentTerms() {
+    const modal = document.getElementById('consent-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+window.showConsentTerms = showConsentTerms;
 
 function startHeroTyping() {
     if (!heroTypingTitle) return;
