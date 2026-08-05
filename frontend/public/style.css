@@ -684,6 +684,33 @@ body::before {
     text-decoration: none;
 }
 
+/* ── About This Capstone (standalone section) ─────────────── */
+.about-capstone-body {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.about-intro {
+    text-align: center;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--color-charcoal, #334155);
+    margin-bottom: 1.85rem;
+}
+
+.about-grid {
+    margin-bottom: 1.6rem;
+}
+
+.about-capstone .limitations-alert {
+    margin-top: 0;
+}
+
+.about-repo-links {
+    justify-content: center;
+    margin-top: 0;
+}
+
 /* ── How It Works (redesigned: pipeline + architecture) ────── */
 .hiw-lead {
     text-align: center;
