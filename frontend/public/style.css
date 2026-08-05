@@ -684,6 +684,179 @@ body::before {
     text-decoration: none;
 }
 
+/* ── How It Works (redesigned: pipeline + architecture) ────── */
+.hiw-lead {
+    text-align: center;
+    color: var(--color-smoke);
+    font-size: 0.95rem;
+    max-width: 640px;
+    margin: -0.5rem auto 2rem;
+    line-height: 1.55;
+}
+
+.hiw-pipeline {
+    list-style: none;
+    margin: 0 auto 2.5rem;
+    padding: 0;
+    max-width: 740px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.hiw-stage {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-left: 3px solid var(--color-gold, #b8860b);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.15rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hiw-stage:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(8, 27, 43, 0.12);
+}
+
+.hiw-stage-badge {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent, #0d4f8b), var(--color-accent-light, #1e6bb8));
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hiw-stage-body h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0 0 0.3rem;
+}
+
+.hiw-stage-body p {
+    font-size: 0.86rem;
+    color: var(--color-charcoal, #334155);
+    line-height: 1.5;
+    margin: 0 0 0.55rem;
+}
+
+.hiw-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-accent, #0d4f8b);
+    background: rgba(13, 79, 139, 0.08);
+    border-radius: 999px;
+    padding: 0.22rem 0.65rem;
+}
+
+.hiw-arch {
+    border-top: 1px solid rgba(30, 41, 59, 0.1);
+    padding-top: 1.8rem;
+}
+
+.hiw-arch-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    text-align: center;
+    margin: 0 0 0.4rem;
+}
+
+.hiw-arch-lead {
+    text-align: center;
+    color: var(--color-smoke);
+    font-size: 0.9rem;
+    max-width: 600px;
+    margin: 0 auto 1.6rem;
+    line-height: 1.5;
+}
+
+.hiw-arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.6rem;
+}
+
+.hiw-arch-card {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 1.15rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hiw-arch-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(8, 27, 43, 0.14);
+    border-color: rgba(184, 134, 11, 0.4);
+}
+
+.hiw-arch-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.hiw-arch-card h5 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0 0 0.4rem;
+}
+
+.hiw-arch-card p {
+    font-size: 0.8rem;
+    color: var(--color-smoke);
+    line-height: 1.45;
+    margin: 0 0 0.7rem;
+}
+
+.hiw-arch-tech {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--color-gold, #b8860b);
+    text-transform: uppercase;
+}
+
+.hiw-flow {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-charcoal, #334155);
+    line-height: 1.9;
+}
+
+.hiw-flow-chain {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--color-accent, #0d4f8b);
+    background: rgba(13, 79, 139, 0.06);
+    border: 1px dashed rgba(13, 79, 139, 0.3);
+    border-radius: 8px;
+    padding: 0.4rem 0.75rem;
+}
+
+.hiw-arch code,
+.hiw-flow code {
+    background: rgba(30, 41, 59, 0.08);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
 .limitations-alert strong {
     color: var(--color-ink);
     font-size: 0.9rem;

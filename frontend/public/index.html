@@ -186,45 +186,92 @@
                 <div class="landing-how">
                     <div class="landing-how-box">
                         <h3>How It Works</h3>
-                        <div class="landing-steps">
-                            <div class="landing-step">
-                                <div class="landing-step-num">1</div>
-                                <h4>Upload</h4>
-                                <p>Drop your receipt image</p>
+                        <p class="hiw-lead">From a photo of a receipt to reward points in seconds — here's the full
+                            journey, and the architecture that powers it.</p>
+
+                        <!-- Detailed request pipeline -->
+                        <ol class="hiw-pipeline">
+                            <li class="hiw-stage">
+                                <span class="hiw-stage-badge">1</span>
+                                <div class="hiw-stage-body">
+                                    <h4>📤 Upload</h4>
+                                    <p>You drop a receipt image in the browser. The single-page frontend sends it to
+                                        the backend over an authenticated (JWT) request.</p>
+                                    <span class="hiw-tag">Frontend → API · JWT auth</span>
+                                </div>
+                            </li>
+                            <li class="hiw-stage">
+                                <span class="hiw-stage-badge">2</span>
+                                <div class="hiw-stage-body">
+                                    <h4>🔍 Extract — OCR</h4>
+                                    <p>The backend forwards the image to the ML microservice, where a 5-layer OCR
+                                        pipeline runs: a blur check (OpenCV Laplacian), a rate-limit gate, Google
+                                        Gemini 2.5 Flash extraction, a model fallback, and a pixel-density scan that
+                                        flags handwritten edits.</p>
+                                    <span class="hiw-tag">ml-service · /ml/ocr · Gemini 2.5 Flash</span>
+                                </div>
+                            </li>
+                            <li class="hiw-stage">
+                                <span class="hiw-stage-badge">3</span>
+                                <div class="hiw-stage-body">
+                                    <h4>🧠 Classify &amp; Detect</h4>
+                                    <p>The extracted fields flow through the ML models — a TF-IDF + Random Forest
+                                        category classifier, a fraud scorer (OCR signals + duplicate perceptual
+                                        hashing), and an Isolation-Forest spending-anomaly check.</p>
+                                    <span class="hiw-tag">/ml/classify · /ml/fraud-score · /ml/anomaly</span>
+                                </div>
+                            </li>
+                            <li class="hiw-stage">
+                                <span class="hiw-stage-badge">4</span>
+                                <div class="hiw-stage-body">
+                                    <h4>🎁 Reward &amp; Recommend</h4>
+                                    <p>The points engine computes ₹100 = 1 point, scaled by spend category, user tier
+                                        and streak. Points, fraud scores and personalised offers are written to
+                                        Firestore and returned to your screen.</p>
+                                    <span class="hiw-tag">Points Engine · /ml/recommend · Firestore</span>
+                                </div>
+                            </li>
+                        </ol>
+
+                        <!-- Architecture behind it -->
+                        <div class="hiw-arch">
+                            <h4 class="hiw-arch-title">Under the Hood — Architecture</h4>
+                            <p class="hiw-arch-lead">A three-tier design keeps the AI/ML layer isolated from the app
+                                logic, so each part can evolve independently.</p>
+                            <div class="hiw-arch-grid">
+                                <div class="hiw-arch-card">
+                                    <div class="hiw-arch-icon">🖥️</div>
+                                    <h5>Frontend</h5>
+                                    <p>Single-page app with a 4-step stepper. Handles upload, auth UI and live result
+                                        rendering.</p>
+                                    <span class="hiw-arch-tech">HTML · CSS · Vanilla JS</span>
+                                </div>
+                                <div class="hiw-arch-card">
+                                    <div class="hiw-arch-icon">⚙️</div>
+                                    <h5>Backend API</h5>
+                                    <p>Orchestrates the pipeline: JWT auth, reward &amp; claim logic, and talks to the
+                                        database.</p>
+                                    <span class="hiw-arch-tech">Node · Express · JWT</span>
+                                </div>
+                                <div class="hiw-arch-card">
+                                    <div class="hiw-arch-icon">🧠</div>
+                                    <h5>ML Microservice</h5>
+                                    <p>Isolated Python service hosting OCR + every ML model behind <code>/ml/*</code>
+                                        endpoints.</p>
+                                    <span class="hiw-arch-tech">Python · Flask · scikit-learn</span>
+                                </div>
+                                <div class="hiw-arch-card">
+                                    <div class="hiw-arch-icon">🗄️</div>
+                                    <h5>Data &amp; AI</h5>
+                                    <p>Firestore stores users, receipts, points &amp; fraud scores; Gemini powers the
+                                        OCR extraction.</p>
+                                    <span class="hiw-arch-tech">Firebase · Gemini</span>
+                                </div>
                             </div>
-                            <span class="step-arrow" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </span>
-                            <div class="landing-step">
-                                <div class="landing-step-num">2</div>
-                                <h4>Extract</h4>
-                                <p>Gemini AI reads &amp; parses</p>
-                            </div>
-                            <span class="step-arrow" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </span>
-                            <div class="landing-step">
-                                <div class="landing-step-num">3</div>
-                                <h4>Process</h4>
-                                <p>Validate &amp; categorize (ML)</p>
-                            </div>
-                            <span class="step-arrow" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </span>
-                            <div class="landing-step">
-                                <div class="landing-step-num">4</div>
-                                <h4>Reward</h4>
-                                <p>Earn points instantly</p>
-                            </div>
+                            <p class="hiw-flow">Request flow<br>
+                                <span class="hiw-flow-chain">Browser → Express API → Flask ML <code>/ml/*</code> →
+                                    Firestore → Browser</span>
+                            </p>
                         </div>
                     </div>
                 </div>
