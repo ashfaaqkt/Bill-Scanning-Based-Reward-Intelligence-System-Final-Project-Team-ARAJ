@@ -857,6 +857,48 @@ body::before {
     font-size: 0.85em;
 }
 
+/* ── Mobile: turn card groups into swipeable carousels ─────── */
+@media (max-width: 600px) {
+
+    .landing-features,
+    .hiw-arch-grid,
+    .hiw-pipeline {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-padding: 0 0.5rem;
+        gap: 0.85rem;
+        padding: 0.25rem 0.25rem 1rem;
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Firefox: hide scrollbar */
+    }
+
+    /* WebKit/Blink: hide scrollbar (swipe stays) */
+    .landing-features::-webkit-scrollbar,
+    .hiw-arch-grid::-webkit-scrollbar,
+    .hiw-pipeline::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Each card takes most of the width; the next one peeks → signals swipe */
+    .landing-feature,
+    .hiw-arch-card {
+        flex: 0 0 76%;
+        scroll-snap-align: center;
+    }
+
+    .hiw-stage {
+        flex: 0 0 86%;
+        scroll-snap-align: center;
+    }
+}
+
 .limitations-alert strong {
     color: var(--color-ink);
     font-size: 0.9rem;
