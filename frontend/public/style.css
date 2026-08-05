@@ -672,6 +672,18 @@ body::before {
     border-radius: var(--radius-sm);
 }
 
+/* Repository link buttons in the About Capstone block */
+.repo-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.repo-links .btn {
+    text-decoration: none;
+}
+
 .limitations-alert strong {
     color: var(--color-ink);
     font-size: 0.9rem;
