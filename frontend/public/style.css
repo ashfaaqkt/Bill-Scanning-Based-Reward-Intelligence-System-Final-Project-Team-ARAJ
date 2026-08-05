@@ -864,53 +864,118 @@ body::before {
     font-size: 0.85em;
 }
 
-/* ── Mobile: turn card groups into swipeable carousels ─────── */
+/* ── Responsive: Learn More / How It Works / Under the Hood ── */
+
+/* Tablet / iPad: ease the outer card padding a little */
+@media (max-width: 820px) {
+
+    .landing-blur-card {
+        padding: 2rem 1.6rem;
+    }
+
+    .landing-how-box {
+        padding: 2rem 1.6rem;
+    }
+
+    /* Under the Hood → 2 columns on tablet */
+    .hiw-arch-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Phones: clean full-width stacking with real breathing room */
 @media (max-width: 600px) {
 
-    .landing-features,
-    .landing-section .hero-content,
-    .hiw-arch-grid,
-    .hiw-pipeline {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scroll-snap-type: x mandatory;
-        scroll-padding: 0 0.5rem;
-        gap: 0.85rem;
-        padding: 0.25rem 0.25rem 1rem;
-        margin-left: -0.25rem;
-        margin-right: -0.25rem;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        /* Firefox: hide scrollbar */
+    .landing-blur-card {
+        padding: 1.6rem 1.15rem;
     }
 
-    /* WebKit/Blink: hide scrollbar (swipe stays) */
-    .landing-features::-webkit-scrollbar,
-    .landing-section .hero-content::-webkit-scrollbar,
-    .hiw-arch-grid::-webkit-scrollbar,
-    .hiw-pipeline::-webkit-scrollbar {
-        display: none;
+    .landing-blur-card .hero-title {
+        font-size: 1.55rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
     }
 
-    /* Each card takes most of the width; the next one peeks → signals swipe */
-    .landing-feature,
-    .hiw-arch-card {
-        flex: 0 0 76%;
-        scroll-snap-align: center;
+    /* Learn More → single column, roomy */
+    .landing-section .hero-content {
+        grid-template-columns: 1fr;
+        gap: 1.35rem;
     }
 
-    .hiw-stage,
     .hero-block {
-        flex: 0 0 87%;
-        scroll-snap-align: center;
+        padding: 1.6rem 1.4rem;
     }
 
-    /* tighter container padding on phones so carousels get room */
+    .hero-block p {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        text-align: left;
+    }
+
+    /* How It Works container */
+    .landing-how {
+        margin-top: 2.25rem;
+    }
+
     .landing-how-box {
-        padding: 1.6rem 1.1rem 1.4rem;
+        padding: 1.75rem 1.2rem;
+    }
+
+    .hiw-lead {
+        margin: 0.25rem auto 2.25rem;
+    }
+
+    /* Pipeline → full-width stacked stages */
+    .hiw-pipeline {
+        gap: 1.1rem;
+        margin-bottom: 2.75rem;
+    }
+
+    .hiw-stage {
+        padding: 1.4rem 1.35rem;
+        gap: 1.1rem;
+    }
+
+    /* Under the Hood → single column, full width */
+    .hiw-arch {
+        padding-top: 2.4rem;
+    }
+
+    .hiw-arch-grid {
+        grid-template-columns: 1fr;
+        gap: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    .hiw-arch-card {
+        padding: 1.65rem 1.4rem;
+    }
+
+    .hiw-flow-chain {
+        display: block;
+        margin-top: 0.6rem;
+    }
+}
+
+/* Folds & very small screens: tighten but keep it readable */
+@media (max-width: 360px) {
+
+    .landing-blur-card,
+    .landing-how-box {
+        padding: 1.25rem 0.95rem;
+    }
+
+    .hero-block {
+        padding: 1.35rem 1.15rem;
+    }
+
+    .hiw-stage {
+        padding: 1.25rem 1.1rem;
+        gap: 0.9rem;
+    }
+
+    .landing-blur-card .hero-title {
+        font-size: 1.4rem;
     }
 }
 
