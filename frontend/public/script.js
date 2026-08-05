@@ -862,6 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // so the sections take far less vertical space without cramping the cards.
 function initCarousels() {
     const groups = [
+        { track: document.querySelector('.landing-features'), slide: '.landing-feature' },
         { track: document.querySelector('.landing-section .hero-content'), slide: '.hero-block' },
         { track: document.querySelector('.hiw-pipeline'), slide: '.hiw-stage' },
         { track: document.querySelector('.hiw-arch-grid'), slide: '.hiw-arch-card' },

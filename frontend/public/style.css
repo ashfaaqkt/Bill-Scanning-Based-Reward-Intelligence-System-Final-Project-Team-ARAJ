@@ -896,7 +896,8 @@ body::before {
         padding-bottom: 1rem;
     }
 
-    /* The three card groups become horizontal swipe tracks */
+    /* The card groups become horizontal swipe tracks */
+    .landing-features,
     .landing-section .hero-content,
     .hiw-pipeline,
     .hiw-arch-grid {
@@ -914,6 +915,7 @@ body::before {
         scrollbar-width: none;
     }
 
+    .landing-features::-webkit-scrollbar,
     .landing-section .hero-content::-webkit-scrollbar,
     .hiw-pipeline::-webkit-scrollbar,
     .hiw-arch-grid::-webkit-scrollbar {
@@ -921,6 +923,7 @@ body::before {
     }
 
     /* one card fills the viewport → full breathing room, zero cramping */
+    .landing-feature,
     .hero-block,
     .hiw-stage,
     .hiw-arch-card {
@@ -1001,6 +1004,15 @@ body::before {
     .carousel-dots button.active {
         width: 22px;
         background: var(--color-gold, #b8860b);
+    }
+
+    /* the hero-features carousel sits on a dark background → lighten its dots */
+    .landing-features+.carousel-dots button {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .landing-features+.carousel-dots button.active {
+        background: var(--color-gold-light, #d4af37);
     }
 }
 
