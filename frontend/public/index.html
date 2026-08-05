@@ -83,51 +83,64 @@
 
         <!-- Auth / Landing Section -->
         <section class="landing-section" id="section-auth">
+            <!-- Language switcher (landing page only) -->
+            <div class="lang-switch">
+                <div class="lang-drawer hidden" id="lang-drawer" role="menu" aria-label="Select language">
+                    <div class="lang-drawer-title">🌐 Language</div>
+                    <button class="lang-option active" data-lang="en" role="menuitem"><span>🇬🇧</span> English</button>
+                    <button class="lang-option" data-lang="ar" role="menuitem"><span>🇸🇦</span> العربية</button>
+                    <button class="lang-option" data-lang="hi" role="menuitem"><span>🇮🇳</span> हिन्दी</button>
+                    <button class="lang-option" data-lang="ml" role="menuitem"><span>🇮🇳</span> മലയാളം</button>
+                    <button class="lang-option" data-lang="zh" role="menuitem"><span>🇨🇳</span> 中文</button>
+                </div>
+                <button class="lang-fab" id="lang-fab" aria-label="Change language" aria-haspopup="true">🌐</button>
+            </div>
+
             <!-- Hero -->
             <div class="landing-hero">
-                <span class="hero-badge">CAPSTONE PROJECT • BITS PILANI DIGITAL</span>
-                <h1 class="hero-title" id="hero-typing-title" data-typing-text="Turn Every Receipt |Into Rewards...">
+                <span class="hero-badge" data-i18n="badge">CAPSTONE PROJECT • BITS PILANI DIGITAL</span>
+                <h1 class="hero-title" id="hero-typing-title" data-i18n="heroTitle" data-typing-text="Turn Every Receipt |Into Rewards...">
                     Turn
                     Every Receipt Into Rewards...</h1>
-                <p class="hero-subtitle">An intelligent capstone project powered by Gemini AI. Scan bills, earn
+                <p class="hero-subtitle" data-i18n="heroSubtitle">An intelligent capstone project powered by Gemini AI. Scan bills, earn
                     points, and experience the future of retail rewards.</p>
                 <div class="hero-try-wrap"
                     style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
-                    <button id="btn-try" class="btn btn-primary btn-try">Sign In / Sign Up</button>
-                    <button id="btn-guest" class="btn btn-secondary btn-try"
+                    <button id="btn-try" class="btn btn-primary btn-try" data-i18n="btnSignIn">Sign In / Sign Up</button>
+                    <button id="btn-guest" class="btn btn-secondary btn-try" data-i18n="btnGuest"
                         style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">Explore
                         as Guest</button>
                 </div>
                 <div class="landing-features">
                     <div class="landing-feature">
                         <div class="landing-feature-icon">⚡</div>
-                        <h4>Instant OCR</h4>
-                        <p>AI extracts line-item data in seconds</p>
+                        <h4 data-i18n="feat1t">Instant OCR</h4>
+                        <p data-i18n="feat1d">AI extracts line-item data in seconds</p>
                     </div>
                     <div class="landing-feature">
                         <div class="landing-feature-icon">🛡️</div>
-                        <h4>Fraud Detection</h4>
-                        <p>Duplicate scan validation built-in</p>
+                        <h4 data-i18n="feat2t">Fraud Detection</h4>
+                        <p data-i18n="feat2d">Duplicate scan validation built-in</p>
                     </div>
                     <div class="landing-feature">
                         <div class="landing-feature-icon">🎯</div>
-                        <h4>Smart Multipliers</h4>
-                        <p>Category & streak-based rewards</p>
+                        <h4 data-i18n="feat3t">Smart Multipliers</h4>
+                        <p data-i18n="feat3d">Category & streak-based rewards</p>
                     </div>
                     <div class="landing-feature">
                         <div class="landing-feature-icon">🔒</div>
-                        <h4>Privacy First</h4>
-                        <p>Enterprise-grade data handling</p>
+                        <h4 data-i18n="feat4t">Privacy First</h4>
+                        <p data-i18n="feat4d">Enterprise-grade data handling</p>
                     </div>
                 </div>
             </div>
 
             <div class="landing-blur-card">
-                <h2 class="hero-title">Learn More</h2>
+                <h2 class="hero-title" data-i18n="learnMore">Learn More</h2>
                 <div class="hero-content">
                     <div class="hero-block">
-                        <h3>What is this system?</h3>
-                        <p>The Bill Scanning Reward AI System is a final-year capstone project leveraging cutting-edge
+                        <h3 data-i18n="whatT">What is this system?</h3>
+                        <p data-i18n="whatD">The Bill Scanning Reward AI System is a final-year capstone project leveraging cutting-edge
                             Gemini AI to digitize, analyze, and process retail receipts. It instantly extracts line-item
                             data, dynamically validates duplicate scans, and calculates intelligent reward multipliers
                             based on shopping categories and user streak behavior. It transforms routine shopping into
@@ -135,23 +148,23 @@
                         </p>
                     </div>
                     <div class="hero-block">
-                        <h3>Who is Team <span class="araj"><span class="araj-a">A</span><span
+                        <h3 data-i18n-html="teamT">Who is Team <span class="araj"><span class="araj-a">A</span><span
                                     class="araj-r">R</span><span class="araj-a2">A</span><span
                                     class="araj-j">J</span></span>?</h3>
-                        <p>Team <span class="araj"><span class="araj-a">A</span><span class="araj-r">R</span><span
+                        <p data-i18n-html="teamD">Team <span class="araj"><span class="araj-a">A</span><span class="araj-r">R</span><span
                                     class="araj-a2">A</span><span class="araj-j">J</span></span> (Group 120) consists of
                             four passionate B.Sc. Computer Science students from BITS
                             Pilani Digital. We engineered this secure, dynamic, and state-of-the-art rewards
                             infrastructure.</p>
                         <ul class="team-list">
-                            <li><strong><span class="araj-a">A</span>shfaaq Feroz</strong> (2023EBCS005) — <em>Team
-                                    Lead &amp; Lead Developer</em></li>
-                            <li><strong><span class="araj-r">R</span>anjeet Singh</strong> (2023EBCS457) — <em>Fraud
-                                    Detection &amp; QA</em></li>
-                            <li><strong><span class="araj-a2">A</span>rpan Chatterjee</strong> (2023EBCS399) — <em>ML
-                                    Research &amp; Dataset</em></li>
-                            <li><strong><span class="araj-j">J</span>yoti Kataria</strong> (2023EBCS435) — <em>Data
-                                    Labelling &amp; Documentation</em></li>
+                            <li><strong><span class="araj-a">A</span>shfaaq Feroz</strong> (2023EBCS005) — <em
+                                    data-i18n="role1">Team Lead &amp; Lead Developer</em></li>
+                            <li><strong><span class="araj-r">R</span>anjeet Singh</strong> (2023EBCS457) — <em
+                                    data-i18n="role2">Fraud Detection &amp; QA</em></li>
+                            <li><strong><span class="araj-a2">A</span>rpan Chatterjee</strong> (2023EBCS399) — <em
+                                    data-i18n="role3">ML Research &amp; Dataset</em></li>
+                            <li><strong><span class="araj-j">J</span>yoti Kataria</strong> (2023EBCS435) — <em
+                                    data-i18n="role4">Data Labelling &amp; Documentation</em></li>
                         </ul>
                     </div>
                 </div>
@@ -159,9 +172,9 @@
 
             <!-- About This Capstone Project — standalone section (after Learn More, before How It Works) -->
             <div class="landing-blur-card about-capstone">
-                <h2 class="hero-title">About This Capstone Project</h2>
+                <h2 class="hero-title" data-i18n="aboutTitle">About This Capstone Project</h2>
                 <div class="about-capstone-body">
-                    <p class="about-intro">This is the final-year <strong>Capstone Project</strong> of Team ARAJ
+                    <p class="about-intro" data-i18n-html="aboutIntro">This is the final-year <strong>Capstone Project</strong> of Team ARAJ
                         (Group 120), B.Sc. Computer Science at <strong>BITS Pilani Digital</strong>, under the guidance
                         of <strong>Prof. Uma Sankara Rao</strong>. It demonstrates an end-to-end receipt-scanning reward
                         pipeline — OCR, fraud detection, spend classification, and personalised rewards — as an
@@ -169,23 +182,23 @@
 
                     <div class="about-grid">
                         <div class="limitations-alert">
-                            <strong>Scope &amp; current status:</strong>
+                            <strong data-i18n="scopeTitle">Scope &amp; current status:</strong>
                             <ul>
-                                <li>OCR is live (Google Gemini 2.5 Flash).</li>
-                                <li>Category classifier trained &amp; integrated; fraud, anomaly &amp; recommender
+                                <li data-i18n="scope1">OCR is live (Google Gemini 2.5 Flash).</li>
+                                <li data-i18n="scope2">Category classifier trained &amp; integrated; fraud, anomaly &amp; recommender
                                     models in progress.</li>
-                                <li>Reward, claim &amp; analytics logic functional on a live backend + Firestore.</li>
-                                <li>Built for demonstration and study — not production-hardened.</li>
+                                <li data-i18n="scope3">Reward, claim &amp; analytics logic functional on a live backend + Firestore.</li>
+                                <li data-i18n="scope4">Built for demonstration and study — not production-hardened.</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="repo-links about-repo-links">
                         <a href="https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-Final-Project-Team-ARAJ"
-                            target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">📦 Capstone
+                            target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" data-i18n="btnCapstoneRepo">📦 Capstone
                             Repository</a>
                         <a href="https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-study-project-bits-poc-phase-3-Team-ARAJ"
-                            target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">🔬 Phase 3
+                            target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" data-i18n="btnPocRepo">🔬 Phase 3
                             PoC · Study Project</a>
                     </div>
                 </div>
@@ -196,8 +209,8 @@
 
                 <div class="landing-how">
                     <div class="landing-how-box">
-                        <h3>How It Works</h3>
-                        <p class="hiw-lead">From a photo of a receipt to reward points in seconds — here's the full
+                        <h3 data-i18n="hiwTitle">How It Works</h3>
+                        <p class="hiw-lead" data-i18n="hiwLead">From a photo of a receipt to reward points in seconds — here's the full
                             journey, and the architecture that powers it.</p>
 
                         <!-- Detailed request pipeline -->
@@ -205,8 +218,8 @@
                             <li class="hiw-stage">
                                 <span class="hiw-stage-badge">1</span>
                                 <div class="hiw-stage-body">
-                                    <h4>📤 Upload</h4>
-                                    <p>You drop a receipt image in the browser. The single-page frontend sends it to
+                                    <h4 data-i18n="s1t">📤 Upload</h4>
+                                    <p data-i18n="s1d">You drop a receipt image in the browser. The single-page frontend sends it to
                                         the backend over an authenticated (JWT) request.</p>
                                     <span class="hiw-tag">Frontend → API · JWT auth</span>
                                 </div>
@@ -214,8 +227,8 @@
                             <li class="hiw-stage">
                                 <span class="hiw-stage-badge">2</span>
                                 <div class="hiw-stage-body">
-                                    <h4>🔍 Extract — OCR</h4>
-                                    <p>The backend forwards the image to the ML microservice, where a 5-layer OCR
+                                    <h4 data-i18n="s2t">🔍 Extract — OCR</h4>
+                                    <p data-i18n="s2d">The backend forwards the image to the ML microservice, where a 5-layer OCR
                                         pipeline runs: a blur check (OpenCV Laplacian), a rate-limit gate, Google
                                         Gemini 2.5 Flash extraction, a model fallback, and a pixel-density scan that
                                         flags handwritten edits.</p>
@@ -225,8 +238,8 @@
                             <li class="hiw-stage">
                                 <span class="hiw-stage-badge">3</span>
                                 <div class="hiw-stage-body">
-                                    <h4>🧠 Classify &amp; Detect</h4>
-                                    <p>The extracted fields flow through the ML models — a TF-IDF + Random Forest
+                                    <h4 data-i18n="s3t">🧠 Classify &amp; Detect</h4>
+                                    <p data-i18n="s3d">The extracted fields flow through the ML models — a TF-IDF + Random Forest
                                         category classifier, a fraud scorer (OCR signals + duplicate perceptual
                                         hashing), and an Isolation-Forest spending-anomaly check.</p>
                                     <span class="hiw-tag">/ml/classify · /ml/fraud-score · /ml/anomaly</span>
@@ -235,8 +248,8 @@
                             <li class="hiw-stage">
                                 <span class="hiw-stage-badge">4</span>
                                 <div class="hiw-stage-body">
-                                    <h4>🎁 Reward &amp; Recommend</h4>
-                                    <p>The points engine computes ₹100 = 1 point, scaled by spend category, user tier
+                                    <h4 data-i18n="s4t">🎁 Reward &amp; Recommend</h4>
+                                    <p data-i18n="s4d">The points engine computes ₹100 = 1 point, scaled by spend category, user tier
                                         and streak. Points, fraud scores and personalised offers are written to
                                         Firestore and returned to your screen.</p>
                                     <span class="hiw-tag">Points Engine · /ml/recommend · Firestore</span>
@@ -246,40 +259,40 @@
 
                         <!-- Architecture behind it -->
                         <div class="hiw-arch">
-                            <h4 class="hiw-arch-title">Under the Hood — Architecture</h4>
-                            <p class="hiw-arch-lead">A three-tier design keeps the AI/ML layer isolated from the app
+                            <h4 class="hiw-arch-title" data-i18n="archTitle">Under the Hood — Architecture</h4>
+                            <p class="hiw-arch-lead" data-i18n="archLead">A three-tier design keeps the AI/ML layer isolated from the app
                                 logic, so each part can evolve independently.</p>
                             <div class="hiw-arch-grid">
                                 <div class="hiw-arch-card">
                                     <div class="hiw-arch-icon">🖥️</div>
-                                    <h5>Frontend</h5>
-                                    <p>Single-page app with a 4-step stepper. Handles upload, auth UI and live result
+                                    <h5 data-i18n="c1t">Frontend</h5>
+                                    <p data-i18n="c1d">Single-page app with a 4-step stepper. Handles upload, auth UI and live result
                                         rendering.</p>
                                     <span class="hiw-arch-tech">HTML · CSS · Vanilla JS</span>
                                 </div>
                                 <div class="hiw-arch-card">
                                     <div class="hiw-arch-icon">⚙️</div>
-                                    <h5>Backend API</h5>
-                                    <p>Orchestrates the pipeline: JWT auth, reward &amp; claim logic, and talks to the
+                                    <h5 data-i18n="c2t">Backend API</h5>
+                                    <p data-i18n="c2d">Orchestrates the pipeline: JWT auth, reward &amp; claim logic, and talks to the
                                         database.</p>
                                     <span class="hiw-arch-tech">Node · Express · JWT</span>
                                 </div>
                                 <div class="hiw-arch-card">
                                     <div class="hiw-arch-icon">🧠</div>
-                                    <h5>ML Microservice</h5>
-                                    <p>Isolated Python service hosting OCR + every ML model behind <code>/ml/*</code>
+                                    <h5 data-i18n="c3t">ML Microservice</h5>
+                                    <p data-i18n-html="c3d">Isolated Python service hosting OCR + every ML model behind <code>/ml/*</code>
                                         endpoints.</p>
                                     <span class="hiw-arch-tech">Python · Flask · scikit-learn</span>
                                 </div>
                                 <div class="hiw-arch-card">
                                     <div class="hiw-arch-icon">🗄️</div>
-                                    <h5>Data &amp; AI</h5>
-                                    <p>Firestore stores users, receipts, points &amp; fraud scores; Gemini powers the
+                                    <h5 data-i18n="c4t">Data &amp; AI</h5>
+                                    <p data-i18n="c4d">Firestore stores users, receipts, points &amp; fraud scores; Gemini powers the
                                         OCR extraction.</p>
                                     <span class="hiw-arch-tech">Firebase · Gemini</span>
                                 </div>
                             </div>
-                            <p class="hiw-flow">Request flow<br>
+                            <p class="hiw-flow"><span data-i18n="requestFlow">Request flow</span><br>
                                 <span class="hiw-flow-chain">Browser → Express API → Flask ML <code>/ml/*</code> →
                                     Firestore → Browser</span>
                             </p>
@@ -288,9 +301,9 @@
                 </div>
 
                 <div class="landing-trust">
-                    <div class="landing-trust-item">🏛️ <strong>BITS Pilani</strong> Digital</div>
-                    <div class="landing-trust-item">🤖 Powered by <strong>Google Gemini AI</strong></div>
-                    <div class="landing-trust-item">👥 Group 120 — <strong>Team <span class="araj"><span
+                    <div class="landing-trust-item" data-i18n-html="trust1">🏛️ <strong>BITS Pilani</strong> Digital</div>
+                    <div class="landing-trust-item" data-i18n-html="trust2">🤖 Powered by <strong>Google Gemini AI</strong></div>
+                    <div class="landing-trust-item" data-i18n-html="trust3">👥 Group 120 — <strong>Team <span class="araj"><span
                                     class="araj-a">A</span><span class="araj-r">R</span><span
                                     class="araj-a2">A</span><span class="araj-j">J</span></span></strong></div>
                 </div>
@@ -744,6 +757,7 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="i18n.js"></script>
 </body>
 
 </html>

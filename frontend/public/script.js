@@ -978,6 +978,11 @@ window.showConsentTerms = showConsentTerms;
 
 function startHeroTyping() {
     if (!heroTypingTitle) return;
+    // If a non-English language is active, i18n sets the title directly — skip typing.
+    try {
+        const savedLang = localStorage.getItem('lang');
+        if (savedLang && savedLang !== 'en') return;
+    } catch (e) { }
 
     const fullText = heroTypingTitle.dataset.typingText || heroTypingTitle.innerText || "";
     heroTypingTitle.classList.add('typing-active');

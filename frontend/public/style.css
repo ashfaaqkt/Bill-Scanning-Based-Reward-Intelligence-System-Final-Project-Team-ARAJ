@@ -711,6 +711,127 @@ body::before {
     margin-top: 0;
 }
 
+/* ── Language switcher (landing page only) ────────────────── */
+.lang-switch {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 2500;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+}
+
+.lang-fab {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--color-accent, #0d4f8b), var(--color-accent-light, #1e6bb8));
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(13, 79, 139, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lang-fab:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 12px 28px rgba(13, 79, 139, 0.5);
+}
+
+.lang-drawer {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 18px 44px rgba(8, 27, 43, 0.28);
+    border: 1px solid rgba(30, 41, 59, 0.1);
+    padding: 0.5rem;
+    min-width: 190px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    animation: modalSlideInBounce 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: bottom right;
+}
+
+.lang-drawer-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-smoke, #64748b);
+    padding: 0.5rem 0.75rem 0.35rem;
+}
+
+.lang-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: var(--color-ink, #0f1419);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.18s ease;
+}
+
+.lang-option span {
+    font-size: 1.15rem;
+}
+
+.lang-option:hover {
+    background: rgba(13, 79, 139, 0.07);
+}
+
+.lang-option.active {
+    background: rgba(184, 134, 11, 0.12);
+    font-weight: 700;
+    color: var(--color-accent, #0d4f8b);
+}
+
+/* ── RTL (Arabic) — mirror the landing content ────────────── */
+#section-auth[dir="rtl"] {
+    text-align: right;
+}
+
+#section-auth[dir="rtl"] .hero-badge,
+#section-auth[dir="rtl"] .hero-title,
+#section-auth[dir="rtl"] .hero-subtitle,
+#section-auth[dir="rtl"] .about-intro,
+#section-auth[dir="rtl"] .hiw-lead,
+#section-auth[dir="rtl"] .hiw-arch-title,
+#section-auth[dir="rtl"] .hiw-arch-lead,
+#section-auth[dir="rtl"] .hiw-arch-card,
+#section-auth[dir="rtl"] .landing-feature,
+#section-auth[dir="rtl"] .hiw-flow {
+    text-align: center;
+}
+
+#section-auth[dir="rtl"] .team-list {
+    padding-right: 1.1rem;
+    padding-left: 0;
+}
+
+/* move the pipeline accent bar to the right side in RTL */
+#section-auth[dir="rtl"] .hiw-stage {
+    border-left: 1px solid rgba(30, 41, 59, 0.08);
+    border-right: 4px solid var(--color-gold, #b8860b);
+}
+
+#section-auth[dir="rtl"] .lang-option {
+    text-align: right;
+    flex-direction: row-reverse;
+}
+
 /* ── How It Works (redesigned: pipeline + architecture) ────── */
 .hiw-lead {
     text-align: center;
