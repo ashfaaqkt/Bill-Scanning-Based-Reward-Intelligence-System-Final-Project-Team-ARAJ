@@ -883,7 +883,7 @@ body::before {
     }
 }
 
-/* Phones: clean full-width stacking with real breathing room */
+/* Phones: compact swipe carousels — one FULL-WIDTH card per view */
 @media (max-width: 600px) {
 
     .landing-blur-card {
@@ -892,14 +892,45 @@ body::before {
 
     .landing-blur-card .hero-title {
         font-size: 1.55rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.35rem;
         padding-bottom: 1rem;
     }
 
-    /* Learn More → single column, roomy */
-    .landing-section .hero-content {
-        grid-template-columns: 1fr;
-        gap: 1.35rem;
+    /* The three card groups become horizontal swipe tracks */
+    .landing-section .hero-content,
+    .hiw-pipeline,
+    .hiw-arch-grid {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        gap: 0.85rem;
+        margin-bottom: 0.4rem;
+        padding-bottom: 0.25rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .landing-section .hero-content::-webkit-scrollbar,
+    .hiw-pipeline::-webkit-scrollbar,
+    .hiw-arch-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* one card fills the viewport → full breathing room, zero cramping */
+    .hero-block,
+    .hiw-stage,
+    .hiw-arch-card {
+        flex: 0 0 100%;
+        box-sizing: border-box;
+        scroll-snap-align: center;
+    }
+
+    .hiw-pipeline {
+        max-width: none;
     }
 
     .hero-block {
@@ -912,7 +943,15 @@ body::before {
         text-align: left;
     }
 
-    /* How It Works container */
+    .hiw-stage {
+        padding: 1.4rem 1.35rem;
+        gap: 1.1rem;
+    }
+
+    .hiw-arch-card {
+        padding: 1.6rem 1.4rem;
+    }
+
     .landing-how {
         margin-top: 2.25rem;
     }
@@ -922,38 +961,46 @@ body::before {
     }
 
     .hiw-lead {
-        margin: 0.25rem auto 2.25rem;
+        margin: 0.25rem auto 1.75rem;
     }
 
-    /* Pipeline → full-width stacked stages */
-    .hiw-pipeline {
-        gap: 1.1rem;
-        margin-bottom: 2.75rem;
-    }
-
-    .hiw-stage {
-        padding: 1.4rem 1.35rem;
-        gap: 1.1rem;
-    }
-
-    /* Under the Hood → single column, full width */
     .hiw-arch {
-        padding-top: 2.4rem;
-    }
-
-    .hiw-arch-grid {
-        grid-template-columns: 1fr;
-        gap: 1.1rem;
-        margin-bottom: 2rem;
-    }
-
-    .hiw-arch-card {
-        padding: 1.65rem 1.4rem;
+        padding-top: 2.25rem;
     }
 
     .hiw-flow-chain {
         display: block;
         margin-top: 0.6rem;
+    }
+}
+
+/* Carousel pagination dots — visible only in mobile carousel mode */
+.carousel-dots {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .carousel-dots {
+        display: flex;
+        justify-content: center;
+        gap: 0.45rem;
+        margin: 0.5rem 0 1.6rem;
+    }
+
+    .carousel-dots button {
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: rgba(30, 41, 59, 0.25);
+        cursor: pointer;
+        transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .carousel-dots button.active {
+        width: 22px;
+        background: var(--color-gold, #b8860b);
     }
 }
 

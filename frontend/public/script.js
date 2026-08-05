@@ -852,7 +852,60 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     startHeroTyping();
     initConsentGate();
+    initCarousels();
 });
+
+// ── MOBILE SWIPE CAROUSELS ─────────────────────────────────────
+// On phones the Learn More / How It Works / Under the Hood card groups turn
+// into one-card-per-view horizontal carousels (styling lives in the CSS).
+// This adds pagination dots and keeps the active dot in sync with the swipe,
+// so the sections take far less vertical space without cramping the cards.
+function initCarousels() {
+    const groups = [
+        { track: document.querySelector('.landing-section .hero-content'), slide: '.hero-block' },
+        { track: document.querySelector('.hiw-pipeline'), slide: '.hiw-stage' },
+        { track: document.querySelector('.hiw-arch-grid'), slide: '.hiw-arch-card' },
+    ];
+
+    groups.forEach(({ track, slide }) => {
+        if (!track) return;
+        const slides = track.querySelectorAll(slide);
+        if (slides.length < 2) return;
+
+        // Build the dots
+        const dots = document.createElement('div');
+        dots.className = 'carousel-dots';
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('aria-label', 'Show item ' + (i + 1));
+            if (i === 0) b.classList.add('active');
+            b.addEventListener('click', () => {
+                s.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            });
+            dots.appendChild(b);
+        });
+        track.insertAdjacentElement('afterend', dots);
+
+        // Keep the active dot in sync as the user swipes
+        const buttons = dots.querySelectorAll('button');
+        let raf = null;
+        track.addEventListener('scroll', () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const cRect = track.getBoundingClientRect();
+                const center = cRect.left + cRect.width / 2;
+                let best = 0, bestDist = Infinity;
+                slides.forEach((s, i) => {
+                    const r = s.getBoundingClientRect();
+                    const dist = Math.abs((r.left + r.width / 2) - center);
+                    if (dist < bestDist) { bestDist = dist; best = i; }
+                });
+                buttons.forEach((d, i) => d.classList.toggle('active', i === best));
+            });
+        }, { passive: true });
+    });
+}
 
 // ── DATA CONSENT / TERMS & CONDITIONS GATE ─────────────────────
 // Simple educational consent flow: on first visit, ask the user to accept
