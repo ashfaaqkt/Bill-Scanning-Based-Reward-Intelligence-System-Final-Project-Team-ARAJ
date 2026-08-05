@@ -688,155 +688,162 @@ body::before {
 .hiw-lead {
     text-align: center;
     color: var(--color-smoke);
-    font-size: 0.95rem;
+    font-size: 1rem;
     max-width: 640px;
-    margin: -0.5rem auto 2rem;
-    line-height: 1.55;
+    margin: 0.25rem auto 3rem;
+    line-height: 1.65;
 }
 
 .hiw-pipeline {
     list-style: none;
-    margin: 0 auto 2.5rem;
+    margin: 0 auto 3.75rem;
     padding: 0;
-    max-width: 740px;
+    max-width: 760px;
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 1.35rem;
 }
 
 .hiw-stage {
     display: flex;
-    gap: 1rem;
+    gap: 1.35rem;
     align-items: flex-start;
-    background: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.6);
     border: 1px solid rgba(30, 41, 59, 0.08);
-    border-left: 3px solid var(--color-gold, #b8860b);
-    border-radius: var(--radius-sm);
-    padding: 1rem 1.15rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 4px solid var(--color-gold, #b8860b);
+    border-radius: var(--radius-md);
+    padding: 1.6rem 1.75rem;
+    box-shadow: 0 4px 14px rgba(8, 27, 43, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-left-color 0.25s ease;
 }
 
 .hiw-stage:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(8, 27, 43, 0.12);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(8, 27, 43, 0.13);
+    border-left-color: var(--color-accent, #0d4f8b);
 }
 
 .hiw-stage-badge {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--color-accent, #0d4f8b), var(--color-accent-light, #1e6bb8));
     color: #fff;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4px 12px rgba(13, 79, 139, 0.32);
 }
 
 .hiw-stage-body h4 {
-    font-size: 1rem;
+    font-size: 1.12rem;
     font-weight: 700;
     color: var(--color-ink);
-    margin: 0 0 0.3rem;
+    margin: 0.2rem 0 0.5rem;
 }
 
 .hiw-stage-body p {
-    font-size: 0.86rem;
+    font-size: 0.92rem;
     color: var(--color-charcoal, #334155);
-    line-height: 1.5;
-    margin: 0 0 0.55rem;
+    line-height: 1.65;
+    margin: 0 0 0.85rem;
 }
 
 .hiw-tag {
     display: inline-block;
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 600;
     color: var(--color-accent, #0d4f8b);
     background: rgba(13, 79, 139, 0.08);
     border-radius: 999px;
-    padding: 0.22rem 0.65rem;
+    padding: 0.28rem 0.8rem;
 }
 
 .hiw-arch {
     border-top: 1px solid rgba(30, 41, 59, 0.1);
-    padding-top: 1.8rem;
+    padding-top: 3rem;
+    margin-top: 0.5rem;
 }
 
 .hiw-arch-title {
-    font-size: 1.15rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--color-ink);
     text-align: center;
-    margin: 0 0 0.4rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.55rem;
 }
 
 .hiw-arch-lead {
     text-align: center;
     color: var(--color-smoke);
-    font-size: 0.9rem;
-    max-width: 600px;
-    margin: 0 auto 1.6rem;
-    line-height: 1.5;
+    font-size: 0.95rem;
+    max-width: 620px;
+    margin: 0 auto 2.4rem;
+    line-height: 1.6;
 }
 
 .hiw-arch-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.4rem;
+    margin-bottom: 2.5rem;
 }
 
 .hiw-arch-card {
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.65);
     border: 1px solid rgba(30, 41, 59, 0.08);
-    border-radius: var(--radius-sm);
-    padding: 1.15rem;
+    border-radius: var(--radius-md);
+    padding: 1.8rem 1.4rem;
     text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 4px 14px rgba(8, 27, 43, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .hiw-arch-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(8, 27, 43, 0.14);
-    border-color: rgba(184, 134, 11, 0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(8, 27, 43, 0.15);
+    border-color: rgba(184, 134, 11, 0.45);
 }
 
 .hiw-arch-icon {
-    font-size: 1.8rem;
+    font-size: 2.3rem;
     line-height: 1;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .hiw-arch-card h5 {
-    font-size: 0.95rem;
+    font-size: 1.02rem;
     font-weight: 700;
     color: var(--color-ink);
-    margin: 0 0 0.4rem;
+    margin: 0 0 0.5rem;
 }
 
 .hiw-arch-card p {
-    font-size: 0.8rem;
+    font-size: 0.84rem;
     color: var(--color-smoke);
-    line-height: 1.45;
-    margin: 0 0 0.7rem;
+    line-height: 1.55;
+    margin: 0 0 0.9rem;
 }
 
 .hiw-arch-tech {
     display: inline-block;
     font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
     color: var(--color-gold, #b8860b);
     text-transform: uppercase;
 }
 
 .hiw-flow {
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--color-charcoal, #334155);
-    line-height: 1.9;
+    line-height: 2;
+    margin-top: 0.5rem;
 }
 
 .hiw-flow-chain {
@@ -846,7 +853,7 @@ body::before {
     background: rgba(13, 79, 139, 0.06);
     border: 1px dashed rgba(13, 79, 139, 0.3);
     border-radius: 8px;
-    padding: 0.4rem 0.75rem;
+    padding: 0.5rem 0.9rem;
 }
 
 .hiw-arch code,
@@ -861,6 +868,7 @@ body::before {
 @media (max-width: 600px) {
 
     .landing-features,
+    .landing-section .hero-content,
     .hiw-arch-grid,
     .hiw-pipeline {
         display: flex;
@@ -881,6 +889,7 @@ body::before {
 
     /* WebKit/Blink: hide scrollbar (swipe stays) */
     .landing-features::-webkit-scrollbar,
+    .landing-section .hero-content::-webkit-scrollbar,
     .hiw-arch-grid::-webkit-scrollbar,
     .hiw-pipeline::-webkit-scrollbar {
         display: none;
@@ -893,9 +902,15 @@ body::before {
         scroll-snap-align: center;
     }
 
-    .hiw-stage {
-        flex: 0 0 86%;
+    .hiw-stage,
+    .hero-block {
+        flex: 0 0 87%;
         scroll-snap-align: center;
+    }
+
+    /* tighter container padding on phones so carousels get room */
+    .landing-how-box {
+        padding: 1.6rem 1.1rem 1.4rem;
     }
 }
 
@@ -919,7 +934,7 @@ body::before {
 .landing-how-box {
     position: relative;
     overflow: hidden;
-    padding: 1.8rem 1.35rem 1.4rem;
+    padding: 2.75rem 2.25rem 2.5rem;
     border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.5);
     background: linear-gradient(155deg, rgba(105, 112, 120, 0.34), rgba(176, 184, 194, 0.24) 48%, rgba(255, 255, 255, 0.2));
