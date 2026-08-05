@@ -83,19 +83,6 @@
 
         <!-- Auth / Landing Section -->
         <section class="landing-section" id="section-auth">
-            <!-- Language switcher (landing page only) -->
-            <div class="lang-switch">
-                <div class="lang-drawer hidden" id="lang-drawer" role="menu" aria-label="Select language">
-                    <div class="lang-drawer-title">🌐 Language</div>
-                    <button class="lang-option active" data-lang="en" role="menuitem"><span>🇬🇧</span> English</button>
-                    <button class="lang-option" data-lang="ar" role="menuitem"><span>🇸🇦</span> العربية</button>
-                    <button class="lang-option" data-lang="hi" role="menuitem"><span>🇮🇳</span> हिन्दी</button>
-                    <button class="lang-option" data-lang="ml" role="menuitem"><span>🇮🇳</span> മലയാളം</button>
-                    <button class="lang-option" data-lang="zh" role="menuitem"><span>🇨🇳</span> 中文</button>
-                </div>
-                <button class="lang-fab" id="lang-fab" aria-label="Change language" aria-haspopup="true">🌐</button>
-            </div>
-
             <!-- Hero -->
             <div class="landing-hero">
                 <span class="hero-badge" data-i18n="badge">CAPSTONE PROJECT • BITS PILANI DIGITAL</span>
@@ -521,6 +508,19 @@
 
         </div>
     </main>
+
+    <!-- Language switcher (landing only) — body-level so no container can clip it -->
+    <div class="lang-switch" id="lang-switch">
+        <div class="lang-drawer hidden" id="lang-drawer" role="menu" aria-label="Select language">
+            <div class="lang-drawer-title">🌐 Language</div>
+            <button class="lang-option active" data-lang="en" role="menuitem"><span>🇬🇧</span> English</button>
+            <button class="lang-option" data-lang="ar" role="menuitem"><span>🇸🇦</span> العربية</button>
+            <button class="lang-option" data-lang="hi" role="menuitem"><span>🇮🇳</span> हिन्दी</button>
+            <button class="lang-option" data-lang="ml" role="menuitem"><span>🇮🇳</span> മലയാളം</button>
+            <button class="lang-option" data-lang="zh" role="menuitem"><span>🇨🇳</span> 中文</button>
+        </div>
+        <button class="lang-fab" id="lang-fab" aria-label="Change language" aria-haspopup="true">🌐</button>
+    </div>
 
     <!-- Team Footer -->
     <footer class="footer">

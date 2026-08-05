@@ -283,6 +283,22 @@
             if (!drawer.contains(e.target) && e.target !== fab) drawer.classList.add('hidden');
         });
 
+        // The switcher lives at body level (so no container can clip it);
+        // mirror the landing section's visibility onto it so it only shows
+        // on the landing page and hides once the user is logged in.
+        var langSwitch = document.getElementById('lang-switch');
+        var authSection = document.getElementById('section-auth');
+        function syncSwitchVisibility() {
+            if (!langSwitch || !authSection) return;
+            langSwitch.classList.toggle('hidden', authSection.classList.contains('hidden'));
+        }
+        syncSwitchVisibility();
+        if (authSection && window.MutationObserver) {
+            new MutationObserver(syncSwitchVisibility).observe(authSection, {
+                attributes: true, attributeFilter: ['class']
+            });
+        }
+
         var saved = null;
         try { saved = localStorage.getItem('lang'); } catch (e) { }
         // English is the default HTML (with the hero typing animation); only
