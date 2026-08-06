@@ -31,9 +31,9 @@ dataset/indian/Receipt 40.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 42.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 50.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 63.jpg,genuine,0,1,Jyoti,0,1
-dataset/indian/Receipt 75.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 79.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 81.pdf,tampered,1,1,Jyoti,1,1
+dataset/indian/Receipt 75.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 79.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 81.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 88.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 93.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 98.jpg,genuine,0,1,Jyoti,0,1

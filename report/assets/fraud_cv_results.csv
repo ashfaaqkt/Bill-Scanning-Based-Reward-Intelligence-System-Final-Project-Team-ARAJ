@@ -1,0 +1,14 @@
+Metric,Value
+Fold 1 AUC,0.849
+Fold 2 AUC,0.7692
+Fold 3 AUC,0.872
+Fold 4 AUC,0.7586
+Fold 5 AUC,0.9091
+Mean AUC,0.8316
+SD,0.0655
+CI95 low,0.7742
+CI95 high,0.889
+Pooled OOF AUC,0.7766
+Source-control AUC (indian only),0.8117
+N receipts,194
+Folds,5

@@ -1,0 +1,14 @@
+Metric,Value
+Fold 1 AUC,0.7578
+Fold 2 AUC,0.6321
+Fold 3 AUC,0.8199
+Fold 4 AUC,0.6061
+Fold 5 AUC,0.8766
+Mean AUC,0.7385
+SD,0.1172
+CI95 low,0.6358
+CI95 high,0.8412
+Pooled OOF AUC,0.7363
+Source-control AUC,0.7454
+N images,194
+N features,31

@@ -1,10 +1,21 @@
 """
 Fraud Detection Pipeline — Owner: Ranjeet Singh
 Multi-signal fraud scoring: OCR-flag analysis, perceptual hash dedup, CNN tamper check.
-Status: OCR-based signals are active; phash and CNN checks are stubs (see Notebook 03).
+Status: OCR-based signals, pHash duplicate check, and CNN tamper check are all implemented.
 """
 
 import os
+from pathlib import Path
+
+
+# MobileNetV2, trained by `train_fraud_cv.py --normalized` under 5-fold grouped
+# cross-validation on compression-normalized images: pooled out-of-fold AUC 0.752,
+# mean fold 0.821 +/- 0.080, over 194 receipts. See report/fraud_test_report.md.
+MODEL_PATH = Path(__file__).resolve().parent / "models" / "tamper_cnn_cv_normalized.pt"
+PHASH_DISTANCE_THRESHOLD = 10
+
+_tamper_model = None
+_tamper_model_load_attempted = False
 
 
 # ── SIGNAL EXTRACTION FROM OCR OUTPUT ─────────────────────────
@@ -51,23 +62,124 @@ def calculate_fraud_score(ocr_result):
 def score(image_path, ocr_result, known_hashes=None):
     """
     Public API — returns fraud_score (0–1) and a signals breakdown dict.
-    phash duplicate check and CNN tamper detection are future additions.
+    pHash duplicate check and CNN tamper detection are active signals.
     """
     fraud_score, signals = calculate_fraud_score(ocr_result)
 
+    if image_path:
+        if check_phash_duplicate(image_path, known_hashes or []):
+            fraud_score += 0.40
+            signals["duplicate"] = True
+
+        tamper_probability = check_tamper_cnn(image_path)
+        if tamper_probability >= 0.50:
+            fraud_score += 0.40
+            signals["tamper"] = True
+
     return {
-        "fraud_score": fraud_score,
+        "fraud_score": min(1.0, round(fraud_score, 4)),
         "signals": signals
     }
 
 
-# ── PLACEHOLDER DETECTORS (WIP — Ranjeet) ─────────────────────
-# These will be wired in once Notebook 03 completes model training
+# ── DETECTOR IMPLEMENTATIONS (Notebook 03) ───────────────────
+# pHash duplicate check and CNN tamper classifier — trained/validated in NB 03.
 
 def check_phash_duplicate(image_path, known_hashes):
     """Perceptual hash duplicate check — compare image pHash against set of known hashes."""
-    return False  # TODO: imagehash.phash comparison
+    if not image_path or not known_hashes:
+        return False
+
+    try:
+        from PIL import Image
+        import imagehash
+    except Exception:
+        return False
+
+    try:
+        with Image.open(image_path) as img:
+            current_hash = imagehash.phash(img)
+    except Exception:
+        return False
+
+    for raw_hash in known_hashes:
+        try:
+            known_hash = imagehash.hex_to_hash(str(raw_hash))
+        except Exception:
+            continue
+        if current_hash - known_hash <= PHASH_DISTANCE_THRESHOLD:
+            return True
+
+    return False
+
+def _load_tamper_model(device):
+    """Loads the CNN once per process — it is ~45 MB, too big to reload per receipt."""
+    global _tamper_model, _tamper_model_load_attempted
+
+    if _tamper_model_load_attempted:
+        return _tamper_model
+    _tamper_model_load_attempted = True
+
+    try:
+        import torch
+        # weights_only defaults to True from PyTorch 2.6; this checkpoint is a full
+        # nn.Module, so it must be opted out explicitly or loading raises and the
+        # CNN silently falls back to the baseline for every receipt.
+        _tamper_model = torch.load(MODEL_PATH, map_location=device, weights_only=False)
+        if isinstance(_tamper_model, dict):
+            # A state_dict was saved instead of the model — cannot infer from it.
+            print("fraud.py: models/ holds a state_dict, not a full model — CNN disabled")
+            _tamper_model = None
+        else:
+            _tamper_model.eval()
+    except Exception as exc:
+        print(f"fraud.py: tamper CNN failed to load ({exc}) — falling back to baseline")
+        _tamper_model = None
+
+    return _tamper_model
+
 
 def check_tamper_cnn(image_path):
     """CNN tamper classifier — predicts probability that receipt has been digitally altered."""
-    return 0.05  # TODO: load tamper_cnn.pt and run MobileNetV2 inference
+    if not image_path or not os.path.exists(image_path):
+        return 0.05
+
+    if not MODEL_PATH.exists():
+        # Model file missing (gitignored by design). Upload tamper_cnn_sprint2_auc076.pt from
+        # Drive to ml-service/models/ to enable CNN inference; returns baseline until then.
+        return 0.05
+
+    try:
+        import torch
+        from torchvision import transforms
+        from PIL import Image as PILImage
+    except Exception:
+        return 0.05
+
+    try:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = _load_tamper_model(device)
+        if model is None:
+            return 0.05
+
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+        with PILImage.open(image_path) as img:
+            tensor = transform(img.convert("RGB")).unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            output = model(tensor)
+            if hasattr(output, "logits"):
+                output = output.logits
+            if output.shape[-1] == 1:
+                probability = torch.sigmoid(output).item()
+            else:
+                probability = torch.softmax(output, dim=1)[0, 1].item()
+
+        return float(max(0.0, min(1.0, probability)))
+    except Exception:
+        return 0.05

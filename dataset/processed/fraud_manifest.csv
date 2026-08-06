@@ -149,13 +149,13 @@ dataset/indian/Receipt 47.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 48.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 49.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 50.jpg,tampered,1,1,Jyoti,0,1
-dataset/indian/Receipt 51.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 52.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 53 pdf.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 54.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 55 pdf.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 56.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 57.pdf,genuine,0,1,Jyoti,1,1
+dataset/indian/Receipt 51.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 52.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 53 pdf.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 54.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 55 pdf.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 56.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 57.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 58.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 59.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 60.jpg,genuine,0,1,Jyoti,0,1
@@ -164,22 +164,22 @@ dataset/indian/Receipt 62.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 63.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 64.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 65.jpg,tampered,1,1,Jyoti,0,1
-dataset/indian/Receipt 66.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 67.pdf,tampered,1,1,Jyoti,1,1
-dataset/indian/Receipt 68.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 69.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 70.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 71.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 72.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 73.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 74.pdf,tampered,1,1,Jyoti,1,1
-dataset/indian/Receipt 75.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 76.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 77.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 78.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 79.pdf,genuine,0,1,Jyoti,1,1
-dataset/indian/Receipt 80.pdf,tampered,1,1,Jyoti,1,1
-dataset/indian/Receipt 81.pdf,tampered,1,1,Jyoti,1,1
+dataset/indian/Receipt 66.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 67.jpg,tampered,1,1,Jyoti,0,1
+dataset/indian/Receipt 68.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 69.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 70.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 71.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 72.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 73.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 74.jpg,tampered,1,1,Jyoti,0,1
+dataset/indian/Receipt 75.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 76.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 77.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 78.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 79.jpg,genuine,0,1,Jyoti,0,1
+dataset/indian/Receipt 80.jpg,tampered,1,1,Jyoti,0,1
+dataset/indian/Receipt 81.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 82.jpg,genuine,0,1,Jyoti,0,1
 dataset/indian/Receipt 83.jpg,tampered,1,1,Jyoti,0,1
 dataset/indian/Receipt 84.jpg,genuine,0,1,Jyoti,0,1
