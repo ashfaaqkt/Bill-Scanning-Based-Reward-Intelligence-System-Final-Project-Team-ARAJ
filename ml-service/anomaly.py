@@ -1,80 +1,101 @@
 """
-Anomaly Detection — Owner: Ranjeet Singh
+Anomaly Detection — Owner: Ranjeet Singh · Sprint 3 rework: Ashfaaq KT
 Isolation Forest for spending anomaly detection (unusual transaction amounts).
-Status: live when the trained model is present, baseline fallback when it is not.
+Learning type: UNSUPERVISED — there are no anomaly labels anywhere in the project.
 
-The model binary (models/anomaly_detector.joblib) is gitignored — download it from
-the team Drive into ml-service/models/ to enable real inference. Without it every
-call returns the baseline score, which is what /api/upload already assumes.
+WHAT THIS ACTUALLY CLAIMS
+The route is specified as a per-user check. A per-user model cannot be trained:
+firestore_receipts.csv holds 19 real transactions across 3 users. So the trained
+component is population-level — "is this amount unusual relative to a typical
+receipt" — and a per-user reference is used instead of the population one as soon
+as a user has enough history, which needs no training.
+
+Amounts are compared as a RATIO to a reference, never in absolute terms, so the
+model transfers across currencies (it was trained on IDR and MYR receipts and is
+served INR ones).
+
+Model: models/spending_anomaly.joblib, built by train_anomaly.py.
+Measured: 13.2% false-positive rate on held-out real receipts (target < 15%),
+100% recall against injected synthetic outliers at 10x typical and above, 0%
+below 5x. The check is one-sided — only amounts ABOVE the reference can be
+flagged, since inflating a receipt is the fraud, not shrinking one. Falls back to
+a fixed baseline when the model is absent.
 """
 
-from datetime import datetime
+import math
+from collections import defaultdict, deque
 from pathlib import Path
 
+MODEL_PATH = Path(__file__).resolve().parent / "models" / "spending_anomaly.joblib"
 
-MODEL_PATH = Path(__file__).resolve().parent / "models" / "anomaly_detector.joblib"
-
-# Returned when the model is missing/unusable — matches server.js's own default.
 BASELINE_SCORE = 0.05
+MIN_HISTORY_FOR_USER_REFERENCE = 5   # below this, one big receipt would skew the median
 
-# Category → numeric code, using the three labels the OCR prompt emits.
-CATEGORY_CODES = {"grocery": 0, "food": 1, "retail": 2}
+# Fallback reference for a user with no history, in the SERVING currency (INR).
+# Median of the 19 real receipts in firestore_receipts.csv. The training corpus is
+# IDR and MYR, so its medians cannot be reused here — averaging them produces a
+# meaningless ~23,600 figure against which every ordinary Indian receipt looks
+# anomalously small. Update this as real usage data accumulates.
+POPULATION_REFERENCE_INR = 2748.0
+HISTORY_LIMIT = 50                   # per user, in-memory only
 
-_model = None
-_model_load_attempted = False
+_bundle = None
+_load_attempted = False
+
+# Recent amounts per user. In-memory and per-process by design: this is a serving
+# convenience, not storage. Firestore remains the source of truth.
+_user_history = defaultdict(lambda: deque(maxlen=HISTORY_LIMIT))
 
 
 # ── MODEL LOADING ──────────────────────────────────────────────
-# Loaded once per process — the Flask worker serves many receipts.
-def _load_model():
-    global _model, _model_load_attempted
+def _load_bundle():
+    """Loads once per process. The bundle carries the reference medians too."""
+    global _bundle, _load_attempted
 
-    if _model_load_attempted:
-        return _model
-    _model_load_attempted = True
+    if _load_attempted:
+        return _bundle
+    _load_attempted = True
 
     if not MODEL_PATH.exists():
         return None
 
     try:
         import joblib
-        _model = joblib.load(MODEL_PATH)
-    except Exception:
-        _model = None
+        bundle = joblib.load(MODEL_PATH)
+        # Reject an incompatible artefact rather than feed it a wrong-shaped vector.
+        # An earlier hand-off shipped a 1280-feature image-embedding detector here.
+        if not isinstance(bundle, dict) or "model" not in bundle:
+            print("anomaly.py: unexpected model format — using baseline")
+            return None
+        if getattr(bundle["model"], "n_features_in_", 1) != 1:
+            print("anomaly.py: model expects "
+                  f"{bundle['model'].n_features_in_} features, not 1 — using baseline")
+            return None
+        _bundle = bundle
+    except Exception as exc:
+        print(f"anomaly.py: failed to load model ({exc}) — using baseline")
+        _bundle = None
 
-    return _model
+    return _bundle
 
 
-# ── FEATURE BUILDING ───────────────────────────────────────────
-def _category_code(category):
-    """Maps an OCR/classifier category string onto the training code."""
-    text = str(category or "").strip().lower()
-    for keyword, code in CATEGORY_CODES.items():
-        if keyword in text:
-            return code
-    return len(CATEGORY_CODES)  # unknown category bucket
-
-
-def _build_features(amount, category, date):
+def _reference_amount(user_id, bundle):
     """
-    Feature vector for the Isolation Forest: [amount, category, day, weekday].
-    Order must match the training script — see the header note.
+    The 'typical receipt' this amount is judged against.
+
+    Prefers the user's own median once they have enough history — that is the
+    per-user behaviour the route promises. Falls back to the population median
+    the model was trained on.
     """
-    try:
-        amount_value = float(amount)
-    except (TypeError, ValueError):
-        amount_value = 0.0
+    history = _user_history[user_id]
+    if len(history) >= MIN_HISTORY_FOR_USER_REFERENCE:
+        ordered = sorted(history)
+        middle = len(ordered) // 2
+        median = (ordered[middle] if len(ordered) % 2
+                  else (ordered[middle - 1] + ordered[middle]) / 2)
+        return median, "user"
 
-    day, weekday = 1, 0
-    for date_format in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
-        try:
-            parsed = datetime.strptime(str(date).strip(), date_format)
-            day, weekday = parsed.day, parsed.weekday()
-            break
-        except (TypeError, ValueError):
-            continue
-
-    return [amount_value, _category_code(category), day, weekday]
+    return POPULATION_REFERENCE_INR, "population"
 
 
 # ── INFERENCE ENTRY POINT ──────────────────────────────────────
@@ -84,28 +105,47 @@ def score(user_id: str, amount: float, category: str, date: str) -> dict:
     Returns anomaly_score (0–1) and is_anomaly flag for the given transaction.
     High score = amount is statistically unusual for this user/category.
     """
-    model = _load_model()
-    if model is None:
+    bundle = _load_bundle()
+
+    try:
+        amount_value = float(amount)
+    except (TypeError, ValueError):
+        amount_value = 0.0
+
+    if bundle is None or amount_value <= 0:
         return {"anomaly_score": BASELINE_SCORE, "is_anomaly": False}
 
-    features = _build_features(amount, category, date)
-
-    # The model was trained outside this repo, so refuse to guess on a shape
-    # mismatch rather than feed it a wrongly ordered vector.
-    expected = getattr(model, "n_features_in_", len(features))
-    if expected != len(features):
-        return {"anomaly_score": BASELINE_SCORE, "is_anomaly": False}
+    reference, basis = _reference_amount(user_id, bundle)
 
     try:
         import numpy as np
-        vector = np.array(features, dtype=float).reshape(1, -1)
 
-        # decision_function: positive = inlier, negative = outlier (roughly ±0.5).
-        # Shift into a 0–1 score so the route keeps its documented contract.
+        ratio = math.log1p(amount_value) - math.log1p(max(reference, 1e-9))
+        vector = np.array([[ratio]], dtype=float)
+
+        model = bundle["model"]
+        is_anomaly = int(model.predict(vector)[0]) == -1
+
+        # One-sided by intent. The fraud being defended against is INFLATING a
+        # receipt to earn more points; an unusually small receipt is not fraud, so
+        # a below-reference amount is never flagged even if the forest isolates it.
+        if ratio <= 0:
+            is_anomaly = False
+
+        # decision_function: positive = normal, negative = outlier (roughly +/-0.5).
+        # Shifted into 0–1 so the route keeps its documented contract.
         raw = float(model.decision_function(vector)[0])
         anomaly_score = min(1.0, max(0.0, 0.5 - raw))
-        is_anomaly = int(model.predict(vector)[0]) == -1
+        if ratio <= 0:
+            anomaly_score = min(anomaly_score, BASELINE_SCORE)
     except Exception:
         return {"anomaly_score": BASELINE_SCORE, "is_anomaly": False}
 
-    return {"anomaly_score": round(anomaly_score, 4), "is_anomaly": is_anomaly}
+    # Recorded after scoring, so a transaction never influences its own verdict.
+    _user_history[user_id].append(amount_value)
+
+    return {
+        "anomaly_score": round(anomaly_score, 4),
+        "is_anomaly": is_anomaly,
+        "reference_basis": basis,          # "user" once history exists, else "population"
+    }

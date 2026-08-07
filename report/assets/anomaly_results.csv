@@ -1,0 +1,12 @@
+Metric,Value
+Train transactions,1321
+Test transactions,441
+Contamination,0.12
+False-positive rate (real),0.1315
+Recall @ 3x typical (synthetic),0.0
+Recall @ 5x typical (synthetic),0.0
+Recall @ 10x typical (synthetic),1.0
+Recall @ 20x typical (synthetic),1.0
+Recall @ 50x typical (synthetic),1.0
+Target,FPR < 0.15
+Target met,yes

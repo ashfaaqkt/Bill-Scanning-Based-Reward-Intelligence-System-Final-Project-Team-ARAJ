@@ -86,21 +86,47 @@ different tools.
 
 ---
 
-## 5. Anomaly detection — status
+## 5. Anomaly detection — now live
 
-`anomaly_detector.joblib` is an `IsolationForest` with `n_features_in_ = 1280` —
-the EfficientNet-B0 embedding width. It is an **image-novelty detector**, not the
-spending-anomaly model that `/ml/anomaly` is wired for (`user_id`, `amount`,
-`category`, `date`).
+`/ml/anomaly` previously returned a fixed 0.05 for every transaction. It is now
+backed by a trained **Isolation Forest** (`ml-service/train_anomaly.py`).
 
-`ml-service/anomaly.py` now guards on `n_features_in_` and falls back to the 0.05
-baseline rather than feeding a mismatched vector, so the pipeline is safe. The
-model is unused pending a decision: repurpose it as an extra image signal inside
-`fraud.py`, or train a spending Isolation Forest from `receipts_master.csv`.
+**What it honestly claims.** The route is specified per-user, but a per-user model
+cannot be trained — `firestore_receipts.csv` holds **19 real transactions across 3
+users**. So the trained component is population-level, and `anomaly.py` swaps in
+the user's own median reference as soon as they have 5+ receipts. Amounts are
+compared as a **ratio to a reference**, never absolutely, which is what lets a
+model trained on Indonesian and Malaysian receipts serve Indian ones.
+
+| Metric | Value |
+|:---|---:|
+| False-positive rate, held-out real receipts (n=441) | **13.2%** — target < 15% ✅ |
+| Recall vs injected synthetic outliers @ 10x typical and above | **100%** |
+| Recall @ 5x | 0% |
+| Training transactions | 1,321 of 1,762 |
+
+**Read those two numbers together.** The false-positive rate is *set* by the
+`contamination` parameter, not discovered — clearing the 15% target is by
+construction and is reported as such. Recall is measured against **injected
+synthetic** outliers, declared as synthetic. Neither means anything alone: a model
+that flags nothing scores a perfect 0% FPR.
+
+**Honest limitations.** The detector is effectively a threshold on
+amount-relative-to-typical — with one informative feature an Isolation Forest
+reduces to a percentile cut, and a feature sweep showed category and date columns
+actively *hurt* (39% vs 100% recall at 10x). It cannot detect a receipt inflated
+by less than ~5x. The check is one-sided: only amounts above the reference are
+flagged, since inflating a receipt is the fraud, not shrinking one.
+
+Ranjeet's `anomaly_detector.joblib` is **not** used — it is an IsolationForest with
+`n_features_in_=1280`, the EfficientNet-B0 embedding width, so it is an
+*image-novelty* detector rather than a spending model. `anomaly.py` rejects any
+artefact whose feature count does not match.
 
 Learning type, for the record: the tamper CNN and the forensic classifier are
-**supervised**; Isolation Forest is **unsupervised**; perceptual-hash duplicate
-detection is **not machine learning at all** — it is a deterministic algorithm.
+**supervised**; both Isolation Forests are **unsupervised**; perceptual-hash
+duplicate detection is **not machine learning at all** — it is a deterministic
+algorithm.
 
 ---
 
@@ -114,7 +140,8 @@ detection is **not machine learning at all** — it is a deterministic algorithm
 | Fusion ablation | `ml-service/train_fraud_fusion.py` |
 | Figures | `ml-service/make_report_figures.py` → `report/assets/fig_*.png` |
 | Dataset repair | `dataset/rasterize_pdfs.py`, `dataset/normalize_images.py` |
-| Serving integration | `ml-service/fraud.py` (`check_tamper_cnn`, `check_phash_duplicate`) |
+| Serving integration | `ml-service/fraud.py`, `ml-service/anomaly.py` |
+| Anomaly model + training | `ml-service/models/spending_anomaly.joblib`, `ml-service/train_anomaly.py` |
 
 Model binaries are gitignored by policy and live on the team Drive.
 
