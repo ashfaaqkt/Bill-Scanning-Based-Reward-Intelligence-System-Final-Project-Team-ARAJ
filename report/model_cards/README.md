@@ -6,7 +6,7 @@ falls short. Every number here is reproducible from the commands in its card.
 | Model | Type | Result | Target | Status |
 |:---|:---|:---|:---|:---|
 | [Category classifier](category_classifier.md) | Supervised — TF-IDF + Random Forest | test macro-F1 **0.942** / acc 0.944 | 0.80 | ✅ **Beaten** |
-| [Anomaly detector](anomaly_detector.md) | **Unsupervised** — Isolation Forest | FPR **13.2%**, 100% recall ≥10× | FPR < 15% | ✅ **Met** |
+| [Anomaly detector](anomaly_detector.md) | **Unsupervised** — Isolation Forest (beat OC-SVM, LOF) | FPR **13.2%**, 100% recall ≥10× | FPR < 15% | ✅ **Met** |
 | [Fraud CNN](fraud_cnn.md) | Supervised transfer learning — MobileNetV2 @ 448 | AUC **0.805** (0.864 real receipts) | 0.90 | ⚠️ **Not met** — data-limited |
 | [Recommender](recommender.md) | Not trained — content-based ranking | no offline metric possible | NDCG@5 > 0.70 | 🔸 **Open** — needs NB 04 |
 | Reward ranker (NB 05) | — | not started | NDCG@5 > 0.70 | ❌ **Not started** |
@@ -43,13 +43,11 @@ Per the sprint plan, a model counts as done only when all six hold:
 | | Category | Fraud CNN | Anomaly | Recommender |
 |:---|:---:|:---:|:---:|:---:|
 | Trained on prepared data | ✅ | ✅ | ✅ | n/a |
-| ≥3 algorithms compared | ✅ | ✅ (4 approaches) | ❌ (1 only) | ❌ |
+| ≥3 algorithms compared | ✅ | ✅ (4 approaches) | ✅ (IF / OC-SVM / LOF) | ❌ |
 | Best chosen + justified | ✅ | ✅ | ✅ | ✅ |
 | Model card written | ✅ | ✅ | ✅ | ✅ |
 | Wired into pipeline | ✅ | ✅ | ✅ | ✅ |
 | Tested end-to-end | ⚠️ routes only | ⚠️ routes only | ⚠️ routes only | ⚠️ routes only |
 
-**Two gaps remain:** the anomaly detector compares only one algorithm (the plan
-asks for Isolation Forest vs One-Class SVM vs LOF), and no component has been
-tested through the live stack with Firestore and Gemini — only through the Flask
-routes directly.
+**One gap remains:** no component has been tested through the live stack with
+Firestore and Gemini — only through the Flask routes directly.

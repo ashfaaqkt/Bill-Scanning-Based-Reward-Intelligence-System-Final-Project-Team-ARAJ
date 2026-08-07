@@ -111,6 +111,21 @@ construction and is reported as such. Recall is measured against **injected
 synthetic** outliers, declared as synthetic. Neither means anything alone: a model
 that flags nothing scores a perfect 0% FPR.
 
+**Three algorithms compared** on identical features and splits, matched outlier
+budget, selection rule fixed in advance (best recall at 10× within the 15% FPR
+budget):
+
+| Model | FPR | Recall @10× | Recall @20× |
+|:---|---:|---:|---:|
+| **Isolation Forest** | **13.2%** | **100%** | **100%** |
+| One-Class SVM (RBF) | 11.8% | 0% | 100% |
+| Local Outlier Factor | 13.6% | 0% | 0% |
+
+One-Class SVM was rejected despite the lowest FPR because its detection profile
+is **non-monotonic** — 26% at 5×, 0% at 10×, 100% at 20×. A detector where a
+larger anomaly is *less* likely to be caught cannot be reasoned about by a
+reviewer. LOF catches nothing below 50×.
+
 **Honest limitations.** The detector is effectively a threshold on
 amount-relative-to-typical — with one informative feature an Isolation Forest
 reduces to a percentile cut, and a feature sweep showed category and date columns

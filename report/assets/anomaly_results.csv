@@ -1,7 +1,14 @@
 Metric,Value
 Train transactions,1321
 Test transactions,441
-Contamination,0.12
+Selected model,IsolationForest
+Contamination / nu,0.12
+IsolationForest — FPR,0.1315
+IsolationForest — recall @10x,1.0
+One-Class SVM — FPR,0.1179
+One-Class SVM — recall @10x,0.0
+LocalOutlierFactor — FPR,0.1361
+LocalOutlierFactor — recall @10x,0.0
 False-positive rate (real),0.1315
 Recall @ 3x typical (synthetic),0.0
 Recall @ 5x typical (synthetic),0.0

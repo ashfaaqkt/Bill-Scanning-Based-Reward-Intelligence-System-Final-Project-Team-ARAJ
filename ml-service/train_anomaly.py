@@ -37,6 +37,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.svm import OneClassSVM
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MASTER = REPO_ROOT / "dataset" / "processed" / "receipts_master.csv"
@@ -173,27 +175,60 @@ def main():
 
     X_train, X_test = featurize(train_rows), featurize(test_rows)
 
-    model = IsolationForest(n_estimators=N_ESTIMATORS, contamination=CONTAMINATION,
-                            random_state=SEED, n_jobs=-1)
-    model.fit(X_train)
-    print(f"IsolationForest fitted on {len(train_rows)} transactions "
-          f"(contamination={CONTAMINATION}, {N_ESTIMATORS} trees)\n")
+    # ── Three algorithms, identical features, identical splits, matched budget ──
+    # Each is given the same expected outlier rate so the comparison is fair:
+    # IsolationForest.contamination, OneClassSVM.nu and LOF.contamination all
+    # play the same role.
+    candidates = {
+        "IsolationForest": IsolationForest(
+            n_estimators=N_ESTIMATORS, contamination=CONTAMINATION,
+            random_state=SEED, n_jobs=-1),
+        "One-Class SVM": OneClassSVM(nu=CONTAMINATION, kernel="rbf", gamma="scale"),
+        "LocalOutlierFactor": LocalOutlierFactor(
+            n_neighbors=20, contamination=CONTAMINATION, novelty=True),
+    }
 
-    # ── False-positive rate on held-out REAL receipts ──
-    flags = model.predict(X_test) == -1
-    fpr = float(flags.mean())
-
-    # ── Recall against INJECTED SYNTHETIC outliers, graded by size ──
     multipliers = [3, 5, 10, 20, 50]
-    recall_by_multiplier = {}
-    for multiplier in multipliers:
-        injected = inject_outliers(test_rows, multiplier)
-        caught = model.predict(featurize(injected)) == -1
-        recall_by_multiplier[multiplier] = float(caught.mean())
+    injected_sets = {m: inject_outliers(test_rows, m) for m in multipliers}
+
+    comparison = {}
+    for name, candidate in candidates.items():
+        candidate.fit(X_train)
+        candidate_fpr = float((candidate.predict(X_test) == -1).mean())
+        recalls = {m: float((candidate.predict(featurize(injected_sets[m])) == -1).mean())
+                   for m in multipliers}
+        comparison[name] = {"model": candidate, "fpr": candidate_fpr, "recall": recalls}
+
+    print("=" * 62)
+    print("ALGORITHM COMPARISON — same features, same splits, same outlier budget")
+    print("=" * 62)
+    header = "  ".join(f"@{m}x" .rjust(6) for m in multipliers)
+    print(f"  {'model':20s} {'FPR':>7s}  {header}")
+    print("  " + "-" * 58)
+    for name, result in comparison.items():
+        row = "  ".join(f"{result['recall'][m]:6.1%}" for m in multipliers)
+        budget = " " if result["fpr"] < 0.15 else "!"
+        print(f"  {name:20s} {result['fpr']:6.1%}{budget} {row}")
+    print("\n  ! = over the 15% false-positive budget\n")
+
+    # Selection rule, fixed in advance: among candidates inside the FPR budget,
+    # take the highest recall at 10x — the smallest inflation worth catching.
+    eligible = {n: r for n, r in comparison.items() if r["fpr"] < 0.15}
+    if not eligible:
+        eligible = comparison
+        print("  WARNING: no candidate met the FPR budget; selecting on recall alone.\n")
+
+    best_name = max(eligible, key=lambda n: (eligible[n]["recall"][10], -eligible[n]["fpr"]))
+    model = comparison[best_name]["model"]
+    fpr = comparison[best_name]["fpr"]
+    recall_by_multiplier = comparison[best_name]["recall"]
+    print(f"  >>> Selected: {best_name} "
+          f"(highest recall @10x among candidates within the FPR budget)\n")
 
     print("=" * 62)
     print("EVALUATION")
     print("=" * 62)
+    print(f"  Selected model  : {best_name}")
     print(f"  False-positive rate (held-out real, n={len(test_rows)}) : {fpr:.1%}")
     print(f"    target < 15%  ->  {'PASS' if fpr < 0.15 else 'FAIL'}")
     print("    NOTE: this is set by `contamination`, not discovered. Reported as such.\n")
@@ -221,7 +256,11 @@ def main():
         writer.writerow(["Metric", "Value"])
         writer.writerow(["Train transactions", len(train_rows)])
         writer.writerow(["Test transactions", len(test_rows)])
-        writer.writerow(["Contamination", CONTAMINATION])
+        writer.writerow(["Selected model", best_name])
+        writer.writerow(["Contamination / nu", CONTAMINATION])
+        for name, result in comparison.items():
+            writer.writerow([f"{name} — FPR", round(result["fpr"], 4)])
+            writer.writerow([f"{name} — recall @10x", round(result["recall"][10], 4)])
         writer.writerow(["False-positive rate (real)", round(fpr, 4)])
         for multiplier, value in recall_by_multiplier.items():
             writer.writerow([f"Recall @ {multiplier}x typical (synthetic)", round(value, 4)])
