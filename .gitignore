@@ -81,3 +81,6 @@ dataset/processed/firestore_receipts.csv
 
 # Forensic feature cache — regenerates in ~17s from train_fraud_forensics.py
 report/assets/forensic_features*.csv
+
+# Pristine backup written by dataset/repair_master_schema.py — git history is the real backup
+*.csv.orig
