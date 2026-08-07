@@ -31,11 +31,14 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from train_fraud_cv import load_rows, N_FOLDS, SEED, USE_NORMALIZED
+from train_fraud_cv import load_rows, N_FOLDS, SEED, USE_NORMALIZED, IMG_SIZE
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ASSETS = REPO_ROOT / "report" / "assets"
 SUFFIX = "_normalized" if USE_NORMALIZED else ""
+# The forensic features are computed on the full-size image, so they do not vary
+# with the CNN's input resolution — only the CNN's predictions carry the suffix.
+CNN_SUFFIX = SUFFIX + (f"_{IMG_SIZE}" if IMG_SIZE != 224 else "")
 
 PHASH_SIZE = 8
 
@@ -83,7 +86,7 @@ def main():
     groups = np.array([r["group"] for r in rows])
     sources = np.array([r["source"] for r in rows])
 
-    cnn_map = load_oof(f"cnn_oof_predictions{SUFFIX}.csv", "cnn_prob")
+    cnn_map = load_oof(f"cnn_oof_predictions{CNN_SUFFIX}.csv", "cnn_prob")
     forensic_map = load_oof(f"forensic_oof_predictions{SUFFIX}.csv", "forensic_prob")
     cnn = np.array([cnn_map[r["path"]] for r in rows])
     forensic = np.array([forensic_map[r["path"]] for r in rows])
@@ -154,7 +157,7 @@ def main():
 
     # ── Save ──
     ASSETS.mkdir(parents=True, exist_ok=True)
-    with open(ASSETS / f"fusion_results{SUFFIX}.csv", "w", newline="") as handle:
+    with open(ASSETS / f"fusion_results{CNN_SUFFIX}.csv", "w", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(["Method", "Pooled OOF AUC", "Source-control AUC"])
         writer.writerow(["CNN alone", round(results["CNN alone"], 4),
@@ -168,7 +171,7 @@ def main():
         writer.writerow(["Spearman correlation", round(float(correlation), 4), ""])
         writer.writerow(["N images", len(rows), ""])
 
-    print(f"\nSaved → report/assets/fusion_results{SUFFIX}.csv")
+    print(f"\nSaved → report/assets/fusion_results{CNN_SUFFIX}.csv")
 
 
 if __name__ == "__main__":

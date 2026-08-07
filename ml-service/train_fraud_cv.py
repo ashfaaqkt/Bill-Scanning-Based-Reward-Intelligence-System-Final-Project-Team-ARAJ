@@ -38,10 +38,20 @@ MODEL_OUT = REPO_ROOT / "ml-service" / "models" / "tamper_cnn_cv.pt"
 MODEL_OUT_NORM = REPO_ROOT / "ml-service" / "models" / "tamper_cnn_cv_normalized.pt"
 ASSETS = REPO_ROOT / "report" / "assets"
 
+def _int_arg(flag, default):
+    """Reads `--flag N` from the command line."""
+    if flag in sys.argv:
+        return int(sys.argv[sys.argv.index(flag) + 1])
+    return default
+
+
 SEED = 42
 N_FOLDS = 5
-IMG_SIZE = 224
-BATCH_SIZE = 16
+# Receipts are ~1200x1600; at 224 a digit overwritten by generate_tampered.py
+# survives as roughly 6 pixels. --img-size 448 keeps ~12px of that evidence.
+IMG_SIZE = _int_arg("--img-size", 224)
+BATCH_SIZE_DEFAULT = 16
+BATCH_SIZE = _int_arg('--batch-size', 8 if IMG_SIZE > 320 else 16)
 EPOCHS = 15
 FREEZE_EPOCHS = 3       # train the head first, then fine-tune the whole backbone
 PATIENCE = 5
@@ -235,7 +245,7 @@ def main():
     rows = load_rows(USE_NORMALIZED)
     labels = np.array([r["y"] for r in rows])
     groups = np.array([r["group"] for r in rows])
-    print(f"Device: {DEVICE}")
+    print(f"Device: {DEVICE} | input {IMG_SIZE}x{IMG_SIZE} | batch {BATCH_SIZE}")
     print(f"Pooled dataset: {len(rows)} images "
           f"({int((labels == 0).sum())} genuine / {int((labels == 1).sum())} tampered)")
     print(f"Grouped into {len(set(groups))} unique source receipts — "
@@ -243,6 +253,8 @@ def main():
 
     ASSETS.mkdir(parents=True, exist_ok=True)
     suffix = "_normalized" if USE_NORMALIZED else ""
+    if IMG_SIZE != 224:
+        suffix += f"_{IMG_SIZE}"
     history_path = ASSETS / f"cv_fold_history{suffix}.csv"
 
     fold_aucs, best_overall, best_model = [], -1.0, None
@@ -309,6 +321,8 @@ def main():
     print(f"    Ungrouped 5-fold CV (leaked source recs) : 0.78 (inflated)")
 
     out_path = MODEL_OUT_NORM if USE_NORMALIZED else MODEL_OUT
+    if IMG_SIZE != 224:
+        out_path = out_path.with_name(out_path.stem + f"_{IMG_SIZE}.pt")
     torch.save(best_model, out_path)   # full nn.Module — fraud.py loads this directly
     print(f"\nSaved best-fold model → {out_path.name} "
           f"({out_path.stat().st_size / 1e6:.1f} MB)")

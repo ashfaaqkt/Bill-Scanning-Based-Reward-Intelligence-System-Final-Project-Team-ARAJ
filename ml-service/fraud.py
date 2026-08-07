@@ -8,10 +8,14 @@ import os
 from pathlib import Path
 
 
-# MobileNetV2, trained by `train_fraud_cv.py --normalized` under 5-fold grouped
-# cross-validation on compression-normalized images: pooled out-of-fold AUC 0.752,
-# mean fold 0.821 +/- 0.080, over 194 receipts. See report/fraud_test_report.md.
-MODEL_PATH = Path(__file__).resolve().parent / "models" / "tamper_cnn_cv_normalized.pt"
+# MobileNetV2 trained at 448x448 by
+#   train_fraud_cv.py --normalized --img-size 448
+# under 5-fold grouped cross-validation on compression-normalized images:
+# pooled out-of-fold AUC 0.805, and 0.864 on the 94 real photographs.
+# The 448 input matters — at 224 a receipt is downscaled ~7x and an overwritten
+# digit survives as only ~6 pixels. See report/fraud_test_report.md.
+MODEL_PATH = Path(__file__).resolve().parent / "models" / "tamper_cnn_cv_normalized_448.pt"
+IMG_SIZE = 448
 PHASH_DISTANCE_THRESHOLD = 10
 
 _tamper_model = None
@@ -162,8 +166,10 @@ def check_tamper_cnn(image_path):
         if model is None:
             return 0.05
 
+        # Must match the training resolution exactly — serving at 224 a model
+        # trained at 448 silently degrades every prediction.
         transform = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])

@@ -23,6 +23,11 @@ from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ASSETS = REPO_ROOT / "report" / "assets"
 
+# The champion is the 448x448 model. Forensic features are resolution-independent,
+# so only the CNN artifacts carry the resolution suffix.
+CNN_SUFFIX = "_normalized_448"
+FORENSIC_SUFFIX = "_normalized"
+
 # Validated categorical slots 1-3 (all-pairs, light surface) — see dataviz palette.
 BLUE, ORANGE, AQUA = "#2a78d6", "#eb6834", "#1baf7a"
 SURFACE = "#fcfcfb"
@@ -63,7 +68,7 @@ def figure_roc(y, cnn, forensic, fusion):
     fig, ax = plt.subplots(figsize=(5.2, 4.4))
     style(ax, grid_axis="both")
 
-    series = [("CNN (MobileNetV2)", cnn, BLUE), ("Forensic features", forensic, ORANGE),
+    series = [("CNN (MobileNetV2, 448px)", cnn, BLUE), ("Forensic features", forensic, ORANGE),
               ("Fusion (rank-average)", fusion, AQUA)]
 
     for label, scores, colour in series:
@@ -76,7 +81,7 @@ def figure_roc(y, cnn, forensic, fusion):
 
     ax.set_xlabel("False positive rate")
     ax.set_ylabel("True positive rate")
-    ax.set_title("ROC — pooled out-of-fold, 194 receipts", loc="left", pad=10)
+    ax.set_title("ROC — pooled out-of-fold, 194 receipts (448x448 input)", loc="left", pad=10)
     ax.set_xlim(0, 1); ax.set_ylim(0, 1.02)
     ax.legend(loc="lower right", frameon=False, fontsize=8.5, labelcolor=INK)
     save(fig, "fig_roc_curves.png")
@@ -84,7 +89,7 @@ def figure_roc(y, cnn, forensic, fusion):
 
 # ── 2. Per-fold AUC with confidence interval ───────────────────
 def figure_folds():
-    with open(ASSETS / "fraud_cv_results_normalized.csv", newline="") as handle:
+    with open(ASSETS / f"fraud_cv_results{CNN_SUFFIX}.csv", newline="") as handle:
         values = {r["Metric"]: float(r["Value"]) for r in csv.DictReader(handle)
                   if r["Value"] not in ("", None)}
 
@@ -113,7 +118,7 @@ def figure_folds():
     ax.set_xticks(x); ax.set_xticklabels([f"Fold {i}" for i in x])
     ax.set_ylabel("AUC")
     ax.set_ylim(0.45, 1.0); ax.set_xlim(0.5, 6.6)
-    ax.set_title("Per-fold AUC — grouped 5-fold cross-validation", loc="left", pad=10)
+    ax.set_title("Per-fold AUC — grouped 5-fold CV, 448x448 input", loc="left", pad=10)
     save(fig, "fig_fold_auc.png")
 
 
@@ -130,7 +135,7 @@ def figure_confusion(y, scores):
     labels = ["genuine", "tampered"]
     ax.set_xticks([0, 1], labels); ax.set_yticks([0, 1], labels)
     ax.set_xlabel("Predicted"); ax.set_ylabel("Actual")
-    ax.set_title(f"Confusion matrix — CNN @ threshold {best:.2f}", loc="left", pad=10)
+    ax.set_title(f"Confusion matrix — CNN 448px @ threshold {best:.2f}", loc="left", pad=10)
 
     for i in range(2):
         for j in range(2):
@@ -147,7 +152,7 @@ def figure_confusion(y, scores):
 
 # ── 4. Ablation ────────────────────────────────────────────────
 def figure_ablation(entries):
-    fig, ax = plt.subplots(figsize=(6.0, 3.6))
+    fig, ax = plt.subplots(figsize=(6.2, 4.0))
     style(ax, grid_axis="x")
 
     names = [e[0] for e in entries]
@@ -202,9 +207,9 @@ def main():
     if not (ASSETS / "cnn_oof_predictions_normalized.csv").exists():
         sys.exit("Run train_fraud_cv.py --normalized first.")
 
-    y, cnn, paths = read_oof("cnn_oof_predictions_normalized.csv", "cnn_prob")
+    y, cnn, paths = read_oof(f"cnn_oof_predictions{CNN_SUFFIX}.csv", "cnn_prob")
     y_forensic, forensic, forensic_paths = read_oof(
-        "forensic_oof_predictions_normalized.csv", "forensic_prob")
+        f"forensic_oof_predictions{FORENSIC_SUFFIX}.csv", "forensic_prob")
 
     # The two files are written in different row orders — align on path, and
     # confirm the labels still agree once aligned.
@@ -220,10 +225,11 @@ def main():
     figure_folds()
     figure_confusion(y, cnn)
     figure_ablation([
-        ("JPEG quantization table only\n(before decontamination)", 0.6901, INK_SOFT),
-        ("Forensic features (24)", roc_auc_score(y, forensic), ORANGE),
-        ("CNN (MobileNetV2)", roc_auc_score(y, cnn), BLUE),
+        ("JPEG quantization table only\n(pre-fix artifact, no image content)", 0.6901, INK_SOFT),
+        ("Forensic features (31)", roc_auc_score(y, forensic), ORANGE),
         ("Fusion (rank-average)", roc_auc_score(y, fusion), AQUA),
+        ("CNN 224px", 0.7523, INK_SOFT),
+        ("CNN 448px  (champion)", roc_auc_score(y, cnn), BLUE),
     ])
     figure_dataset()
     print("Done.")

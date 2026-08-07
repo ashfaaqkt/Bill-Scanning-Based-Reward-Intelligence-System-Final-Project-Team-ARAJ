@@ -11,19 +11,21 @@
 
 | Metric | Value |
 |:---|---:|
-| **Pooled out-of-fold AUC** | **0.752** |
-| **Mean fold AUC** | **0.821 ± 0.080** (SD) |
-| 95% confidence interval | [0.751, 0.891] |
-| Source-confound control (n=94, real receipts only) | 0.781 |
+| **Pooled out-of-fold AUC** | **0.805** |
+| **Real-receipt subset (n=94)** | **0.864** |
+| Mean fold AUC | 0.811 ± 0.091 (SD), 95% CI [0.730, 0.891] |
 | Dataset | 194 images from 103 source receipts |
-| Champion model | MobileNetV2, `ml-service/models/tamper_cnn_cv_normalized.pt` |
+| Input resolution | **448 × 448** (see §4b) |
+| Champion model | MobileNetV2, `ml-service/models/tamper_cnn_cv_normalized_448.pt` |
 
-**The 0.90 target was not met.** The evidence in section 5 indicates the binding
-constraint is dataset size, not implementation.
+**The 0.90 target was not met overall**, though the model reaches **0.864 on the 94
+real photographs** — the subset that carries no synthetic tampering and no
+compression artifact, and therefore the honest estimate of real-world performance.
+The evidence in section 5 indicates the remaining constraint is dataset size.
 
 Two numbers are quoted because they answer different questions. *Pooled
-out-of-fold* (0.752) scores all 194 predictions together and is the more stable
-statistic — it is the number to quote. *Mean fold* (0.821) averages five small
+out-of-fold* (0.805) scores all 194 predictions together and is the more stable
+statistic — it is the number to quote. *Mean fold* (0.811) averages five small
 fold scores and is reported with its confidence interval for comparability with
 the literature. Quoting only the higher of the two would be cherry-picking.
 
@@ -108,42 +110,93 @@ genuine image content.
 - **Schedule:** backbone frozen 3 epochs (head only, lr 1e-3), then full fine-tune at lr 1e-4
 - **Early stopping:** on validation AUC, patience 5, max 15 epochs
 - **Augmentation:** mild only (±4° rotation, 3% translation, slight colour jitter) — aggressive transforms destroy the artifacts being detected
-- **Preprocessing (matches `ml-service/fraud.py` exactly):** 224×224 RGB, ImageNet mean/std
+- **Preprocessing (matches `ml-service/fraud.py` exactly):** 448×448 RGB, ImageNet mean/std
 
 | Signal | Pooled OOF AUC | Control (n=94) |
 |:---|---:|---:|
 | JPEG quantization table only (pre-fix artifact) | 0.690 | — |
 | Forensic features (31, hand-designed) | 0.736 | 0.745 |
-| **CNN (MobileNetV2)** | **0.752** | **0.781** |
-| Fusion (rank-average of the two) | 0.759 | 0.783 |
+| CNN at 224 × 224 | 0.752 | 0.781 |
+| Fusion (CNN 448 + forensics, rank-average) | 0.790 | 0.833 |
+| **CNN at 448 × 448 — champion** | **0.805** | **0.864** |
 
 ![Ablation](assets/fig_ablation.png)
 
-**Fusion result is negative and reported as such.** The two models are built from
-entirely different evidence, but their predictions correlate at Spearman ρ = 0.505,
-and fusion adds only +0.007 — well inside the noise band (CI half-width ≈ 0.07). A
-learned stacker performed *worse* than the CNN alone (0.747), overfitting 31
-features on 194 samples.
+**Fusion is rejected, and this is reported as a negative result.** Against the 448
+CNN, fusing in the forensic model *lowers* performance — 0.805 → 0.790 overall and
+0.864 → 0.833 on real receipts. The weaker model drags the stronger one down; their
+predictions correlate at Spearman ρ = 0.638, so there is little independent signal
+to gain. A learned stacker was worse still (0.758), overfitting 31 features on 194
+samples. **The CNN alone is the champion.**
 
 ![Per-fold AUC](assets/fig_fold_auc.png)
 
 ![Confusion matrix](assets/fig_confusion_matrix.png)
 
-At the Youden-optimal threshold (0.26) the model recovers **91% of tampered
-receipts** at a 45% false-positive rate on genuine ones — usable as a *flag for
-review*, not as an automatic rejection.
+### Operating points
+
+The Youden-optimal threshold (0.09) recovers 99.2% of tampered receipts but flags
+55.4% of genuine ones — close to "review everything", and not a useful setting.
+The practical trade-offs:
+
+| Threshold | Recall on tampered | False-positive rate on genuine |
+|---:|---:|---:|
+| 0.82 | 50.4% | 9.2% |
+| 0.74 | 57.4% | 20.0% |
+| 0.60 | 65.1% | 27.7% |
+| 0.20 | 89.9% | 47.7% |
+
+There is no threshold that is both high-recall and low-noise, which is the
+practical meaning of AUC 0.805 on a 194-image dataset. The system therefore uses
+the CNN as **one weighted signal among several**, not as a standalone gate.
+
+---
+
+## 4b. Input resolution — the largest single improvement
+
+Receipts are ~1200 × 1600 pixels. A standard CNN input of 224 × 224 is a **7.1×
+linear downscale**. Two of the four tamper modes — `number_overwrite` and
+`handwritten` — leave evidence measured in tens of pixels, so after resizing an
+overwritten digit survives as roughly **6 pixels**. The model was being asked to
+detect something largely destroyed before it reached the network.
+
+Re-running the identical protocol at 448 × 448 (same folds, same seed, batch size
+reduced 16 → 8 for memory):
+
+| Metric | 224 × 224 | 448 × 448 |
+|:---|---:|---:|
+| Pooled out-of-fold AUC | 0.7523 | **0.8049** |
+| Real-receipt subset (n=94) | 0.7809 | **0.8642** |
+| Mean fold AUC | 0.8213 | 0.8106 |
+| Best epoch per fold | 11/6/2/2/4 | 14/6/6/6/4 |
+
+Best epochs move later, which is consistent with the model having more genuine
+signal to learn before it begins overfitting.
+
+**Significance.** Tested by paired bootstrap on the same 194 out-of-fold
+predictions, resampled **by source receipt** so the dependence between the three
+versions of one receipt is respected (4000 resamples):
+
+| Subset | AUC difference | 95% CI | p |
+|:---|---:|:---:|---:|
+| All 194 images | +0.0526 | [+0.008, +0.100] | **0.020** |
+| Real receipts (n=94) | +0.0833 | [+0.015, +0.161] | **0.016** |
+
+The improvement is statistically significant on both subsets. Mean-fold
+confidence intervals overlap, which is why the paired test — not the fold means —
+is the correct comparison here.
 
 ---
 
 ## 5. Why the target was not met
 
-1. **The model peaks almost immediately.** Best epoch was 2–11 of a possible 15 in
-   every fold, then validation AUC degrades. That is the signature of a data-starved
-   model, not a broken one.
+1. **The model still saturates early.** Best epoch was 4–14 of a possible 15 — later
+   than at 224px, but validation AUC still degrades well before the epoch budget is
+   used. That is the signature of a data-starved model, not a broken one.
 2. **Only 65 genuine receipts exist.** The minority class sets the ceiling.
-3. **An unrelated method hits the same wall.** Hand-designed forensics reach 0.736 —
-   within noise of the CNN. Two independent approaches converging at ~0.75 points at
-   the dataset, not the architecture.
+3. **An unrelated method hits the same wall.** Hand-designed forensics reach 0.736,
+   and combining them with the CNN makes results worse, not better — there is no
+   easy signal left on the table.
 
 **To reach 0.90** would require roughly 500–1000 genuine receipts and a comparable
 number of *independently* tampered ones — ideally tampered by different people using
@@ -158,7 +211,8 @@ among several**, contributing +0.40 to the fraud score above a 0.50 threshold,
 alongside perceptual-hash duplicate detection and OCR-derived flags. It degrades
 gracefully to a 0.05 baseline when the model file is absent.
 
-At AUC 0.75 it is suitable for **flagging receipts for human review**. It is not
+At AUC 0.805 (0.864 on real receipts) it is suitable for **flagging receipts for
+human review**. It is not
 suitable for automatic rejection, and the system does not use it that way.
 
 ---
@@ -168,22 +222,22 @@ suitable for automatic rejection, and the system does not use it that way.
 ```bash
 python3 dataset/rasterize_pdfs.py
 python3 dataset/normalize_images.py
-python  ml-service/train_fraud_cv.py --normalized
+python  ml-service/train_fraud_cv.py --normalized --img-size 448
 python  ml-service/train_fraud_forensics.py --normalized
-python  ml-service/train_fraud_fusion.py --normalized
+python  ml-service/train_fraud_fusion.py --normalized --img-size 448
 python  ml-service/make_report_figures.py
 ```
 
 | Artifact | Path |
 |:---|:---|
-| Per-fold CV results | `report/assets/fraud_cv_results_normalized.csv` |
-| Per-epoch history (all folds) | `report/assets/cv_fold_history_normalized.csv` |
+| Per-fold CV results | `report/assets/fraud_cv_results_normalized_448.csv` |
+| Per-epoch history (all folds) | `report/assets/cv_fold_history_normalized_448.csv` |
 | Forensic results | `report/assets/forensic_cv_results_normalized.csv` |
-| Fusion ablation | `report/assets/fusion_results_normalized.csv` |
+| Fusion ablation | `report/assets/fusion_results_normalized_448.csv` |
 | Out-of-fold predictions | `report/assets/{cnn,forensic}_oof_predictions_normalized.csv` |
 | Figures | `report/assets/fig_*.png` |
 | Notebook (executed, with outputs) | `notebooks/03_fraud_detection.ipynb` |
-| Champion model (gitignored) | `ml-service/models/tamper_cnn_cv_normalized.pt` |
+| Champion model (gitignored) | `ml-service/models/tamper_cnn_cv_normalized_448.pt` |
 
 ---
 
