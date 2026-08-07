@@ -207,17 +207,44 @@ function randomIntBetween(min, max) {
 
 // ── CLAIM MODAL — CATALOG & RENDERING ─────────────────────────
 
-// Shuffles and combines 9 vouchers + 3 scratch cards into a randomised catalog
+// Offers ranked for this user by /ml/recommend, refreshed by loadRecommendations().
+// Empty until that returns, and left empty if the ML service is unreachable — in
+// which case the catalog falls back to the shuffled static pool below.
+let RECOMMENDED_OFFERS = [];
+
+// Asks the backend for personalised offers. Never throws: a failure just leaves
+// the static pool in place, so the claim modal always has something to show.
+async function loadRecommendations() {
+    if (!localStorage.getItem('token')) {
+        RECOMMENDED_OFFERS = [];   // guest session — nothing to personalise against
+        return;
+    }
+    try {
+        const res = await fetch('/api/recommendations?top_n=9', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        RECOMMENDED_OFFERS = Array.isArray(data.recommendations) ? data.recommendations : [];
+    } catch (err) {
+        RECOMMENDED_OFFERS = [];
+    }
+}
+
+// Combines 9 vouchers + 3 scratch cards into the claim catalog. Vouchers come
+// from the ML ranking when available — in rank order, best match first — and from
+// the shuffled static pool otherwise.
 function generateClaimCatalog() {
     const vouchers = [];
-    const shuffledVouchers = shuffleArray(VOUCHER_POOL);
+    const usingRanked = RECOMMENDED_OFFERS.length > 0;
+    const source = usingRanked ? RECOMMENDED_OFFERS : shuffleArray(VOUCHER_POOL);
+
     for (let i = 0; i < 9; i += 1) {
-        const voucher = shuffledVouchers[i % shuffledVouchers.length];
+        const voucher = source[i % source.length];
         vouchers.push({
             type: 'voucher',
             icon: voucher.icon,
             title: voucher.title,
             offer: voucher.offer,
+            reason: voucher.reason || null,
             requiredPoints: randomIntBetween(20, 90)
         });
     }
@@ -433,6 +460,7 @@ async function openClaimModal() {
     }
     if (localStorage.getItem('token')) {
         await fetchTotalPoints();
+        await loadRecommendations();   // personalised ranking; no-ops on failure
     }
     renderClaimCards();
     refreshClaimButtonStates();

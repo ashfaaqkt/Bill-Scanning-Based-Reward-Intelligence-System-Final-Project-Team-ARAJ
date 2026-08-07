@@ -599,6 +599,29 @@ app.get('/api/claimed-rewards', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/recommendations — reward offers ranked for this user by the ML service.
+// Lets the claim modal personalise without waiting for a scan. Returns an empty
+// list (not an error) when the ML service is down, so the frontend falls back to
+// its own static pool rather than showing nothing.
+app.get('/api/recommendations', authenticateToken, async (req, res) => {
+    const topN = Math.max(1, Math.min(parseInt(req.query.top_n, 10) || 6, 12));
+    try {
+        const mlRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
+            user_id: req.userId,
+            top_n: topN
+        }, { timeout: 3000 });
+
+        res.json({
+            recommendations: mlRes.data?.recommendations || [],
+            personalised: mlRes.data?.personalised === true,
+            model: mlRes.data?.model || 'unavailable'
+        });
+    } catch (e) {
+        console.warn('ML Service (Recommend) unreachable.');
+        res.json({ recommendations: [], personalised: false, model: 'unavailable' });
+    }
+});
+
 // POST /api/claim-reward — atomic Firestore transaction: deducts points + writes claim record
 // Throws INSUFFICIENT_POINTS if user balance is too low
 app.post('/api/claim-reward', authenticateToken, async (req, res) => {
@@ -987,13 +1010,34 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 7. Update User Profile in ML Service (Async)
-        axios.post(`${ML_SERVICE_URL}/ml/update-profile`, {
-            user_id: req.userId,
-            category: receiptData.category,
-            amount: total,
-            merchant: receiptData.rawMerchant
-        }).catch(() => console.warn("ML Service (Profile) update failed."));
+        // 7. Update the user's spend-interest vector in the ML service.
+        //    Awaited (not fire-and-forget) so the recommendations below reflect the
+        //    receipt that was just scanned. It is a local JSON write, so the added
+        //    latency is small, and a failure must never fail the upload.
+        try {
+            await axios.post(`${ML_SERVICE_URL}/ml/update-profile`, {
+                user_id: req.userId,
+                category: receiptData.category,
+                amount: total,
+                merchant: receiptData.rawMerchant
+            }, { timeout: 3000 });
+        } catch (mlError) {
+            console.warn("ML Service (Profile) update failed.");
+        }
+
+        // 8. Personalised reward offers, ranked against that interest vector.
+        let recommendedRewards = [];
+        try {
+            const recRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
+                user_id: req.userId,
+                top_n: 5
+            }, { timeout: 3000 });
+            if (recRes.data && Array.isArray(recRes.data.recommendations)) {
+                recommendedRewards = recRes.data.recommendations;
+            }
+        } catch (mlError) {
+            console.warn("ML Service (Recommend) unreachable, frontend will use its default pool.");
+        }
 
         res.json({
             success: true,
@@ -1005,7 +1049,8 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 fraudScore: fraudScore,
                 riskLevel: riskLevel,
                 anomalyScore: anomalyScore,
-                anomalyFlag: anomalyFlag
+                anomalyFlag: anomalyFlag,
+                recommendedRewards: recommendedRewards
             }
         });
 

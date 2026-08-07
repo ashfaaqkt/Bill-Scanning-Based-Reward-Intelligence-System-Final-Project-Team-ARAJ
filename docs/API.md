@@ -30,6 +30,13 @@
 |---|---|---|
 | GET | /api/claimed-rewards | List all claimed vouchers and scratch cards |
 | POST | /api/claim-reward | Claim a reward (atomic point deduction) |
+| GET | /api/recommendations | Reward offers ranked for this user (`?top_n=1..12`, default 6) |
+
+**GET /api/recommendations** proxies `/ml/recommend`. It returns
+`{ recommendations[], personalised, model }`. When the ML service is unreachable it
+returns an empty list with `model: "unavailable"` rather than an error, so the
+frontend falls back to its own static pool. `POST /api/upload` also returns the
+same ranked offers as `data.recommendedRewards`.
 
 ---
 

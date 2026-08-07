@@ -84,3 +84,6 @@ report/assets/forensic_features*.csv
 
 # Pristine backup written by dataset/repair_master_schema.py — git history is the real backup
 *.csv.orig
+
+# Per-user interest vectors — user data, and a rebuildable serving cache
+ml-service/models/user_profiles.json
