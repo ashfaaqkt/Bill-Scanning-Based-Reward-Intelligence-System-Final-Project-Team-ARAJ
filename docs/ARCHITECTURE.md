@@ -46,7 +46,7 @@ User (Browser)
 9. Response sent back to frontend with extracted data + reward result (category + gemini_category)
 
 > **Wired:** `/ml/classify` is now called from `/api/upload` — the trained Notebook 02 classifier sets the category when it is confident (confidence ≥ 0.45), otherwise the OCR/Gemini category is kept (both are returned as `category` + `gemini_category`).
-> **Not yet wired:** `/ml/anomaly` and `/ml/recommend` exist as routes but are not called yet — anomaly scoring is unused and reward offers are still static. These get wired once their models (NB 03/04/05) are trained.
+> **All five ML endpoints are now wired and backed by trained logic (Aug 7, 2026).** `/ml/anomaly` runs a trained Isolation Forest; `/ml/recommend` returns offers ranked against the user's interest vector, and is called both from `/api/upload` (as `data.recommendedRewards`) and from the new `GET /api/recommendations`. The one component still awaiting a model is the **SVD collaborative filter** (NB 04) — `recommend.py` ranks content-based until it ships.
 
 ## ML Pipeline (ml-service)
 
@@ -55,16 +55,36 @@ Receipt Image
       │
       ├── ocr.py          → Gemini 2.5 Flash + blur / multi-bill / handwriting  [LIVE, wired]
       │
-      ├── fraud.py        → OCR-signal fraud score [LIVE]; pHash + tamper CNN [stub]
+      ├── fraud.py        → OCR signals + pHash + tamper CNN @448    [LIVE, AUC 0.805]
       │
-      ├── classifier.py   → TF-IDF + Random Forest → category label   [TRAINED + WIRED, conf-gated]
+      ├── forensics.py    → 31 hand-designed forensic features       [built, not served]
       │
-      ├── anomaly.py      → Isolation Forest → spending anomaly score  [stub, not wired]
+      ├── classifier.py   → TF-IDF + Random Forest → category label   [LIVE, macro-F1 0.942]
       │
-      ├── user_profile.py → interest vector update                    [stub, wired]
+      ├── anomaly.py      → Isolation Forest → spending anomaly score [LIVE, FPR 13.2%]
       │
-      └── recommend.py    → SVD + reward ranker → top-N offers         [stub, not wired]
+      ├── user_profile.py → per-user interest vector (decayed)        [LIVE]
+      │
+      └── recommend.py    → content-based offer ranking → top-N       [LIVE; SVD pending NB 04]
 ```
+
+### Model status
+
+| Component | Algorithm | Result | Target |
+|---|---|---|---|
+| Category classifier | TF-IDF + Random Forest | macro-F1 **0.942** / acc 0.944 | 0.80 ✅ |
+| Anomaly detector | Isolation Forest (beat OC-SVM, LOF) | FPR **13.2%**, 100% recall ≥10× | <15% ✅ |
+| Fraud tamper CNN | MobileNetV2 @ 448×448 | AUC **0.805** (0.864 real receipts) | 0.90 ⚠️ |
+| Recommender | content-based ranking (not trained) | no offline metric possible | NDCG ⏳ |
+| Reward ranker | — | not started (NB 05) | — |
+
+Full detail per model: [`report/model_cards/`](../report/model_cards/README.md).
+
+**Training the fraud CNN at 448×448 rather than the usual 224 is the single
+largest modelling decision.** Receipts are ~1200×1600, so 224 is a 7.1× downscale
+that reduces an overwritten digit to ~6 pixels. `fraud.py` therefore resizes to
+448 at serving time via one shared `IMG_SIZE` constant — serving at 224 a model
+trained at 448 would silently degrade every prediction.
 
 ## Technology Stack
 

@@ -18,7 +18,17 @@ Originals (`receipts_master.csv`, `labels.csv`) are untouched.
 - `category_3class` is a keyword heuristic (imperfect) — provided as an alternative target, not ground truth.
   For the 100 Indian receipts, real spend-category labels were recovered from the Drive folder
   structure into `indian_category_folders.csv` (Restaurant/Grocery/Pharmacy/etc.) — candidate ground truth.
-- `total` is numeric but currencies differ by source (CORD≈IDR, SROIE≈MYR). `date` normalised to YYYY-MM-DD where present.
+- `total` was **not** reliably numeric: a naive `float()` silently dropped 724 of 1,762 values (41%),
+  because the column mixes `$8.20`, `20,000`, `22.000` and `8.70`. Fixed by
+  `dataset/repair_master_schema.py` — CORD is Indonesian (IDR: `.` and `,` are both thousands
+  separators, so `48.000` is 48000) and SROIE is Malaysian (MYR: `.` is a real decimal).
+  Parsing per source recovers **1,762/1,762 (100%)** into `total_parsed`, with `currency`
+  recorded alongside. Amounts are **not** converted between currencies — combining IDR and MYR
+  without exchange rates would be meaningless. `date` normalised to YYYY-MM-DD where present.
+- `category` held **two unrelated taxonomies at once** — spend classes (retail, restaurant) and
+  fraud labels (genuine, tampered, multi_bill, handwritten). Split into `spend_category` and
+  `fraud_label` by the same script. Anything reading raw `category` trains on a meaningless
+  6-class target.
 - **Status (NB 02): TRAINED** — 3-model comparison (LogReg / Linear SVM / Random Forest) on the 3-class
   target; Random Forest won (test macro-F1 0.942 / acc 0.944). `classifier.pkl` + `tfidf.pkl` in `ml-service/models/`.
 
@@ -30,21 +40,43 @@ Originals (`receipts_master.csv`, `labels.csv`) are untouched.
 - **Images present locally: 200/200** ✅ — all downloaded from Drive and flattened into
   `dataset/tampered/` (100) and `dataset/indian/` (100). The 23 PDF receipts were rasterised to JPG via
   `dataset/rasterize_pdfs.py`, so all 200 are pixel-ready for the CNN.
+- **Two evaluation hazards live in this data — both handled in NB 03, both easy to reintroduce:**
+  1. **The 194 binary-task images come from only 103 source receipts**, and 22 receipts appear as
+     both genuine and tampered (`Receipt 10.jpg` / `Receipt 10_tampered.jpg`). Splits must be
+     **grouped on source receipt**, or the model recognises the receipt instead of the tampering.
+  2. `generate_tampered.py` saves at JPEG quality 95, so 104 of 129 tampered images carried PIL's
+     quality-95 quantization table. A classifier scored **AUC 0.690 from the quantization table
+     alone, with no image content**. `dataset/normalize_images.py` re-encodes every image through
+     one identical path into `dataset/normalized/`, dropping that probe to 0.46 (chance).
+     **Train on `fraud_normalized.csv`, not the raw paths.**
+- **Status (NB 03): TRAINED** — MobileNetV2 @ 448×448, 5-fold grouped CV: pooled AUC 0.805,
+  0.864 on the 94 real photographs. See `report/model_cards/fraud_cnn.md`.
 - `processed_labels_arpan.csv` is **quarantined** (not used): its detector verdicts were computed on
   mock/generated images with monkey-patched OCR, so every row reads "LIKELY AUTHENTIC" — invalid.
 
 ## NB 04 — Recommender data
 - `synthetic_user_interactions.csv` — 772 rows across 60 users (`is_synthetic=1`).
+  ⚠️ **Synthetic.** Any collaborative-filter metric computed from it is meaningless and must not be
+  reported as a result. `ml-service/recommend.py` therefore ranks **content-based** and reports
+  `model: "content-based"` until a real NB 04 model exists.
 - **Real user data now available:** `backend/export_firestore.js` exports live receipt history to
   `dataset/processed/firestore_receipts.csv` (gitignored — regenerate on demand). Currently sparse
   (~19 receipts / 3 users), so combine with the synthetic set until real usage grows.
 
 ## Related scripts (image + data pipeline)
-- `dataset/flatten_images.py` — flatten Drive-downloaded images (nested → flat) so labels resolve. Run first.
-- `dataset/rasterize_pdfs.py` — PDF receipts → JPG for the fraud CNN. Run after flatten.
-- `backend/export_firestore.js` — export real user receipt history for NB 04 / anomaly.
+
+Run in this order:
+
+| # | Script | What it does |
+|---|---|---|
+| 1 | `dataset/flatten_images.py` | Drive-downloaded images nested → flat, so `labels.csv` paths resolve |
+| 2 | `dataset/rasterize_pdfs.py` | 23 PDF receipts → JPG. **19 of them are genuine** — skipping this silently removes a third of the minority class, since PIL cannot open a PDF and the loader only checked that the path existed |
+| 3 | `dataset/normalize_images.py` | Re-encodes every labelled image identically → `dataset/normalized/` + `fraud_normalized.csv`, removing the JPEG compression shortcut |
+| 4 | `dataset/repair_master_schema.py` | Adds `total_parsed`, `currency`, `spend_category`, `fraud_label` to `receipts_master.csv` (additive; originals untouched, backup at `.csv.orig`) |
+| — | `backend/export_firestore.js` | Exports real user receipt history for the anomaly model / NB 04 |
 
 ## Not done here (by design)
 - This script only cleans/splits/documents — no training happens in it.
-- Remaining external work: collect more real user activity (Firestore) for a meaningful collaborative filter;
-  train the fraud CNN (NB 03) on Colab GPU.
+- Remaining external work: collect more real user activity (Firestore) for a meaningful collaborative
+  filter. The fraud CNN no longer needs Colab — it trains locally on Apple MPS in ~40 minutes via
+  `ml-service/train_fraud_cv.py --normalized --img-size 448`.

@@ -54,10 +54,10 @@ same ranked offers as `data.recommendedRewards`.
 |---|---|---|---|---|
 | POST | /ml/ocr | Ashfaaq | Extract structured data from receipt image (Gemini, ocr.py) | ✅ yes |
 | POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals | ✅ yes |
-| POST | /ml/update-profile | Arpan | Update user spend interest vector | ✅ yes (fire-and-forget) |
+| POST | /ml/update-profile | Arpan | Update user spend interest vector | ✅ yes (awaited, so recommendations see the new receipt) |
 | POST | /ml/classify | Arpan | Classify receipt spend category | ✅ yes (trained; used when confidence ≥ 0.45, else Gemini category) |
-| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ✅ yes (endpoint wired; model still a stub → returns 0.05) |
-| POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations | ❌ not yet (stub) |
+| POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ✅ yes — trained Isolation Forest (FPR 13.2%); returns `anomaly_score`, `is_anomaly`, `reference_basis` |
+| POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations | ✅ yes — content-based ranking; also exposed as `GET /api/recommendations` |
 
 ### Example: POST /ml/ocr
 
@@ -114,4 +114,45 @@ Response:
 
 ---
 
-*TODO: Expand each endpoint with full request/response schemas as implementation progresses.*
+### Example: POST /ml/anomaly
+
+Request:
+```json
+{ "user_id": "abc123", "amount": 4500.0, "category": "Supermarket / Grocery", "date": "2026-08-07" }
+```
+
+Response:
+```json
+{ "anomaly_score": 0.5152, "is_anomaly": true, "reference_basis": "population" }
+```
+
+`reference_basis` is `"user"` once the user has 5+ receipts (their own median is
+used), otherwise `"population"`. The check is one-sided — only amounts *above* the
+reference can be flagged. Falls back to `{"anomaly_score": 0.05, "is_anomaly": false}`
+when the model file is absent.
+
+### Example: POST /ml/recommend
+
+Request:
+```json
+{ "user_id": "abc123", "top_n": 5 }
+```
+
+Response:
+```json
+{
+  "recommendations": [
+    { "id": "bigbasket", "icon": "🛒", "title": "BigBasket Voucher",
+      "offer": "Flat ₹150 OFF on groceries", "category": "grocery",
+      "score": 0.963, "reason": "matches 100% of your recent spend" }
+  ],
+  "personalised": true,
+  "receipts_seen": 3,
+  "interest": { "grocery": 1.0 },
+  "model": "content-based"
+}
+```
+
+`model` is `"content-based"` until the NB 04 collaborative filter ships, at which
+point it becomes `"collaborative+content"`. `personalised` is false for users with
+fewer than 2 receipts, who receive the catalogue in popularity order.

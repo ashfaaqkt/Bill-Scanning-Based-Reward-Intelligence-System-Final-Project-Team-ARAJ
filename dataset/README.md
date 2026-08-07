@@ -26,7 +26,8 @@ dataset/
   temp_sroie/         ← SROIE entity .txt annotations (tracked); images/ external
   indian/             ← Jyoti's Indian receipt photos (gitignored; downloaded locally, 100 incl. rasterised PDFs)
   tampered/           ← Ranjeet's tampered images (gitignored; downloaded locally, 100)
-  genuine/            ← original source images (gitignored)
+  genuine/            ← original source images (gitignored; empty — genuine receipts live in indian/)
+  normalized/         ← every labelled image re-encoded identically (gitignored; generated)
   test_bills/         ← 5 sample bills for OCR smoke testing (in repo)
   processed/
     labels.csv                    ← 200 ground-truth fraud labels (Ranjeet 100 + Jyoti 100)
@@ -40,11 +41,14 @@ dataset/
     synthetic_user_interactions.csv ← SYNTHETIC user×category data for NB 04 (generated)
     indian_category_folders.csv   ← real spend-category labels for Indian receipts (from Drive folder names)
     firestore_receipts.csv        ← real user receipt history exported from Firestore (GITIGNORED — regenerate)
+    fraud_normalized.csv          ← the 194 binary-task images, pointing at normalized/ (generated)
   build_receipts_master.py   ← builds receipts_master.csv from CORD + SROIE + labels
   download_annotations.py    ← fetches CORD/SROIE annotation files
   prepare_dataset.py         ← cleans/splits data into the train-ready files above (no training)
   flatten_images.py          ← flattens Drive-downloaded images (nested → flat) so labels.csv paths resolve
   rasterize_pdfs.py          ← converts the 23 PDF receipts in indian/ to JPG (for the fraud CNN)
+  normalize_images.py        ← re-encodes all labelled images identically (removes the JPEG compression shortcut)
+  repair_master_schema.py    ← adds total_parsed / currency / spend_category / fraud_label to receipts_master.csv
   generate_tampered.py       ← creates tampered variants (brightness, duplicate_copy, number_overwrite, handwritten)
   exact_duplicate_check.py   ← flags exact duplicate receipts from CSV
   perceptual_hash.py         ← pHash image similarity comparison tool
@@ -59,8 +63,22 @@ dataset/
 
 `processed/receipts_master.csv`
 ```
-image_path, merchant, date, total, category, items_text, source
+image_path, merchant, date, total, category, items_text, source,
+total_parsed, currency, spend_category, fraud_label
 ```
+The last four are **added** by `repair_master_schema.py`; the original seven are untouched.
+
+- `total_parsed` — numeric amount in the source's own currency (100% recovered, vs 58.9% by naive parsing)
+- `currency` — `IDR` for CORD, `MYR` for SROIE. **Amounts are not converted between currencies.**
+- `spend_category` — `retail` (973) / `restaurant` (800), blank for the 200 fraud-labelled rows
+- `fraud_label` — `tampered` (129) / `genuine` (65) / `multi_bill` (5) / `handwritten` (1), blank otherwise
+
+⚠️ **Do not use the raw `category` column as a training target** — it mixes spend classes with
+fraud labels, giving a meaningless 6-class mixture. Use `spend_category` or `fraud_label`.
+
+⚠️ **Known gaps** (evidenced in `notebooks/01_data_exploration.ipynb`): 50.7% of `date` and
+`merchant` are missing **structurally, not at random** — CORD never recorded them (100% missing)
+while SROIE is complete. Imputing would invent data; both fields are unusable corpus-wide.
 
 `processed/labels.csv`
 ```

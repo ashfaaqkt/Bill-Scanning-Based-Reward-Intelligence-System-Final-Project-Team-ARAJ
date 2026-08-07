@@ -83,6 +83,45 @@ jupyter notebook
 the CSVs alone. Notebook 03 (fraud CNN) additionally needs the receipt **images** downloaded
 from Drive into `dataset/tampered/` and `dataset/indian/`. See `dataset/DATA_PREP.md`.
 
+Notebooks 01, 02 and 03 are committed **with their outputs**. 04 and 05 are still TODO stubs.
+
+---
+
+## 6. Rebuilding the models
+
+Model binaries are gitignored, so a fresh clone has none. Everything is reproducible
+from the data in the repo (plus the images from Drive for the fraud CNN):
+
+```bash
+# ── data preparation — run in this order ──
+python3 dataset/flatten_images.py        # Drive folders arrive nested; flatten them
+python3 dataset/rasterize_pdfs.py        # 23 PDFs → JPG (19 are genuine — skipping this
+                                         #   silently drops a third of the minority class)
+python3 dataset/normalize_images.py      # identical re-encode; removes the JPEG shortcut
+python3 dataset/repair_master_schema.py  # adds total_parsed / currency / spend_category / fraud_label
+
+# ── models ──
+ml-service/.venv/bin/python ml-service/train_classifier.py            # category classifier
+ml-service/.venv/bin/python ml-service/train_anomaly.py               # anomaly (compares IF / OC-SVM / LOF)
+python ml-service/train_fraud_cv.py --normalized --img-size 448       # fraud CNN, ~40 min on Apple MPS
+
+# ── evaluation extras (optional) ──
+python ml-service/train_fraud_forensics.py --normalized               # forensic-feature baseline
+python ml-service/train_fraud_fusion.py --normalized --img-size 448   # fusion ablation
+python ml-service/make_report_figures.py                              # regenerate report/assets/fig_*.png
+```
+
+**Two things that will bite you:**
+
+- **Train the *served* models with `ml-service/.venv`.** The notebook env (Python 3.9,
+  sklearn 1.5.x) and the serving env (3.13, sklearn 1.8.x) differ, and a model pickled by
+  one raises `InconsistentVersionWarning` in the other.
+- **The fraud CNN must be served at the resolution it was trained at.** `fraud.py` uses a
+  single `IMG_SIZE` constant for both; serving a 448-trained model at 224 silently degrades
+  every prediction rather than failing loudly.
+
+The fraud CNN no longer needs Colab — it trains locally on Apple MPS.
+
 ---
 
 ## Environment Variables Reference
@@ -159,16 +198,20 @@ Each team member owns specific modules. Here's what each person should implement
 **Primary Responsibility:** Fraud Detection, System Testing, Quality Assurance
 
 **Files to Work On:**
-- `ml-service/fraud.py` — Implement blur detection, duplicate detection, tamper CNN
-- `ml-service/anomaly.py` — Implement Isolation Forest for spending anomalies
-- `ml-service/app.py` — Wire up `/ml/fraud-score` and `/ml/anomaly` endpoints
 - Test suites and validation scripts
+- 3 demo receipts (clean / blurry / tampered) for the viva
 
-**Key Implementation Tasks:**
-1. Build robust fraud detection pipeline (image analysis + metadata validation)
-2. Train CNN model for receipt tampering detection
-3. Implement anomaly detection for suspicious spending patterns
-4. Create comprehensive test suite for all ML routes
+**Status (Aug 7, 2026):** `fraud.py`, `anomaly.py` and the `/ml/fraud-score` +
+`/ml/anomaly` endpoints are **implemented and live** — tamper CNN (AUC 0.805),
+perceptual-hash duplicates, and a trained Isolation Forest (FPR 13.2%). See
+[`report/model_cards/`](../report/model_cards/README.md).
+
+**Remaining:**
+1. Regression test suite covering all backend + ML routes
+2. **End-to-end test through the live stack** (Firestore + Gemini running) — every ML
+   route has been tested through Flask directly, but never end to end. This is the last
+   open Definition-of-Done item across all models.
+3. Prepare the 3 demo receipts
 
 ---
 
