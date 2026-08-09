@@ -22,6 +22,15 @@
     --shadow-medium: 0 8px 40px rgba(15, 20, 25, 0.1);
     --shadow-rich: 0 16px 64px rgba(15, 20, 25, 0.12);
     --border-refined: 1px solid rgba(30, 41, 59, 0.12);
+
+    /* Verification status. Each risk level always ships with its word as well as
+       its colour, so the state is never carried by colour alone. */
+    --color-risk-low: #15803d;
+    --color-risk-low-bg: rgba(21, 128, 61, 0.12);
+    --color-risk-med: #b45309;
+    --color-risk-med-bg: rgba(180, 83, 9, 0.12);
+    --color-risk-high: #b91c1c;
+    --color-risk-high-bg: rgba(185, 28, 28, 0.12);
     --radius-sm: 6px;
     --radius-md: 12px;
     --radius-lg: 20px;
@@ -1829,6 +1838,82 @@ body::before {
     border-radius: 100px;
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+/* ── Verification (tamper + anomaly) ───────────────────────────────── */
+.risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--color-smoke);
+}
+
+.risk-badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.risk-badge.risk-low {
+    background: var(--color-risk-low-bg);
+    color: var(--color-risk-low);
+}
+
+.risk-badge.risk-medium {
+    background: var(--color-risk-med-bg);
+    color: var(--color-risk-med);
+}
+
+.risk-badge.risk-high {
+    background: var(--color-risk-high-bg);
+    color: var(--color-risk-high);
+}
+
+.verification-detail {
+    margin-top: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    background: #fff;
+    border-radius: var(--radius-sm);
+    border: var(--border-refined);
+}
+
+.verification-detail[hidden] {
+    display: none;
+}
+
+.verify-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    padding: 0.15rem 0;
+}
+
+.verify-line span {
+    color: var(--color-smoke);
+}
+
+.verify-line strong {
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.verify-line strong.is-flagged {
+    color: var(--color-risk-high);
+}
+
+.verify-note {
+    margin: 0.45rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--color-mist);
 }
 
 .items-list {

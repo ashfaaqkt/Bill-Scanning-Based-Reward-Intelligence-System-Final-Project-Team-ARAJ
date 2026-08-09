@@ -28,6 +28,11 @@ const valDate = document.getElementById('val-date');
 const valTotal = document.getElementById('val-total');
 const valItems = document.getElementById('val-items');
 const valCategory = document.getElementById('val-category');
+const valRisk = document.getElementById('val-risk');
+const verificationDetail = document.getElementById('verification-detail');
+const valFraudScore = document.getElementById('val-fraud-score');
+const valAnomaly = document.getElementById('val-anomaly');
+const verifyNote = document.getElementById('verify-note');
 const valEarnedPoints = document.getElementById('val-earned-points');
 const valRewardLogic = document.getElementById('val-reward-logic');
 const totalPointsDisplay = document.getElementById('total-points');
@@ -1269,6 +1274,7 @@ btnLogout.addEventListener('click', async () => {
     valTotal.innerText = '--';
     valItems.innerHTML = '';
     valCategory.innerText = '--';
+    clearVerification();
     valEarnedPoints.innerText = '0';
     valRewardLogic.innerText = '--';
     resetUI();
@@ -1467,6 +1473,60 @@ async function handleUpload() {
 }
 
 // 2. Process Data — populates result fields and advances to Reward step
+// Clears the verification block so one receipt's verdict never bleeds into the
+// next scan.
+function clearVerification() {
+    valRisk.innerText = '--';
+    valRisk.className = 'risk-badge';
+    valFraudScore.innerText = '--';
+    valFraudScore.classList.remove('is-flagged');
+    valAnomaly.innerText = '--';
+    valAnomaly.classList.remove('is-flagged');
+    verifyNote.innerText = '';
+    verificationDetail.hidden = true;
+}
+
+// Renders the verification verdict: the tamper CNN score, the spending-anomaly
+// flag, and the reason the risk level landed where it did. The backend always
+// sends these fields (it falls back to a 0.05 baseline when the ML service is
+// unreachable), so the block is driven by the response rather than guessed at.
+function renderVerification(receiptData) {
+    const score = Number(receiptData.fraudScore);
+    const level = receiptData.riskLevel || 'Low';
+    const hasScore = Number.isFinite(score);
+
+    valRisk.innerText = `${level} risk`;
+    valRisk.className = `risk-badge risk-${level.toLowerCase()}`;
+
+    if (!hasScore) {
+        verificationDetail.hidden = true;
+        return;
+    }
+    verificationDetail.hidden = false;
+
+    valFraudScore.innerText = score.toFixed(2);
+    valFraudScore.classList.toggle('is-flagged', score > 0.7);
+
+    const anomalous = receiptData.anomalyFlag === true;
+    valAnomaly.innerText = anomalous ? 'Flagged' : 'Normal';
+    valAnomaly.classList.toggle('is-flagged', anomalous);
+
+    // Most specific reason first — a cross-user duplicate is the strongest signal
+    // and overrides the model score on the backend.
+    let note = '';
+    if (receiptData.crossUserDuplicate) {
+        note = 'This receipt has already been submitted by a different account.';
+    } else if (receiptData.itemsTotalMismatch) {
+        note = 'The line items do not add up to the printed total.';
+    } else if (anomalous) {
+        note = 'The amount is unusual for this spend category.';
+    } else if (score > 0.7) {
+        note = 'The image shows signs of editing.';
+    }
+    verifyNote.innerText = note;
+    verifyNote.hidden = !note;
+}
+
 function processReceiptData(receiptData) {
     activateStep(stepProcess);
 
@@ -1489,6 +1549,9 @@ function processReceiptData(receiptData) {
 
     // Display Category (from GenAI)
     valCategory.innerText = receiptData.category || 'General';
+
+    // Verification verdict from the fraud and anomaly models
+    renderVerification(receiptData);
     latestProcessedBillData = {
         merchant: receiptData.rawMerchant || 'Unknown Merchant',
         date: receiptData.date || '-',
@@ -1524,6 +1587,7 @@ function resetUI() {
     // Reset UI state
     fileInput.value = "";
     ocrProgress.style.width = '0%';
+    clearVerification();
     btnAddBalance.disabled = false;
     btnAddBalance.innerText = "Add to Balance";
     btnViewDigitalBill.disabled = true;

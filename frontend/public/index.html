@@ -439,6 +439,23 @@
                             <h3>Intelligence Processing &amp; Rewards</h3>
                             <div class="data-row"><span>Normalized Category:</span> <span class="tag"
                                     id="val-category">--</span></div>
+                            <div class="data-row"><span>Verification:</span> <span class="risk-badge"
+                                    id="val-risk">--</span></div>
+
+                            <!-- Tamper / anomaly detail. Populated from the ML service via
+                                 /api/upload; hidden when the models return nothing. -->
+                            <div class="verification-detail" id="verification-detail" hidden>
+                                <div class="verify-line">
+                                    <span>Image tamper score</span>
+                                    <strong id="val-fraud-score">--</strong>
+                                </div>
+                                <div class="verify-line">
+                                    <span>Spend anomaly</span>
+                                    <strong id="val-anomaly">--</strong>
+                                </div>
+                                <p class="verify-note" id="verify-note"></p>
+                            </div>
+
                             <div class="reward-calculation">
                                 <h4>Reward Earned!</h4>
                                 <div class="earned-points-display">

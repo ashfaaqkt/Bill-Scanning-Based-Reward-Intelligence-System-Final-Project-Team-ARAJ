@@ -38,6 +38,26 @@ returns an empty list with `model: "unavailable"` rather than an error, so the
 frontend falls back to its own static pool. `POST /api/upload` also returns the
 same ranked offers as `data.recommendedRewards`.
 
+**POST /api/upload — verification fields.** Alongside the extracted receipt, the
+response carries the verdict from the fraud and anomaly models. These are always
+present: if the ML service is unreachable the route falls back to a 0.05 baseline
+and `"Low"` rather than omitting them.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `fraudScore` | 0–1 | Tamper score. OCR signals, perceptual-hash duplicate check and the 448px CNN |
+| `riskLevel` | `Low` \| `Medium` \| `High` | Banded from `fraudScore`, then escalated by the rules below |
+| `anomalyScore` | 0–1 | Isolation Forest score for the amount |
+| `anomalyFlag` | bool | True when the amount is an outlier for this user/category |
+| `crossUserDuplicate` | bool | Same fingerprint already submitted by a **different** account |
+| `itemsTotalMismatch` | bool | Line items do not sum to the printed total |
+
+Escalation order, applied after the model score: a cross-user duplicate forces
+`High`; an items/total mismatch raises `Low` to `Medium`; an anomaly flag raises
+`Low` to `Medium`. The last two booleans exist so the client can state *why* a
+receipt was flagged instead of showing an unexplained number — the web client
+renders them in the verification block of the results panel.
+
 ---
 
 ## ML Service (Python Flask) — Base URL: http://localhost:5001

@@ -1050,6 +1050,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 riskLevel: riskLevel,
                 anomalyScore: anomalyScore,
                 anomalyFlag: anomalyFlag,
+                // Why the risk level is what it is, so the client can explain the
+                // verdict instead of showing an unexplained score.
+                crossUserDuplicate: crossUserDuplicate,
+                itemsTotalMismatch: itemsMismatch,
                 recommendedRewards: recommendedRewards
             }
         });
