@@ -41,9 +41,13 @@ User (Browser)
 4. Backend calls `POST /ml/classify` — **classifier.py** (trained Notebook 02) sets the category when confident (confidence ≥ 0.45); otherwise the Gemini category is kept
 5. Backend does dedup (SHA-256 fingerprint + fuzzy merchant) and computes reward points
 6. Backend writes receipt + line items + logs to Firestore
-7. Backend calls `POST /ml/fraud-score` — passes the OCR result (incl. `handwritten_flag`) → fraud probability
-8. Backend calls `POST /ml/update-profile` (fire-and-forget) to update the user interest vector
-9. Response sent back to frontend with extracted data + reward result (category + gemini_category)
+7. Backend calls `POST /ml/fraud-score` — passes the OCR result (incl. `handwritten_flag`) → fraud probability, banded into `Low` / `Medium` / `High`
+8. Backend calls `POST /ml/anomaly` — Isolation Forest over the amount → `anomalyScore` + `anomalyFlag`. A cross-user duplicate forces risk to `High`; an items/total mismatch or an anomaly flag raises `Low` to `Medium`
+9. Backend calls `POST /ml/update-profile` — **awaited, not fire-and-forget**, so the recommendations in step 10 reflect the receipt just scanned
+10. Backend calls `POST /ml/recommend` → offers ranked against that interest vector
+11. Response sent back to frontend with the extracted data, the reward result (`category` + `gemini_category`), the verification verdict (`fraudScore`, `riskLevel`, `anomalyScore`, `anomalyFlag`, `crossUserDuplicate`, `itemsTotalMismatch`) and `recommendedRewards`
+
+> The web client renders the verification verdict in the results panel — risk badge, tamper score, anomaly state and a one-line reason. Full response schema: [`API.md`](API.md).
 
 > **Wired:** `/ml/classify` is now called from `/api/upload` — the trained Notebook 02 classifier sets the category when it is confident (confidence ≥ 0.45), otherwise the OCR/Gemini category is kept (both are returned as `category` + `gemini_category`).
 > **All five ML endpoints are now wired and backed by trained logic (Aug 7, 2026).** `/ml/anomaly` runs a trained Isolation Forest; `/ml/recommend` returns offers ranked against the user's interest vector, and is called both from `/api/upload` (as `data.recommendedRewards`) and from the new `GET /api/recommendations`. The one component still awaiting a model is the **SVD collaborative filter** (NB 04) — `recommend.py` ranks content-based until it ships.
