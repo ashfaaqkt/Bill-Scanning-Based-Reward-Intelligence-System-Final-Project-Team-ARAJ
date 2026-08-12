@@ -242,7 +242,14 @@ perceptual-hash duplicates, and a trained Isolation Forest (FPR 13.2%). See
 1. **Branch Strategy:**
    - `main` — Stable, production-ready code (Ashfaaq merges only)
    - `dev` — Integration branch, daily syncs
-   - `<name>/feature-name` — Individual feature branches
+   - `<name>/feature-name` — Individual feature branches:
+     - `ashfaaq/ml-integration` — backend, OCR, ML integration, frontend
+     - `arpan/classifier` — category classifier, collaborative filter, dataset
+     - `ranjeet/fraud-testing` — fraud detection, tampered dataset, QA
+     - `jyoti/data-docs` — labelling, dataset docs, reporting
+
+   `main` and `dev` are shared branches, not personal workspaces. Everyone —
+   Ashfaaq included — works on their own feature branch and reaches `dev` by PR.
 
 2. **Daily Standup:** 
    - Push changes to your branch by 9pm

@@ -2,12 +2,17 @@
 
 ## Branch Strategy
 ```
-main          ← protected. Ashfaaq merges only.
-dev           ← all PRs target this branch first
-arpan/classifier       ← Arpan's ML work
-jyoti/data-docs        ← Jyoti's dataset + docs
-ranjeet/fraud-testing  ← Ranjeet's fraud + QA
+main                    ← protected. Ashfaaq merges only.
+dev                     ← all PRs target this branch first
+ashfaaq/ml-integration  ← Ashfaaq's backend, OCR, ML integration + frontend
+arpan/classifier        ← Arpan's ML work
+jyoti/data-docs         ← Jyoti's dataset + docs
+ranjeet/fraud-testing   ← Ranjeet's fraud + QA
 ```
+
+`main` and `dev` are shared branches, not individual workspaces. Ashfaaq
+administers both **and** develops on `ashfaaq/ml-integration` like everyone
+else — no one commits directly to `main` or `dev`, including him.
 
 ## Daily Workflow
 

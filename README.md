@@ -76,12 +76,16 @@ See docs/SETUP.md for full local setup instructions.
 
 ## Team & Branch Rules
 
-| Member | Role | Branch |
+| Member | Role | Working branch |
 |---|---|---|
-| Ashfaaq Feroz | Lead Dev + Chief Editor | `main` (protected) |
+| Ashfaaq Feroz | Lead Dev + Chief Editor — backend, OCR, ML integration, frontend | `ashfaaq/ml-integration` |
 | Arpan Chatterjee | ML Research + Dataset | `arpan/classifier` |
 | Jyoti Kataria | Data + Docs | `jyoti/data-docs` |
 | Ranjeet Singh | Fraud + Testing | `ranjeet/fraud-testing` |
+
+Every member works on their own feature branch. `main` and `dev` are shared
+branches, not anyone's workspace — Ashfaaq administers both in addition to
+developing on `ashfaaq/ml-integration`.
 
 **Rules:**
 - `main` is protected — Ashfaaq merges only
