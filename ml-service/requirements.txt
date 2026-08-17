@@ -1,5 +1,10 @@
+# CPU-only PyTorch. The default index pulls the CUDA build (800 MB+), which is
+# useless on a CPU host and slow enough to time out a free-tier cloud build.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 flask>=3.0.0
 flask-cors>=4.0.0
+gunicorn>=23.0.0
 scikit-learn>=1.5.0
 numpy>=2.1.0
 pandas>=2.2.3
@@ -9,3 +14,13 @@ Pillow>=11.0.0
 google-genai>=1.0.0
 python-dotenv>=1.0.1
 imagehash>=4.3.1
+
+# fraud.py imports torch lazily inside a try/except, so a missing torch does NOT
+# crash the service — it silently returns the 0.05 baseline for every receipt.
+# These two lines are what keep the tamper CNN alive in a deployed environment.
+#
+# tamper_cnn_cv_normalized_448.pt is a FULL nn.Module pickle (not a state_dict),
+# so torchvision must be able to reconstruct torchvision.models.MobileNetV2.
+# Trained on torch 2.8.0 / torchvision 0.23.0 — do not pin below those.
+torch>=2.8.0
+torchvision>=0.23.0
