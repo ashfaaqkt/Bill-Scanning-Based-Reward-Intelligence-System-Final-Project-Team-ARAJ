@@ -70,8 +70,6 @@ temp/
 .githooks/
 .idea/
 
-# Local AI assistant context — never commit
-CLAUDE.md
 
 # Real user data exported from Firestore — regenerate via backend/export_firestore.js
 dataset/processed/firestore_receipts.csv
