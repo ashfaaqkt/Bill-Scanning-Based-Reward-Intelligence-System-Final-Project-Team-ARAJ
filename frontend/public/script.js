@@ -1586,17 +1586,34 @@ function renderVerification(receiptData) {
     valAnomaly.innerText = anomalous ? 'Flagged' : 'Normal';
     valAnomaly.classList.toggle('is-flagged', anomalous);
 
-    // Most specific reason first — a cross-user duplicate is the strongest signal
-    // and overrides the model score on the backend.
-    let note = '';
+    // List EVERY signal that fired, not just the first match.
+    //
+    // The score is a composite — fraud.py starts from the OCR rule signals and
+    // adds 0.40 for a perceptual-hash duplicate and 0.40 when the tamper CNN
+    // clears 0.50. Showing one cause hid the others: a genuine bill scoring
+    // 0.45 displayed only "the amount is unusual" while the tamper signal had
+    // also fired, so the number and the explanation did not add up.
+    const signals = receiptData.fraudSignals || {};
+    const reasons = [];
+
     if (receiptData.crossUserDuplicate) {
-        note = 'This receipt has already been submitted by a different account.';
-    } else if (receiptData.itemsTotalMismatch) {
-        note = 'The line items do not add up to the printed total.';
-    } else if (anomalous) {
-        note = 'The amount is unusual for this spend category.';
-    } else if (score > 0.7) {
-        note = 'The image shows signs of editing.';
+        reasons.push('already submitted by a different account');
+    } else if (signals.duplicate) {
+        reasons.push('matches a receipt you have already scanned');
+    }
+    if (signals.tamper) reasons.push('the image shows signs of editing');
+    if (receiptData.itemsTotalMismatch) reasons.push('line items do not add up to the total');
+    if (anomalous) reasons.push('the amount is unusual for this spend category');
+    if (signals.handwritten) reasons.push('handwriting detected on a printed bill');
+    if (signals.multi_bill) reasons.push('more than one receipt in the image');
+    if (signals.blur) reasons.push('the image is blurred');
+
+    let note = '';
+    if (reasons.length === 1) {
+        note = reasons[0].charAt(0).toUpperCase() + reasons[0].slice(1) + '.';
+    } else if (reasons.length > 1) {
+        note = 'Flagged because ' + reasons.slice(0, -1).join(', ')
+             + ' and ' + reasons[reasons.length - 1] + '.';
     }
     verifyNote.innerText = note;
     verifyNote.hidden = !note;

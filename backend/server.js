@@ -960,6 +960,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         // 6. Fraud System - Call ML Microservice
         let fraudScore = 0.05;
         let riskLevel = "Low";
+        let fraudSignals = {};
         try {
             // The image goes with it. Without it the ML service can only apply
             // the OCR rule signals — the perceptual-hash duplicate check and the
@@ -972,6 +973,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             });
             if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
                 fraudScore = fraudRes.data.fraud_score;
+                // Which signals actually fired. fraud.py already computes this;
+                // without forwarding it the client can only guess why a score is
+                // what it is, and guessing produced a misleading explanation.
+                fraudSignals = fraudRes.data.signals || {};
                 riskLevel = fraudScore > 0.7 ? "High" : (fraudScore > 0.3 ? "Medium" : "Low");
             }
         } catch (mlError) {
@@ -1070,6 +1075,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 // verdict instead of showing an unexplained score.
                 crossUserDuplicate: crossUserDuplicate,
                 itemsTotalMismatch: itemsMismatch,
+                fraudSignals: fraudSignals,
                 recommendedRewards: recommendedRewards
             }
         });
