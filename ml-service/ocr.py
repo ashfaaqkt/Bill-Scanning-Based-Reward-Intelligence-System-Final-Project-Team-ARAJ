@@ -227,11 +227,17 @@ def extract_receipt_data(image_path):
              "rate limit")
     UNSUPPORTED = ("404", "not_found", "no longer available")
 
-    DEADLINE_SECONDS = 40
+    DEADLINE_SECONDS = 70
     # Per-call ceiling. Without it the deadline is only checked BETWEEN
     # attempts, so one slow call cannot be interrupted — a request was observed
     # running 93 seconds past its budget because a single call hung that long.
-    CALL_TIMEOUT_SECONDS = 15
+    #
+    # Sized from measurement, not taste. A 503 rejection alone takes about 12
+    # seconds, and a full receipt extraction returns a long JSON body, so an
+    # earlier 15-second ceiling was cutting off calls that would have succeeded
+    # and reporting them as "read operation timed out". 30 seconds clears a real
+    # extraction; the 70-second budget then affords roughly two attempts.
+    CALL_TIMEOUT_SECONDS = 30
     MAX_ATTEMPTS = 4              # across all key/model combinations
     BACKOFF_SECONDS = 2
     QUOTA_COOLDOWN = 65           # a per-minute window, plus a margin
@@ -412,10 +418,20 @@ def extract_receipt_data(image_path):
                       f"retrying in {BACKOFF_SECONDS}s")
                 time.sleep(BACKOFF_SECONDS)
 
-        # Quota is the user-actionable case, so report it distinctly even if a
-        # later attempt failed for another reason.
-        if saw_quota and _classify(last_error or "") != "permanent":
+        # Report the condition that is ACTUALLY blocking, not merely one that was
+        # seen along the way. Reporting RATE_LIMITED because a single key hit its
+        # quota — while the others failed on 503 — tells the user to wait a
+        # minute for a problem that waiting does not fix, and hides the real
+        # cause. Quota is only the blocker when it has taken every key out.
+        now = time.time()
+        usable = [n for n, _ in _API_KEYS if _KEY_STATE[n]["cooling_until"] <= now]
+        if saw_quota and not usable:
+            print("[ERROR] Every key is quota-exhausted — reporting rate limit")
             return {"error": "RATE_LIMITED", "message": last_error}
+
+        if saw_quota:
+            print(f"[INFO] A key hit quota, but {len(usable)} key(s) remain "
+                  f"usable — the blocking failure was: {(last_error or '')[:90]}")
         return {"error": "TERMINAL_FAILURE", "message": last_error}
 
     except Exception as e:
