@@ -57,6 +57,29 @@ def _load_api_keys():
 
 _API_KEYS = _load_api_keys()
 
+# Keys on a paid plan, named in GEMINI_PAID_KEYS as a comma-separated list of
+# variable names, e.g. "GEMINI_API_KEY_1".
+#
+# A billed key differs from a free one in two ways that matter here. Its
+# per-minute quota is high enough that the 23-second spacing built for the free
+# tier is pure latency, and it is not the shared free-tier pool, so it should be
+# tried FIRST rather than taking its turn in a round robin — otherwise two out of
+# every three uploads are handed to a key that is more likely to refuse.
+_PAID_KEYS = {
+    name.strip()
+    for name in (os.getenv("GEMINI_PAID_KEYS", "") or "").split(",")
+    if name.strip()
+}
+
+
+def _is_paid(name):
+    return name in _PAID_KEYS
+
+
+def _spacing_for(name):
+    """Seconds this key must wait between calls."""
+    return PAID_RATE_LIMIT_INTERVAL if _is_paid(name) else RATE_LIMIT_INTERVAL
+
 # Per-key state. `cooling_until` is set when a key reports quota exhaustion, so
 # it is skipped until its window has plausibly reset rather than retried into
 # the ground. `unsupported` records model names a key cannot serve — newer
@@ -73,18 +96,46 @@ api_key = _API_KEYS[0][1] if _API_KEYS else None
 client = None
 
 
+# The SDK retries 503 ("model overloaded") internally with exponential backoff,
+# so ONE generate_content call can block for over two minutes before it finally
+# raises. Measured 19 Aug: a success returns in ~6s, a 503 in ~122s. That wait is
+# what made the frontend look hung, and it ran out our own budget before the
+# rotation could try a second key.
+#
+# attempts=1 turns off that inner loop, so a 503 surfaces in seconds and the
+# retry decision belongs to the rotation below — which can switch key AND model,
+# something the SDK's retry cannot do.
+_NO_SDK_RETRY = genai_types.HttpRetryOptions(attempts=1)
+
+
 def _client_for(name, value):
     state = _KEY_STATE[name]
     if state["client"] is None:
-        state["client"] = genai.Client(api_key=value)
+        state["client"] = genai.Client(
+            api_key=value,
+            http_options=genai_types.HttpOptions(retry_options=_NO_SDK_RETRY),
+        )
     return state["client"]
 
 
+# ── REQUEST SHAPING ────────────────────────────────────────────
+# Long-edge cap for the copy sent to Gemini. 2048 keeps receipt small print
+# legible while cutting a phone photo's payload by roughly 10x.
+GEMINI_MAX_DIMENSION = 2048
+
+# Which model last returned 503/stalled, and until when to deprioritise it.
+# Process-local and deliberately short — capacity comes back within minutes.
+_MODEL_COOLING = {}
+MODEL_COOLDOWN = 120
+
 # ── RATE LIMIT STATE ───────────────────────────────────────────
-# Per-key spacing to stay within the 5 RPM free tier. With multiple keys the
-# effective wait is this divided by the number of usable keys.
+# Per-key spacing. Free keys are held to the 5 RPM ceiling; paid keys are not.
+# With multiple free keys the effective wait is this divided by the number of
+# usable keys.
 last_request_time = 0
-RATE_LIMIT_INTERVAL = 23  # 22s gap + 1s safety buffer
+RATE_LIMIT_INTERVAL = 23      # free tier: 22s gap + 1s safety buffer
+PAID_RATE_LIMIT_INTERVAL = 1  # billed tier: high enough limits that spacing is
+                              # only a courtesy, not a constraint
 
 # ── BLUR DETECTION THRESHOLD ───────────────────────────────────
 # Laplacian variance below this value → image too blurry to extract reliably
@@ -217,17 +268,35 @@ def extract_receipt_data(image_path):
     #     ends the request; with three it is usually invisible.
     #   * A 503 is Google's capacity and is shared across projects, so another
     #     key rarely helps — but it costs nothing to let the rotation try.
-    models_to_try = ['gemini-flash-latest', 'gemini-2.5-flash']
+    # Ordered best-quality-first, but the order is only a starting point: which
+    # model is saturated changes through the day. Measured 19 Aug 17:40 —
+    # flash-latest returned 503 while 2.5-flash answered in 1.2s; earlier the
+    # same week it was the other way round. _MODEL_COOLING below reorders on
+    # what is actually failing right now, so a saturated model is skipped rather
+    # than retried first on every upload.
+    models_to_try = ['gemini-2.5-flash',
+                     'gemini-flash-latest',
+                     'gemini-flash-lite-latest']
 
+    # "timed out" is spelled separately from "timeout" on purpose: the socket
+    # raises "The read operation timed out", which matched none of these and so
+    # classified as permanent — the rotation broke after a single attempt with
+    # 70s of budget unspent. Any of these means try again, not give up.
     TRANSIENT = ("500", "502", "503", "504",
                  "unavailable", "overloaded", "high demand",
-                 "deadline", "timeout", "internal error",
+                 "deadline", "timeout", "timed out", "internal error",
+                 "connection", "temporarily",
                  "empty response", "unparseable response")
     QUOTA = ("429", "resource_exhausted", "exceeded your current quota",
              "rate limit")
     UNSUPPORTED = ("404", "not_found", "no longer available")
 
-    DEADLINE_SECONDS = 70
+    # Measured 19 Aug against the billed key: a success returns in 4-6s, while a
+    # struggling request can sit for 60s+ before yielding 503. So cap each call
+    # well above the success time but far below the stall time, and spend the
+    # budget on ROTATING instead of waiting — a different key/model pair is far
+    # likelier to succeed than the same one given longer.
+    DEADLINE_SECONDS = 90
     # Per-call ceiling. Without it the deadline is only checked BETWEEN
     # attempts, so one slow call cannot be interrupted — a request was observed
     # running 93 seconds past its budget because a single call hung that long.
@@ -237,8 +306,10 @@ def extract_receipt_data(image_path):
     # earlier 15-second ceiling was cutting off calls that would have succeeded
     # and reporting them as "read operation timed out". 30 seconds clears a real
     # extraction; the 70-second budget then affords roughly two attempts.
-    CALL_TIMEOUT_SECONDS = 30
-    MAX_ATTEMPTS = 4              # across all key/model combinations
+    CALL_TIMEOUT_SECONDS = 20
+    # A failure now costs seconds rather than two minutes, so the budget buys a
+    # real walk across the combinations instead of one slow attempt.
+    MAX_ATTEMPTS = 6              # 3 keys x 2 models
     BACKOFF_SECONDS = 2
     QUOTA_COOLDOWN = 65           # a per-minute window, plus a margin
 
@@ -261,7 +332,9 @@ def extract_receipt_data(image_path):
         ]
         if not usable:
             return None, None
-        return min(usable, key=lambda kv: _KEY_STATE[kv[0]]["last_used"])
+        # Paid first, then least recently used within each group.
+        return min(usable, key=lambda kv: (not _is_paid(kv[0]),
+                                           _KEY_STATE[kv[0]]["last_used"]))
 
     if not _API_KEYS:
         return {"error": "GEMINI_API_KEY_MISSING"}
@@ -273,6 +346,19 @@ def extract_receipt_data(image_path):
 
     try:
         img = Image.open(image_path)
+
+        # Phone cameras produce 4284x5712 files (~2.8 MB encoded). Gemini tiles
+        # vision input at a far lower resolution, so the extra pixels buy no
+        # accuracy and cost upload seconds on every retry. Capping the long edge
+        # took one test receipt from 2847 KB to 274 KB.
+        #
+        # The full-resolution image is untouched for the blur and density checks
+        # — only the network payload shrinks.
+        if max(img.size) > GEMINI_MAX_DIMENSION:
+            img = img.copy()
+            img.thumbnail((GEMINI_MAX_DIMENSION, GEMINI_MAX_DIMENSION),
+                          Image.LANCZOS)
+
         attempt = 0
 
         while attempt < MAX_ATTEMPTS and time.time() < deadline:
@@ -282,14 +368,19 @@ def extract_receipt_data(image_path):
             # three keys against one model only ever tests one model, and the
             # two differ in availability — 2.5-flash has served this pipeline
             # when flash-latest was saturated. Prefer a pair not yet tried.
+            # Skip models seen 503-ing in the last MODEL_COOLDOWN seconds.
+            # Falls back to the full list if that would leave nothing.
+            ranked = [m for m in models_to_try
+                      if _MODEL_COOLING.get(m, 0) <= now] or models_to_try
+
             combo = None
-            for m in models_to_try:
+            for m in ranked:
                 name, value = _pick_key(now, m)
                 if name and (name, m) not in attempted:
                     combo = (m, name, value)
                     break
             if combo is None:                      # everything tried once
-                for m in models_to_try:
+                for m in ranked:
                     name, value = _pick_key(now, m)
                     if name:
                         combo = (m, name, value)
@@ -305,7 +396,7 @@ def extract_receipt_data(image_path):
 
             # Each key needs its own spacing; rotation is what makes the wait
             # short, not a shorter interval.
-            gap = RATE_LIMIT_INTERVAL - (now - state["last_used"])
+            gap = _spacing_for(key_name) - (now - state["last_used"])
             if gap > 0:
                 if now + gap > deadline:
                     last_error = (last_error or
@@ -333,7 +424,8 @@ def extract_receipt_data(image_path):
                     contents=[RECEIPT_PROMPT, img],
                     config=genai_types.GenerateContentConfig(
                         http_options=genai_types.HttpOptions(
-                            timeout=int(call_timeout * 1000)   # milliseconds
+                            timeout=int(call_timeout * 1000),  # milliseconds
+                            retry_options=_NO_SDK_RETRY,
                         )
                     ),
                 )
@@ -407,6 +499,10 @@ def extract_receipt_data(image_path):
                     print(f"[ERROR] {key_name}/{model_name} failed permanently: "
                           f"{last_error[:120]}")
                     break
+
+                # Transient here means the model was overloaded or stalled;
+                # remember that so the NEXT upload does not lead with it.
+                _MODEL_COOLING[model_name] = time.time() + MODEL_COOLDOWN
 
                 remaining = deadline - time.time()
                 if attempt >= MAX_ATTEMPTS or remaining <= BACKOFF_SECONDS:

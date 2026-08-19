@@ -1610,7 +1610,7 @@ let _ocrStart = 0;
 // Time constant of the curve: pct = CEILING * (1 - e^(-t/TAU)).
 // ~33% at 8s, ~63% at 20s, ~86% at 40s, ~94% at 60s — always climbing,
 // never arriving. ocr.py bounds the attempt at 70s; the curve is paced to that. CEILING leaves headroom so the jump to 100% reads as completion.
-const OCR_TAU = 20;   // tuned to the 70s server-side deadline
+const OCR_TAU = 26;   // tuned to the 90s server-side deadline
 const OCR_CEILING = 97;
 
 function _ocrPhase(seconds) {

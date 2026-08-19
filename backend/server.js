@@ -1085,7 +1085,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         // Handle Google API Rate Limiting Graciously
         if (error.status === 429 || (error.error && error.error.code === 429)) {
-            return res.status(429).json({ error: 'AI processing quota has been exceeded for the free tier. Please wait and try again later.' });
+            return res.status(429).json({ error: 'AI processing quota has been exceeded. Please wait a moment and try again.' });
         }
 
         res.status(500).json({ error: 'Internal server error processing the receipt.' });
