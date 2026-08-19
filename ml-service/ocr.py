@@ -156,7 +156,10 @@ def extract_receipt_data(image_path):
     TRANSIENT = ("429", "quota", "rate limit",
                  "500", "502", "503", "504",
                  "unavailable", "overloaded", "high demand",
-                 "deadline", "timeout", "internal error")
+                 "deadline", "timeout", "internal error",
+                 # An empty or non-JSON body is a malformed generation, not a
+                 # malformed request — the same call usually succeeds next time.
+                 "empty response", "unparseable response")
     ATTEMPTS_PER_MODEL = 3
     BACKOFF_SECONDS = (2, 6)      # after the 1st and 2nd failed attempt
 
@@ -182,13 +185,40 @@ def extract_receipt_data(image_path):
                     last_request_time = time.time()
 
                     # STEP 4 — Strip markdown code fences Gemini sometimes wraps around JSON
-                    text_response = response.text.strip()
+                    #
+                    # response.text can be None or empty: under load, or when a
+                    # safety filter or token limit truncates the candidate, the
+                    # SDK still returns a response object with no usable text.
+                    # Treated as transient — the same prompt usually succeeds on
+                    # the next attempt — rather than crashing on .strip().
+                    raw = (response.text or "").strip()
+                    if not raw:
+                        finish = None
+                        try:
+                            finish = str(response.candidates[0].finish_reason)
+                        except Exception:
+                            pass
+                        raise RuntimeError(
+                            f"empty response from {model_name} "
+                            f"(finish_reason={finish}) — treating as transient")
+
+                    text_response = raw
                     if text_response.startswith("```json"):
                         text_response = text_response[7:-3].strip()
                     elif text_response.startswith("```"):
                         text_response = text_response[3:-3].strip()
 
-                    result = json.loads(text_response)
+                    # A non-JSON body is usually a truncated or prose reply, which
+                    # the next attempt normally fixes. Log what actually came back
+                    # so the cause is visible instead of a bare parse error.
+                    try:
+                        result = json.loads(text_response)
+                    except json.JSONDecodeError as parse_err:
+                        preview = text_response[:200].replace("\n", " ")
+                        raise RuntimeError(
+                            f"unparseable response from {model_name} "
+                            f"({parse_err}) — treating as transient. "
+                            f"Body began: {preview!r}")
 
                     # Ensure handwriting fields are always present in successful responses
                     if "error" not in result:
