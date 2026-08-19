@@ -216,6 +216,12 @@ function randomIntBetween(min, max) {
 
 // ── CLAIM MODAL — CATALOG & RENDERING ─────────────────────────
 
+// Below this many receipts the interest vector is too thin to shape a reward,
+// so scratch cards stay generic rather than pretending to personalise.
+const MIN_RECEIPTS_FOR_SCRATCH = 2;
+let USER_INTEREST = {};
+let USER_RECEIPTS_SEEN = 0;
+
 // Offers ranked for this user by /ml/recommend, refreshed by loadRecommendations().
 // Empty until that returns, and left empty if the ML service is unreachable — in
 // which case the catalog falls back to the shuffled static pool below.
@@ -233,9 +239,76 @@ async function loadRecommendations() {
         if (!res.ok) return;
         const data = await res.json();
         RECOMMENDED_OFFERS = Array.isArray(data.recommendations) ? data.recommendations : [];
+        // The same response carries the user's category interest vector and how
+        // many receipts it was built from. The scratch cards use both.
+        USER_INTEREST = data.interest || {};
+        USER_RECEIPTS_SEEN = Number(data.receipts_seen) || 0;
     } catch (err) {
         RECOMMENDED_OFFERS = [];
+        USER_INTEREST = {};
+        USER_RECEIPTS_SEEN = 0;
     }
+}
+
+// Scratch rewards drawn from the category the user actually spends in, rather
+// than at random. The category is sampled from the interest vector — a user who
+// is 70% grocery gets grocery rewards about 70% of the time, so the vault still
+// varies without ever offering something unrelated to their spending.
+const SCRATCH_BY_CATEGORY = {
+    grocery: ['Win a ₹250 Grocery Pass', 'Win 2X points on your next grocery run',
+              'Win a Free Delivery Voucher'],
+    food:    ['Win a Free Coffee Combo', 'Win a Surprise Meal Coupon',
+              'Win 2X points on your next dining bill'],
+    retail:  ['Win a ₹300 Fashion Voucher', 'Win a ₹500 Shopping Cashback',
+              'Win 2X points on your next retail buy'],
+    general: ['Win ₹500 Cashback', 'Win a 2X Reward Multiplier',
+              'Win a ₹300 Gift Voucher']
+};
+
+function pickInterestCategory() {
+    const entries = Object.entries(USER_INTEREST)
+        .filter(([, w]) => Number(w) > 0);
+    if (!entries.length) return null;
+
+    const total = entries.reduce((sum, [, w]) => sum + Number(w), 0);
+    let roll = Math.random() * total;
+    for (const [cat, w] of entries) {
+        roll -= Number(w);
+        if (roll <= 0) return cat;
+    }
+    return entries[0][0];
+}
+
+// Reward value should track how much the user actually spends. Someone with a
+// handful of receipts and someone with fifty should not see the same headline.
+function scratchTierFor(points) {
+    if (points >= 500) return { label: 'Gold', boost: 2.0 };
+    if (points >= 200) return { label: 'Silver', boost: 1.5 };
+    return { label: 'Bronze', boost: 1.0 };
+}
+
+function buildScratchReward(index) {
+    const personalised = USER_RECEIPTS_SEEN >= MIN_RECEIPTS_FOR_SCRATCH
+        && Object.keys(USER_INTEREST).length > 0;
+
+    if (!personalised) {
+        // Guest, or too little history to infer anything — the generic pool,
+        // presented as generic.
+        return {
+            reward: randomPick(SCRATCH_REWARD_POOL),
+            category: null,
+            tier: null
+        };
+    }
+
+    const category = pickInterestCategory() || 'general';
+    const pool = SCRATCH_BY_CATEGORY[category] || SCRATCH_BY_CATEGORY.general;
+    const tier = scratchTierFor(Number(totalPoints) || 0);
+    return {
+        reward: pool[index % pool.length],
+        category: category,
+        tier: tier.label
+    };
 }
 
 // Combines 9 vouchers + 3 scratch cards into the claim catalog. Vouchers come
@@ -270,13 +343,17 @@ function generateClaimCatalog() {
 
     const scratches = [];
     for (let i = 0; i < 3; i += 1) {
+        const s = buildScratchReward(i);
         scratches.push({
             type: 'scratch',
             icon: '🃏',
-            title: `Scratch & Win Card ${i + 1}`,
+            title: s.tier ? `${s.tier} Scratch Card` : `Scratch & Win Card ${i + 1}`,
             offer: 'Scratch the card to reveal your reward',
-            reward: randomPick(SCRATCH_REWARD_POOL),
-            requiredPoints: randomIntBetween(20, 90)
+            reward: s.reward,
+            reason: s.category
+                ? `drawn from your ${s.category} spending`
+                : null,
+            requiredPoints: usingRanked ? 25 + i * 10 : randomIntBetween(20, 90)
         });
     }
 
@@ -320,6 +397,7 @@ function renderClaimCards() {
                         <canvas class="scratch-canvas" data-scratch-canvas aria-label="Scratch card area"></canvas>
                     </div>
                     <p class="scratch-hint">Scratch card to unlock claim</p>
+                    ${reward.reason ? `<p class="claim-reason">🎯 ${reward.reason}</p>` : ''}
                     <p class="claim-required">Required: <strong>${reward.requiredPoints} points</strong></p>
                     <button class="btn btn-secondary" data-scratch-btn disabled>
                         ${canClaim ? 'Scratch to Unlock' : `Need ${reward.requiredPoints} pts`}

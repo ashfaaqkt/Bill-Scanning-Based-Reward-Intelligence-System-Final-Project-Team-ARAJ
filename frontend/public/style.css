@@ -2257,9 +2257,13 @@ body::before {
 .claim-cards-grid {
     padding: 1.4rem 1.75rem 1.75rem;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Fluid rather than stepped: cards wrap to whatever the width allows, so
+       there is no size between breakpoints where they are squeezed. The fixed
+       4/3/2/1 rules below are kept only as an upper bound on very wide screens. */
+    grid-template-columns: repeat(auto-fit, minmax(clamp(200px, 22vw, 260px), 1fr));
     gap: 1rem;
     overflow-y: auto;
+    align-items: start;
 }
 
 .claim-card {
@@ -2271,11 +2275,25 @@ body::before {
     display: flex;
     flex-direction: column;
     min-height: 236px;
+    height: auto;
     box-shadow: 0 12px 30px rgba(15, 20, 25, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.58);
     backdrop-filter: blur(24px) saturate(185%);
     -webkit-backdrop-filter: blur(24px) saturate(185%);
     transition: transform 0.28s ease, box-shadow 0.28s ease;
-    overflow: hidden;
+    /* Was `overflow: hidden`, which clipped the claim button off the bottom of
+       any card whose text ran long — the match reason wrapping to two lines was
+       enough, and scratch cards lost their button entirely. min-height sets a
+       floor; the card must be free to grow past it. */
+    overflow: visible;
+}
+
+/* Pin the action to the bottom so buttons line up across a row regardless of
+   how much text sits above them. */
+.claim-card > button {
+    margin-top: auto;
+    width: 100%;
+    white-space: normal;
+    line-height: 1.25;
 }
 
 .claim-card::before {
@@ -2435,11 +2453,8 @@ body::before {
     margin: 0 0 0.45rem;
 }
 
-@media (max-width: 1100px) {
-    .claim-cards-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
+/* Column counts are handled by the auto-fit rule above; only spacing needs
+   adjusting at narrow widths. */
 
 @media (max-width: 800px) {
     .claim-modal {
@@ -2452,7 +2467,6 @@ body::before {
     }
 
     .claim-cards-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 1rem;
     }
 
@@ -2467,7 +2481,7 @@ body::before {
 
 @media (max-width: 540px) {
     .claim-cards-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr;   /* force a single column on phones */
     }
 
     .dashboard-actions {
