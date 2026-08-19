@@ -918,6 +918,21 @@ async function loadAnalytics() {
 
 // --- Error Modal Logic ---
 
+/** Shown once on entering guest mode — see the note at the call site. */
+function openGuestDisclaimer() {
+    openErrorModal(
+        'Guest Mode — Demo Data Only',
+        'You are exploring the interface with mock data.\n\n'
+        + '• No receipt is sent to the AI — the Gemini OCR call is skipped entirely\n'
+        + '• No trained model runs — category, fraud, anomaly and recommendation '
+        + 'results are placeholders, not predictions\n'
+        + '• Nothing is saved — points, vouchers and claim codes are generated in '
+        + 'your browser and disappear on refresh\n\n'
+        + 'Sign up for a free account to run the real pipeline end to end.',
+        '🎭'
+    );
+}
+
 function openErrorModal(title = "Error", message = "An error occurred.", icon = "⚠️") {
     if (errorModalIcon) errorModalIcon.innerText = icon;
     if (errorModalTitle) errorModalTitle.innerText = title;
@@ -1410,6 +1425,13 @@ if (btnGuest) {
 
         await playWelcomeIntro('Guest Explorer');
         appContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Guest mode is a UI walkthrough, not the system. Nothing here touches
+        // Gemini, the trained models or Firestore — the points, offers and
+        // claim codes are all local fixtures. Saying so up front matters: a
+        // panel member clicking "Try as Guest" would otherwise see numbers that
+        // look like model output and reasonably assume they are.
+        openGuestDisclaimer();
     });
 }
 authModalClose.addEventListener('click', closeAuthModal);

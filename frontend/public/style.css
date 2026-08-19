@@ -3894,3 +3894,11 @@ button.is-busy:disabled,
     text-align: center;
     color: var(--color-smoke);
 }
+
+/* The guest disclaimer is a short bulleted list set through innerText, so the
+   newlines need honouring. pre-line keeps the breaks and still wraps long
+   lines, unlike pre. Single-line messages are unaffected. */
+#error-modal-message {
+    white-space: pre-line;
+    text-align: left;
+}
