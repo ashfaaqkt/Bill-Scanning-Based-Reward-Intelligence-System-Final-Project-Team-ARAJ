@@ -894,6 +894,23 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         const crossUserDuplicate = !crossUserDuplicateCheck.empty;
 
+        // One physical receipt earns a reward once. A fingerprint match across
+        // accounts is the double-dipping case the cross-user check exists to
+        // stop, so it blocks the claim rather than only colouring a badge —
+        // previously the second account was flagged High risk and still credited
+        // the full points, which made the control advisory.
+        //
+        // First upload wins. That does penalise a genuine owner who submits
+        // after someone else has already claimed their bill, which is why the
+        // message points at support instead of accusing the user.
+        if (crossUserDuplicate) {
+            console.warn(`[FRAUD] Cross-user duplicate blocked for fingerprint ${receiptFingerprint} (user ${req.userId})`);
+            return res.status(409).json({
+                code: 'ALREADY_CLAIMED',
+                error: "This bill has already been claimed on another account. Each receipt can be rewarded only once. If you believe this is a mistake, please contact support."
+            });
+        }
+
         // Processing Tier / Multipiler
         const userRef = await ensureUserExists(req.userId);
         const userDoc = await userRef.get();

@@ -1546,7 +1546,16 @@ async function handleUpload() {
                 }, 500);
             } else if (status === 409) {
                 stopOcrProgress();
-                openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
+                // A bill claimed on someone else's account is not the user's
+                // fault, and the person seeing this may well be the rightful
+                // owner. Keep that case calm — the warning triangle reads as an
+                // accusation, which is wrong for a message we cannot be certain
+                // about. Re-uploading your own receipt stays a plain warning.
+                if (result.code === 'ALREADY_CLAIMED') {
+                    openErrorModal('Already Claimed', result.error, '🧾');
+                } else {
+                    openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
+                }
                 resetUI();
             } else if (status === 422) {
                 stopOcrProgress();
