@@ -140,59 +140,98 @@ def extract_receipt_data(image_path):
         time.sleep(wait_time)
 
     # STEP 3 — Model fallback chain: try gemini-2.5-flash first, then gemini-flash-latest
-    # Falls back on quota (429) errors; breaks on other errors
+    # Retries transient server-side failures, then falls back to the second
+    # model; breaks immediately on anything that retrying cannot fix.
+    #
+    # 429 (quota) is not the only recoverable case. A 503 UNAVAILABLE — "this
+    # model is currently experiencing high demand" — is Google's capacity, not
+    # ours, and usually clears within seconds. The original loop treated it as
+    # terminal and gave up without even trying the fallback model, which turned
+    # a few seconds of upstream load into a failed upload.
     models_to_try = ['gemini-2.5-flash', 'gemini-flash-latest']
     last_error = None
+
+    # Transient: worth another attempt. Anything else (malformed request, bad
+    # key, safety block) will fail identically on retry, so we stop.
+    TRANSIENT = ("429", "quota", "rate limit",
+                 "500", "502", "503", "504",
+                 "unavailable", "overloaded", "high demand",
+                 "deadline", "timeout", "internal error")
+    ATTEMPTS_PER_MODEL = 3
+    BACKOFF_SECONDS = (2, 6)      # after the 1st and 2nd failed attempt
+
+    def _is_transient(msg: str) -> bool:
+        low = msg.lower()
+        return any(token in low for token in TRANSIENT)
 
     try:
         img = Image.open(image_path)
 
         for model_name in models_to_try:
-            try:
-                print(f"[INFO] Attempting OCR with {model_name}...")
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=[RECEIPT_PROMPT, img],
-                )
+            give_up = False
 
-                last_request_time = time.time()
+            for attempt in range(1, ATTEMPTS_PER_MODEL + 1):
+                try:
+                    print(f"[INFO] Attempting OCR with {model_name} "
+                          f"(attempt {attempt}/{ATTEMPTS_PER_MODEL})...")
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=[RECEIPT_PROMPT, img],
+                    )
 
-                # STEP 4 — Strip markdown code fences Gemini sometimes wraps around JSON
-                text_response = response.text.strip()
-                if text_response.startswith("```json"):
-                    text_response = text_response[7:-3].strip()
-                elif text_response.startswith("```"):
-                    text_response = text_response[3:-3].strip()
+                    last_request_time = time.time()
 
-                result = json.loads(text_response)
+                    # STEP 4 — Strip markdown code fences Gemini sometimes wraps around JSON
+                    text_response = response.text.strip()
+                    if text_response.startswith("```json"):
+                        text_response = text_response[7:-3].strip()
+                    elif text_response.startswith("```"):
+                        text_response = text_response[3:-3].strip()
 
-                # Ensure handwriting fields are always present in successful responses
-                if "error" not in result:
-                    if "handwritten_flag" not in result:
-                        result["handwritten_flag"] = False
-                    if "handwritten_details" not in result:
-                        result["handwritten_details"] = None
+                    result = json.loads(text_response)
 
-                    # Programmatic density anomaly check supplements Gemini's judgment.
-                    # Catches localised handwritten edits Gemini may miss or under-flag.
-                    density_hit, density_conf = _detect_density_anomaly(image_path)
-                    if density_hit:
-                        result["handwritten_flag"] = True
-                        tag = f"density_anomaly(confidence={density_conf})"
-                        existing = result.get("handwritten_details") or ""
-                        result["handwritten_details"] = (
-                            f"{existing} [{tag}]".strip() if existing else tag
-                        )
+                    # Ensure handwriting fields are always present in successful responses
+                    if "error" not in result:
+                        if "handwritten_flag" not in result:
+                            result["handwritten_flag"] = False
+                        if "handwritten_details" not in result:
+                            result["handwritten_details"] = None
 
-                return result
+                        # Programmatic density anomaly check supplements Gemini's judgment.
+                        # Catches localised handwritten edits Gemini may miss or under-flag.
+                        density_hit, density_conf = _detect_density_anomaly(image_path)
+                        if density_hit:
+                            result["handwritten_flag"] = True
+                            tag = f"density_anomaly(confidence={density_conf})"
+                            existing = result.get("handwritten_details") or ""
+                            result["handwritten_details"] = (
+                                f"{existing} [{tag}]".strip() if existing else tag
+                            )
 
-            except Exception as e:
-                last_error = str(e)
-                if "429" in last_error or "quota" in last_error.lower():
-                    print(f"[WARN] {model_name} quota exceeded. Trying fallback...")
-                    continue
-                else:
-                    break
+                    return result
+
+                except Exception as e:
+                    last_error = str(e)
+
+                    # Permanent failures (bad key, malformed request, safety
+                    # block) fail identically on retry — stop the whole chain.
+                    if not _is_transient(last_error):
+                        print(f"[ERROR] {model_name} failed permanently: {last_error}")
+                        give_up = True
+                        break
+
+                    if attempt < ATTEMPTS_PER_MODEL:
+                        wait = BACKOFF_SECONDS[attempt - 1]
+                        print(f"[WARN] {model_name} transient failure "
+                              f"({last_error[:90]}) — retrying in {wait}s")
+                        time.sleep(wait)
+                        continue
+
+                    print(f"[WARN] {model_name} exhausted {ATTEMPTS_PER_MODEL} "
+                          f"attempts — falling back to the next model")
+
+            if give_up:
+                break
 
         last_request_time = time.time()
         return {"error": "TERMINAL_FAILURE", "message": last_error}
