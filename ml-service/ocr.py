@@ -19,12 +19,55 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 
-# Configure Gemini client with API key from .env
-api_key = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key) if api_key else None
+# ── API KEY POOL ───────────────────────────────────────────────
+# Reads GEMINI_API_KEY_1, _2, _3 … and falls back to a single GEMINI_API_KEY,
+# so an installation with one key behaves exactly as before.
+#
+# The free tier allows five requests per minute PER PROJECT. Keys issued from
+# separate projects therefore have separate quotas, and rotating across them
+# multiplies the ceiling: the spacing each key needs is unchanged, but with N
+# keys a request only waits RATE_LIMIT_INTERVAL / N on average.
+#
+# Rotation also turns a 429 from fatal into routine — an exhausted key is put
+# on ice and the next one serves the request, instead of the upload failing.
+def _load_api_keys():
+    keys, seen = [], set()
+    for name in sorted(k for k in os.environ if k.startswith("GEMINI_API_KEY")):
+        value = (os.environ.get(name) or "").strip()
+        if value and value not in seen:
+            seen.add(value)
+            keys.append((name, value))
+    return keys
+
+
+_API_KEYS = _load_api_keys()
+
+# Per-key state. `cooling_until` is set when a key reports quota exhaustion, so
+# it is skipped until its window has plausibly reset rather than retried into
+# the ground. `unsupported` records model names a key cannot serve — newer
+# projects are refused gemini-2.5-flash with a 404, and there is no point
+# rediscovering that on every upload.
+_KEY_STATE = {
+    name: {"client": None, "last_used": 0.0, "cooling_until": 0.0,
+           "unsupported": set()}
+    for name, _ in _API_KEYS
+}
+
+# Kept for callers and tests that check whether OCR is configured at all.
+api_key = _API_KEYS[0][1] if _API_KEYS else None
+client = None
+
+
+def _client_for(name, value):
+    state = _KEY_STATE[name]
+    if state["client"] is None:
+        state["client"] = genai.Client(api_key=value)
+    return state["client"]
+
 
 # ── RATE LIMIT STATE ───────────────────────────────────────────
-# Tracks last Gemini call time; enforces 23s gap to stay within 5 RPM free tier
+# Per-key spacing to stay within the 5 RPM free tier. With multiple keys the
+# effective wait is this divided by the number of usable keys.
 last_request_time = 0
 RATE_LIMIT_INTERVAL = 23  # 22s gap + 1s safety buffer
 
@@ -132,86 +175,116 @@ def extract_receipt_data(image_path):
     except Exception as e:
         print(f"[WARN] Blur check failed: {e} - proceeding anyway")
 
-    # STEP 2 — Rate limit gate: wait if last API call was less than 23s ago
-    elapsed = time.time() - last_request_time
-    if elapsed < RATE_LIMIT_INTERVAL:
-        wait_time = RATE_LIMIT_INTERVAL - elapsed
-        print(f"[INFO] Rate limiting: Waiting {wait_time:.1f}s...")
-        time.sleep(wait_time)
+    # STEP 2/3 — Pick a key, respect its spacing, call, rotate on failure.
+    #
+    # Ordering matters here and was established by testing the keys directly:
+    #
+    #   * gemini-flash-latest goes FIRST. gemini-2.5-flash is refused with a 404
+    #     — "no longer available to new users" — by projects created recently,
+    #     so it cannot be the default when keys come from different projects.
+    #   * A 404 marks that model unusable FOR THAT KEY only, and the next model
+    #     is tried. It is a capability difference, not a fault.
+    #   * A 429 puts the key on ice and moves to the next key. With one key that
+    #     ends the request; with three it is usually invisible.
+    #   * A 503 is Google's capacity and is shared across projects, so another
+    #     key rarely helps — but it costs nothing to let the rotation try.
+    models_to_try = ['gemini-flash-latest', 'gemini-2.5-flash']
 
-    # STEP 3 — Bounded retry across the model fallback chain.
-    #
-    # Three rules, each learned from a failure this loop caused:
-    #
-    # 1. A TOTAL DEADLINE. Retrying three times per model across two models,
-    #    with backoff, ran past two minutes before reporting failure. Nobody
-    #    watches a spinner that long, least of all a viva panel. The whole
-    #    attempt is now bounded, and a fast failure the user can retry beats a
-    #    slow one they cannot interrupt.
-    #
-    # 2. EVERY ATTEMPT COUNTS AGAINST THE QUOTA. The free tier allows five
-    #    requests a minute. The previous loop fired up to six in forty seconds
-    #    while bypassing the rate gate entirely, so it exhausted the quota and
-    #    then retried against the 429s it had just caused. Attempts are now
-    #    spaced by the same interval as the initial gate.
-    #
-    # 3. 429 IS NOT WORTH RETRYING HERE. A quota error clears only with time —
-    #    on the order of a minute — which is longer than the deadline. Retrying
-    #    consumes more quota and deepens the hole, so it stops immediately and
-    #    says what to do.
-    models_to_try = ['gemini-2.5-flash', 'gemini-flash-latest']
-    last_error = None
-
-    # Worth another attempt: a transient server-side condition, or a malformed
-    # generation. Anything else fails identically on retry.
     TRANSIENT = ("500", "502", "503", "504",
                  "unavailable", "overloaded", "high demand",
                  "deadline", "timeout", "internal error",
                  "empty response", "unparseable response")
     QUOTA = ("429", "resource_exhausted", "exceeded your current quota",
              "rate limit")
+    UNSUPPORTED = ("404", "not_found", "no longer available")
 
-    DEADLINE_SECONDS = 40          # total budget for STEP 3
-    MAX_ATTEMPTS = 3               # across all models, not per model
-    BACKOFF_SECONDS = 3            # plus the rate-limit spacing below
+    DEADLINE_SECONDS = 40
+    MAX_ATTEMPTS = 4              # across all key/model combinations
+    BACKOFF_SECONDS = 2
+    QUOTA_COOLDOWN = 65           # a per-minute window, plus a margin
 
     def _classify(msg):
         low = msg.lower()
+        if any(t in low for t in UNSUPPORTED):
+            return "unsupported"
         if any(t in low for t in QUOTA):
             return "quota"
         if any(t in low for t in TRANSIENT):
             return "transient"
         return "permanent"
 
+    def _pick_key(now, model):
+        """Least recently used key that is not cooling and can serve `model`."""
+        usable = [
+            (name, value) for name, value in _API_KEYS
+            if _KEY_STATE[name]["cooling_until"] <= now
+            and model not in _KEY_STATE[name]["unsupported"]
+        ]
+        if not usable:
+            return None, None
+        return min(usable, key=lambda kv: _KEY_STATE[kv[0]]["last_used"])
+
+    if not _API_KEYS:
+        return {"error": "GEMINI_API_KEY_MISSING"}
+
     deadline = time.time() + DEADLINE_SECONDS
+    last_error = None
+    saw_quota = False
+    attempted = set()          # (key, model) pairs tried during this request
 
     try:
         img = Image.open(image_path)
         attempt = 0
 
-        while attempt < MAX_ATTEMPTS:
-            model_name = models_to_try[min(attempt, len(models_to_try) - 1)]
+        while attempt < MAX_ATTEMPTS and time.time() < deadline:
+            now = time.time()
+
+            # Rotate over (model, key) COMBINATIONS, not keys alone. Cycling
+            # three keys against one model only ever tests one model, and the
+            # two differ in availability — 2.5-flash has served this pipeline
+            # when flash-latest was saturated. Prefer a pair not yet tried.
+            combo = None
+            for m in models_to_try:
+                name, value = _pick_key(now, m)
+                if name and (name, m) not in attempted:
+                    combo = (m, name, value)
+                    break
+            if combo is None:                      # everything tried once
+                for m in models_to_try:
+                    name, value = _pick_key(now, m)
+                    if name:
+                        combo = (m, name, value)
+                        break
+            if combo is None:
+                last_error = last_error or "every key is cooling or unsupported"
+                break
+
+            model_name, key_name, key_value = combo
+            attempted.add((key_name, model_name))
+            state = _KEY_STATE[key_name]
             attempt += 1
 
-            # Space this call from the previous one, so retries cannot burn the
-            # per-minute quota. Skipped when the budget cannot absorb the wait.
-            gap = RATE_LIMIT_INTERVAL - (time.time() - last_request_time)
+            # Each key needs its own spacing; rotation is what makes the wait
+            # short, not a shorter interval.
+            gap = RATE_LIMIT_INTERVAL - (now - state["last_used"])
             if gap > 0:
-                if time.time() + gap > deadline:
+                if now + gap > deadline:
                     last_error = (last_error or
-                                  "rate-limit spacing would exceed the time budget")
-                    print(f"[WARN] Stopping: next attempt needs {gap:.0f}s but "
-                          f"only {deadline - time.time():.0f}s of budget remains")
+                                  f"{key_name} needs {gap:.0f}s spacing, "
+                                  f"beyond the time budget")
+                    print(f"[WARN] Stopping: {key_name} needs {gap:.0f}s but "
+                          f"{deadline - now:.0f}s of budget remains")
                     break
-                print(f"[INFO] Spacing requests: waiting {gap:.1f}s...")
+                print(f"[INFO] Spacing {key_name}: waiting {gap:.1f}s...")
                 time.sleep(gap)
 
             try:
-                print(f"[INFO] Attempting OCR with {model_name} "
-                      f"(attempt {attempt}/{MAX_ATTEMPTS})...")
-                last_request_time = time.time()      # set BEFORE the call, so a
-                                                     # hung request still spaces
-                response = client.models.generate_content(
+                print(f"[INFO] OCR attempt {attempt}/{MAX_ATTEMPTS} — "
+                      f"{model_name} via {key_name}")
+                state["last_used"] = time.time()
+                last_request_time = state["last_used"]
+
+                response = _client_for(key_name, key_value).models.generate_content(
                     model=model_name,
                     contents=[RECEIPT_PROMPT, img],
                 )
@@ -261,32 +334,45 @@ def extract_receipt_data(image_path):
                             f"{existing} [{tag}]".strip() if existing else tag
                         )
 
+                print(f"[INFO] OCR succeeded on {key_name} ({model_name})")
                 return result
 
             except Exception as e:
                 last_error = str(e)
                 kind = _classify(last_error)
 
+                if kind == "unsupported":
+                    state["unsupported"].add(model_name)
+                    print(f"[INFO] {key_name} cannot serve {model_name} — "
+                          f"remembering, trying another combination")
+                    continue
+
                 if kind == "quota":
-                    print(f"[ERROR] Quota exhausted on {model_name}. Retrying "
-                          f"would consume more — stopping so it can recover.")
-                    return {"error": "RATE_LIMITED", "message": last_error}
+                    saw_quota = True
+                    state["cooling_until"] = time.time() + QUOTA_COOLDOWN
+                    print(f"[WARN] {key_name} quota exhausted — cooling for "
+                          f"{QUOTA_COOLDOWN}s, rotating to the next key")
+                    continue
 
                 if kind == "permanent":
-                    print(f"[ERROR] {model_name} failed permanently: {last_error}")
+                    print(f"[ERROR] {key_name}/{model_name} failed permanently: "
+                          f"{last_error[:120]}")
                     break
 
                 remaining = deadline - time.time()
                 if attempt >= MAX_ATTEMPTS or remaining <= BACKOFF_SECONDS:
-                    print(f"[WARN] {model_name} transient failure and the budget "
-                          f"is spent ({remaining:.0f}s left) — giving up")
+                    print(f"[WARN] transient failure, budget spent "
+                          f"({remaining:.0f}s left) — giving up")
                     break
-
-                print(f"[WARN] {model_name} transient failure "
-                      f"({last_error[:90]}) — {remaining:.0f}s budget left, "
+                print(f"[WARN] {key_name}/{model_name} transient "
+                      f"({last_error[:80]}) — {remaining:.0f}s left, "
                       f"retrying in {BACKOFF_SECONDS}s")
                 time.sleep(BACKOFF_SECONDS)
 
+        # Quota is the user-actionable case, so report it distinctly even if a
+        # later attempt failed for another reason.
+        if saw_quota and _classify(last_error or "") != "permanent":
+            return {"error": "RATE_LIMITED", "message": last_error}
         return {"error": "TERMINAL_FAILURE", "message": last_error}
 
     except Exception as e:
