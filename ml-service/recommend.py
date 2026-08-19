@@ -3,16 +3,17 @@ Reward Recommendations — Owner: Arpan Chatterjee · Sprint 3 implementation: A
 Ranks reward offers by how well they match a user's spend profile.
 
 WHAT THIS IS, AND WHAT IT IS NOT
-This is **content-based** ranking: it scores each offer against the user's own
-category interest vector (user_profile.py). It is NOT the SVD collaborative
-filter — that requires a trained user x category factorisation from Notebook 04,
-which does not exist yet, and the only interaction data available
-(synthetic_user_interactions.csv) is synthetic. Reporting a collaborative-filter
-result from synthetic interactions would be meaningless.
+Ranking is content-based at its core: each offer is scored against the user's own
+category interest vector (user_profile.py). When Notebook 04's exported SVD
+factors are present, a collaborative estimate is blended in at equal weight and
+the response reports `model: "collaborative+content"`.
 
-`load_collaborative_model()` below is the seam where the trained model plugs in:
-when collab_filter.pkl appears, its predicted affinity blends with the
-content-based score and the blend is reported honestly.
+READ THE COLLABORATIVE PART WITH CARE. The factorisation is trained on
+synthetic_user_interactions.csv, where the rating is a deterministic function of
+a preference the generator itself assigned, across only three spend categories.
+A strong offline score on that data measures the generator, not this ranker, so
+no NDCG target is claimed from it — see report/model_cards/recommender.md. The
+blend is wired and correct; what it is worth awaits real interaction data.
 
 Cold start: a user with no receipts gets the catalogue ordered by popularity.
 """
@@ -45,8 +46,15 @@ _collab_load_attempted = False
 
 def load_collaborative_model():
     """
-    Loads Notebook 04's SVD model if it has been trained. Returns None until then,
-    which is the current state — recommendations stay content-based.
+    Loads Notebook 04's exported SVD factors if they exist. Returns None
+    otherwise, in which case recommendations stay content-based.
+
+    Notebook 04 exports plain arrays rather than a pickled Surprise estimator on
+    purpose. Unpickling the estimator would require `surprise` to be installed
+    wherever this service runs, and that import failing is silent here — the
+    except below would swallow it and the service would serve content-based
+    rankings while appearing to have a collaborative model. Arrays keep serving
+    dependency-free; see collab_predict() for the arithmetic.
     """
     global _collab_model, _collab_load_attempted
 
@@ -59,10 +67,51 @@ def load_collaborative_model():
 
     try:
         import joblib
-        _collab_model = joblib.load(COLLAB_MODEL_PATH)
-    except Exception:
-        _collab_model = None
+        bundle = joblib.load(COLLAB_MODEL_PATH)
+    except Exception as exc:
+        print(f"recommend.py: collaborative model failed to load ({exc}) — "
+              f"ranking stays content-based")
+        return None
+
+    if not (isinstance(bundle, dict) and bundle.get("kind") == "svd_factors"):
+        # A pickled Surprise estimator, or anything else we cannot evaluate
+        # without extra dependencies. Refuse it loudly instead of half-using it.
+        print("recommend.py: collab_filter.pkl is not an exported factor bundle "
+              "— re-run Notebook 04 step 4; ranking stays content-based")
+        return None
+
+    _collab_model = bundle
     return _collab_model
+
+
+def collab_predict(bundle, user_id, category):
+    """
+    Reproduces Surprise's SVD estimate with numpy only:
+
+        est = global_mean + bu[u] + bi[i] + dot(qi[i], pu[u])
+
+    An unseen user or category simply drops its term, which is what Surprise
+    does too. Notebook 04 asserts this matches the trained estimator before it
+    writes the bundle out.
+    """
+    import numpy as np
+
+    est = bundle["global_mean"]
+    u = bundle["uid_map"].get(str(user_id))
+    i = bundle["iid_map"].get(str(category))
+
+    if u is None and i is None:
+        return None                      # nothing learned about either side
+
+    if u is not None:
+        est += float(bundle["bu"][u])
+    if i is not None:
+        est += float(bundle["bi"][i])
+    if u is not None and i is not None:
+        est += float(np.dot(bundle["qi"][i], bundle["pu"][u]))
+
+    lo, hi = bundle.get("rating_scale", (1, 5))
+    return min(hi, max(lo, est))
 
 
 def _score(offer, interest, personalised, user_id=None):
@@ -74,20 +123,17 @@ def _score(offer, interest, personalised, user_id=None):
     if offer["category"] == offers.GENERAL:
         affinity = GENERAL_AFFINITY
 
-    # Blend with SVD collaborative filter if available
+    # Blend in the collaborative estimate when Notebook 04's factors are present.
     collab_model = load_collaborative_model()
     if personalised and collab_model is not None and user_id is not None:
         try:
-            # SVD predict(user_id, item_id)
-            pred = collab_model.predict(user_id, offer["category"]).est
-            # Normalize 1-5 rating scale to 0-1
-            collab_affinity = (pred - 1.0) / 4.0
-            # Clip to 0-1 range to be safe
-            collab_affinity = max(0.0, min(1.0, collab_affinity))
-            # Blend weight: 50% content-based affinity, 50% collaborative-based affinity
-            affinity = 0.5 * affinity + 0.5 * collab_affinity
+            pred = collab_predict(collab_model, user_id, offer["category"])
+            if pred is not None:
+                # Rating scale 1-5 -> 0-1, matching the content affinity range.
+                collab_affinity = max(0.0, min(1.0, (pred - 1.0) / 4.0))
+                affinity = 0.5 * affinity + 0.5 * collab_affinity
         except Exception:
-            pass
+            pass    # a broken bundle must never take down a recommendation
 
     if not personalised:
         return offer["popularity"], "popular with other users"
