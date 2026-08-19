@@ -315,7 +315,15 @@ function buildScratchReward(index) {
 // from the ML ranking when available — in rank order, best match first — and from
 // the shuffled static pool otherwise.
 function generateClaimCatalog() {
+    const isGuest = currentUserName === 'Guest Explorer';
     const usingRanked = RECOMMENDED_OFFERS.length > 0;
+
+    // A signed-in user sees ONLY what the recommender ranked for them. The
+    // static pool is the guest catalogue: falling back to it here would dress
+    // a generic list up as personalised, which is exactly the claim the vault
+    // is making. No ranking yet means show nothing and keep the skeletons.
+    if (!isGuest && !usingRanked) return [];
+
     const source = usingRanked ? RECOMMENDED_OFFERS : shuffleArray(VOUCHER_POOL);
 
     const vouchers = [];
@@ -629,7 +637,13 @@ async function openClaimModal() {
     // Nothing here needs the network to be useful: the catalogue and the point
     // balance are already in memory. Render them now, then refresh quietly and
     // re-render only if the data actually changed.
-    showClaimCards();
+    // Signed in, the vault has nothing to show until the ranking arrives, so
+    // it opens on skeletons. A guest's catalogue is local, so it paints at once.
+    if (localStorage.getItem('token') && !RECOMMENDED_OFFERS.length) {
+        showClaimSkeletons();
+    } else {
+        showClaimCards();
+    }
     claimModal.classList.remove('hidden');
     syncBodyScrollLock();
 
@@ -652,9 +666,12 @@ async function openClaimModal() {
         } finally {
             setVaultRefreshing(false);
         }
-        // Re-render only on a real change, so an unchanged vault does not
-        // visibly reset itself a second after opening.
-        if (claimStateSignature() !== before) showClaimCards();
+        // Repaint if anything changed, and always on the first open, where
+        // there are skeletons standing in for cards that do not exist yet.
+        if (claimStateSignature() !== before
+            || claimCardsGrid.querySelector('.claim-skeleton')) {
+            showClaimCards();
+        }
     }
     return;
 }
@@ -668,9 +685,12 @@ function claimStateSignature() {
 /** Render the vault from whatever is currently in memory. */
 function showClaimCards() {
     renderClaimCards();
-    // Defensive: if the catalogue produced nothing, show placeholders rather
-    // than an empty box.
-    if (claimCardsGrid && !claimCardsGrid.children.length) showClaimSkeletons();
+    // Nothing to rank yet (a new account with no receipts). Say so — leaving
+    // skeletons up would imply data is still coming when it is not.
+    if (claimCardsGrid && !claimCardsGrid.children.length) {
+        claimCardsGrid.innerHTML =
+            '<p class="vault-empty">Scan a receipt to unlock rewards picked for you.</p>';
+    }
     refreshClaimButtonStates();
     claimAvailablePoints.innerText = totalPoints;
 
