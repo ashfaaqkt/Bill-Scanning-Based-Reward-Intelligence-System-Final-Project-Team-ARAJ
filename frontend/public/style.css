@@ -3826,3 +3826,59 @@ button.is-busy:disabled,
 @media (prefers-reduced-motion: reduce) {
     .btn-spinner { animation-duration: 1.6s; }
 }
+
+/* ── VAULT LOADING SKELETON ─────────────────────────────────────
+   Opening the vault awaits two network calls (points, then the ranked
+   offers). Those used to run BEFORE the modal appeared, so a click landed on
+   a dead interface for as long as the slower call took. The modal now opens
+   at once over these placeholders, which are replaced the moment real cards
+   render. Pure CSS — no library, no JS timer. */
+.claim-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 200px;
+    padding: 1.25rem;
+    background: #fff;
+    border: var(--border-refined);
+    border-radius: var(--radius-md, 10px);
+}
+
+.claim-skeleton__line {
+    height: 12px;
+    border-radius: 6px;
+    /* Travelling highlight over a flat base */
+    background: linear-gradient(90deg,
+                var(--color-parchment) 25%,
+                rgba(184, 134, 11, 0.14) 37%,
+                var(--color-parchment) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-sheen 1.4s ease-in-out infinite;
+}
+
+.claim-skeleton__line--title  { width: 62%; height: 18px; }
+.claim-skeleton__line--body   { width: 100%; }
+.claim-skeleton__line--short  { width: 45%; }
+.claim-skeleton__line--button { width: 100%; height: 38px; margin-top: auto; border-radius: var(--radius-sm); }
+
+@keyframes skeleton-sheen {
+    0%   { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+/* Respect a reduced-motion preference: keep the placeholder, drop the travel. */
+@media (prefers-reduced-motion: reduce) {
+    .claim-skeleton__line { animation: none; background: var(--color-parchment); }
+}
+
+/* Background-refresh notice for the vault. The cards are already usable, so
+   this sits above them rather than covering them. */
+.vault-refreshing {
+    display: flex;
+    align-items: center;
+    margin: 0 0 0.9rem;
+    font-size: 0.85rem;
+    color: var(--color-smoke);
+}
+
+.vault-refreshing[hidden] { display: none; }

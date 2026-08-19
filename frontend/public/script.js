@@ -561,20 +561,118 @@ function initScratchCards() {
     });
 }
 
+// How long the vault waits for its background refresh before falling back to
+// what is already rendered.
+const VAULT_REFRESH_TIMEOUT = 8000;
+
+/** Rejects if `promise` has not settled within `ms`. The underlying request is
+    not cancelled — it simply stops being waited on. */
+function withTimeout(promise, ms) {
+    let timer;
+    return Promise.race([
+        promise.finally(() => clearTimeout(timer)),
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+        })
+    ]);
+}
+
+/** Small "working" pill shown while the vault refreshes in the background.
+    The cards are already on screen and usable — this only signals that the
+    personalised ranking is still being fetched, so it informs without blocking. */
+function setVaultRefreshing(on) {
+    if (!claimCardsGrid) return;
+    let pill = document.getElementById('vault-refreshing');
+    if (on) {
+        if (!pill) {
+            pill = document.createElement('p');
+            pill.id = 'vault-refreshing';
+            pill.className = 'vault-refreshing';
+            pill.setAttribute('role', 'status');       // announced, not intrusive
+            pill.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>'
+                           + 'Personalising your offers…';
+            claimCardsGrid.parentNode.insertBefore(pill, claimCardsGrid);
+        }
+        pill.hidden = false;
+    } else if (pill) {
+        pill.hidden = true;
+    }
+}
+
+/** Placeholder cards shown while the vault's two network calls are in flight. */
+function showClaimSkeletons(count = 4) {
+    if (!claimCardsGrid) return;
+    claimCardsGrid.innerHTML = Array.from({ length: count }, () => `
+        <div class="claim-skeleton" aria-hidden="true">
+            <div class="claim-skeleton__line claim-skeleton__line--title"></div>
+            <div class="claim-skeleton__line claim-skeleton__line--body"></div>
+            <div class="claim-skeleton__line claim-skeleton__line--short"></div>
+            <div class="claim-skeleton__line claim-skeleton__line--button"></div>
+        </div>`).join('');
+}
+
 async function openClaimModal() {
     if (!localStorage.getItem('token') && currentUserName !== 'Guest Explorer') {
         openAuthModal(true);
         return;
     }
-    if (localStorage.getItem('token')) {
-        await fetchTotalPoints();
-        await loadRecommendations();   // personalised ranking; no-ops on failure
-    }
-    renderClaimCards();
-    refreshClaimButtonStates();
-    claimAvailablePoints.innerText = totalPoints;
+
+    // Paint FIRST, refresh after.
+    //
+    // This used to await points and the ranked offers before opening, so the
+    // click landed on a frozen page for as long as the slower call took. Worse,
+    // clicking while the page's own start-up /api/user was still in flight left
+    // the second request unresolved in the browser and the vault never opened
+    // at all — the server answers both in under a second, so the stall is on the
+    // client side of that race.
+    //
+    // Nothing here needs the network to be useful: the catalogue and the point
+    // balance are already in memory. Render them now, then refresh quietly and
+    // re-render only if the data actually changed.
+    showClaimCards();
     claimModal.classList.remove('hidden');
     syncBodyScrollLock();
+
+    if (localStorage.getItem('token')) {
+        const before = claimStateSignature();
+        setVaultRefreshing(true);
+        try {
+            // Bounded on purpose. Clicking while the page's own start-up
+            // /api/user is still in flight can leave the follow-up request
+            // unresolved in the browser — the server answers both in under a
+            // second, so this is a client-side race, not a slow backend.
+            // Without a ceiling the indicator would spin for the rest of the
+            // session. The cards are already on screen either way.
+            await withTimeout(
+                (async () => { await fetchTotalPoints(); await loadRecommendations(); })(),
+                VAULT_REFRESH_TIMEOUT
+            );
+        } catch (err) {
+            console.warn('Vault refresh did not complete; showing cached offers.', err);
+        } finally {
+            setVaultRefreshing(false);
+        }
+        // Re-render only on a real change, so an unchanged vault does not
+        // visibly reset itself a second after opening.
+        if (claimStateSignature() !== before) showClaimCards();
+    }
+    return;
+}
+
+/** Point balance + ranked offer ids — cheap way to tell if a re-render is warranted. */
+function claimStateSignature() {
+    const ids = (RECOMMENDED_OFFERS || []).map(o => o && o.id).join(',');
+    return `${Number(totalPoints) || 0}|${USER_RECEIPTS_SEEN}|${ids}`;
+}
+
+/** Render the vault from whatever is currently in memory. */
+function showClaimCards() {
+    renderClaimCards();
+    // Defensive: if the catalogue produced nothing, show placeholders rather
+    // than an empty box.
+    if (claimCardsGrid && !claimCardsGrid.children.length) showClaimSkeletons();
+    refreshClaimButtonStates();
+    claimAvailablePoints.innerText = totalPoints;
 
     // Wait for modal layout so scratch canvases get the correct size.
     window.requestAnimationFrame(() => {
