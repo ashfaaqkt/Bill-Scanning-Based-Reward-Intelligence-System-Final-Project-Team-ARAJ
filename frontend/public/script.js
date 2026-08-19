@@ -21,6 +21,10 @@ const stageResults = document.getElementById('stage-results');
 const fileInput = document.getElementById('file-input');
 const dropZone = document.getElementById('drop-zone');
 const ocrProgress = document.getElementById('ocr-progress');
+const ocrProgressPct = document.getElementById('ocr-progress-pct');
+const ocrProgressNote = document.getElementById('ocr-progress-note');
+const ocrProgressElapsed = document.getElementById('ocr-progress-elapsed');
+const ocrProgressMeta = ocrProgressPct ? ocrProgressPct.parentElement : null;
 
 // Result Elements
 const valRawMerchant = document.getElementById('val-raw-merchant');
@@ -1385,9 +1389,7 @@ async function handleUpload() {
     activateStep(stepExtract);
     showStage(stageExtracting);
 
-    // Start an infinite progress bar for the UI while waiting for the Gemini API
-    ocrProgress.style.transition = 'width 10s ease-out';
-    ocrProgress.style.width = '90%';
+    startOcrProgress();
 
     const file = fileInput.files[0];
     const reader = new FileReader();
@@ -1438,27 +1440,31 @@ async function handleUpload() {
             }
 
             if (status === 200 && result.success) {
-                ocrProgress.style.transition = 'width 0.2s linear';
-                ocrProgress.style.width = '100%';
+                stopOcrProgress(true);
 
                 setTimeout(() => {
                     processReceiptData(result.data);
                 }, 500);
             } else if (status === 409) {
+                stopOcrProgress();
                 openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
                 resetUI();
             } else if (status === 422) {
+                stopOcrProgress();
                 openErrorModal('Scan Failed', result.error || 'The receipt image is blurry or unreadable. Please try again with a clearer photo.', '📷');
                 resetUI();
             } else if (status === 429) {
+                stopOcrProgress();
                 openErrorModal('Rate Limit Exceeded', result.error || 'The AI service is currently busy. Please try again in a few moments.', '⏳');
                 resetUI();
             } else {
+                stopOcrProgress();
                 openErrorModal('Processing Error', 'Error processing receipt: ' + (result.error || `HTTP Status ${status}`), '📡');
                 resetUI();
             }
         } catch (error) {
             console.error('Upload Error:', error);
+            stopOcrProgress();
             openErrorModal('Network Error', 'A network error occurred while processing the receipt. Please check your connection.', '🌐');
             resetUI();
         }
@@ -1485,6 +1491,76 @@ function clearVerification() {
     verifyNote.innerText = '';
     verificationDetail.hidden = true;
 }
+
+// ── OCR PROGRESS ───────────────────────────────────────────────
+// The extraction wait is long and variable: ocr.py holds a 23-second rate-limit
+// gate before it may call Gemini at all, and on a transient failure it retries
+// up to three times per model across two models. A worst case runs past a
+// minute. The old bar eased to 90% over ten seconds and then sat there, so
+// every slow extraction looked like a hang.
+//
+// There is no progress signal to report — the request is one blocking call — so
+// the percentage is an ESTIMATE against expected duration, not a measurement.
+// It is kept honest three ways: it rises on a curve that never stalls and never
+// reaches 100% until the response actually lands; the elapsed counter beside it
+// is measured, so something factual is always moving; and the caption names the
+// phase the pipeline is genuinely in at that point.
+let _ocrTimer = null;
+let _ocrStart = 0;
+
+// Time constant of the curve: pct = CEILING * (1 - e^(-t/TAU)).
+// ~34% at 8s, ~65% at 20s, ~87% at 40s, ~94% at 60s — always climbing, never
+// arriving. CEILING leaves headroom so the jump to 100% reads as completion.
+const OCR_TAU = 18;
+const OCR_CEILING = 97;
+
+function _ocrPhase(seconds) {
+    if (seconds < 2)  return ['Checking image quality…', false];
+    if (seconds < 24) return ['Waiting for the AI model…', false];
+    if (seconds < 45) return ['Model is busy — retrying…', true];
+    return ['Still retrying. This can take up to a minute.', true];
+}
+
+function startOcrProgress() {
+    stopOcrProgress();                       // never run two tickers at once
+    _ocrStart = Date.now();
+
+    ocrProgress.style.width = '0%';
+    ocrProgress.classList.add('is-working');
+
+    _ocrTimer = setInterval(() => {
+        const seconds = (Date.now() - _ocrStart) / 1000;
+        const pct = OCR_CEILING * (1 - Math.exp(-seconds / OCR_TAU));
+
+        ocrProgress.style.width = pct.toFixed(1) + '%';
+        if (ocrProgressPct) ocrProgressPct.textContent = Math.floor(pct) + '%';
+        if (ocrProgressElapsed) ocrProgressElapsed.textContent = Math.floor(seconds) + 's';
+
+        const [note, slow] = _ocrPhase(seconds);
+        if (ocrProgressNote && ocrProgressNote.textContent !== note) {
+            ocrProgressNote.textContent = note;
+        }
+        if (ocrProgressMeta) ocrProgressMeta.classList.toggle('is-slow', slow);
+    }, 150);
+}
+
+// complete=true fills to 100% before the next stage; on failure the bar simply
+// stops where it is, rather than implying the work finished.
+function stopOcrProgress(complete) {
+    if (_ocrTimer) {
+        clearInterval(_ocrTimer);
+        _ocrTimer = null;
+    }
+    ocrProgress.classList.remove('is-working');
+
+    if (complete) {
+        ocrProgress.style.width = '100%';
+        if (ocrProgressPct) ocrProgressPct.textContent = '100%';
+        if (ocrProgressNote) ocrProgressNote.textContent = 'Extraction complete';
+        if (ocrProgressMeta) ocrProgressMeta.classList.remove('is-slow');
+    }
+}
+
 
 // Renders the verification verdict: the tamper CNN score, the spending-anomaly
 // flag, and the reason the risk level landed where it did. The backend always
@@ -1586,7 +1662,12 @@ function processReceiptData(receiptData) {
 function resetUI() {
     // Reset UI state
     fileInput.value = "";
+    stopOcrProgress();
     ocrProgress.style.width = '0%';
+    if (ocrProgressPct) ocrProgressPct.textContent = '0%';
+    if (ocrProgressElapsed) ocrProgressElapsed.textContent = '0s';
+    if (ocrProgressNote) ocrProgressNote.textContent = 'Preparing image…';
+    if (ocrProgressMeta) ocrProgressMeta.classList.remove('is-slow');
     clearVerification();
     btnAddBalance.disabled = false;
     btnAddBalance.innerText = "Add to Balance";

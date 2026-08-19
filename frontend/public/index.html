@@ -417,6 +417,14 @@
                         <div class="progress-bar-container">
                             <div class="progress-bar" id="ocr-progress"></div>
                         </div>
+                        <!-- Percentage advances on a time curve; the elapsed
+                             counter beside it is measured, so the readout keeps
+                             moving even while the model is slow to answer. -->
+                        <div class="progress-meta">
+                            <span class="progress-pct" id="ocr-progress-pct">0%</span>
+                            <span class="progress-note" id="ocr-progress-note">Preparing image…</span>
+                            <span class="progress-elapsed" id="ocr-progress-elapsed">0s</span>
+                        </div>
                     </div>
                 </div>
 

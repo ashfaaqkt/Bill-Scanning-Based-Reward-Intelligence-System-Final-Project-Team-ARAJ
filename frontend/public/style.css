@@ -1772,7 +1772,65 @@ body::before {
     width: 0%;
     background: linear-gradient(90deg, var(--color-gold), var(--color-gold-light));
     border-radius: 100px;
-    transition: width 0.3s ease;
+    /* Short transition only — width is now stepped every 150ms from JS, so a
+       long CSS transition would fight the ticker and look laggy. */
+    transition: width 0.2s linear;
+}
+
+/* A travelling sheen, so the bar is visibly alive even in the late phase where
+   the percentage advances by well under 1% per second. */
+.progress-bar.is-working {
+    background-image:
+        linear-gradient(90deg, var(--color-gold), var(--color-gold-light)),
+        linear-gradient(100deg,
+            rgba(255, 255, 255, 0) 30%,
+            rgba(255, 255, 255, 0.55) 50%,
+            rgba(255, 255, 255, 0) 70%);
+    background-size: 100% 100%, 220px 100%;
+    background-repeat: no-repeat, no-repeat;
+    animation: progress-sheen 1.4s linear infinite;
+}
+
+@keyframes progress-sheen {
+    from { background-position: 0 0, -220px 0; }
+    to   { background-position: 0 0, calc(100% + 220px) 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .progress-bar.is-working { animation: none; }
+}
+
+.progress-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-top: 0.55rem;
+    font-size: 0.82rem;
+    color: var(--color-smoke);
+}
+
+.progress-meta .progress-pct {
+    font-weight: 700;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    min-width: 3.2em;
+}
+
+.progress-meta .progress-note {
+    flex: 1;
+    text-align: left;
+}
+
+.progress-meta .progress-elapsed {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-mist);
+}
+
+/* Long waits are the model being slow, not a fault — say so in a calmer tone
+   than an error, but visibly enough that nobody assumes the page has hung. */
+.progress-meta.is-slow .progress-note {
+    color: var(--color-gold);
+    font-weight: 600;
 }
 
 /* Results grid */
