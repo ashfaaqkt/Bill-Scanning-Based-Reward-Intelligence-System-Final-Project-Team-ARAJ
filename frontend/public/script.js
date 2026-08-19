@@ -882,9 +882,18 @@ async function claimRewardFromCard(card, buttonEl) {
         code: random12DigitCode()
     };
 
-    const originalText = buttonEl.innerText;
+    // Claiming is a network round trip plus an atomic Firestore transaction, so
+    // the wait is real. Capture innerHTML rather than innerText — the restore
+    // path has to put back exactly what was there, spinner markup included.
+    const originalHTML = buttonEl.innerHTML;
+    const restoreButton = () => {
+        buttonEl.disabled = false;
+        buttonEl.classList.remove('is-busy');
+        buttonEl.innerHTML = originalHTML;
+    };
     buttonEl.disabled = true;
-    buttonEl.innerText = 'Claiming...';
+    buttonEl.classList.add('is-busy');
+    buttonEl.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>Claiming...';
 
     try {
         let data = {};
@@ -905,6 +914,9 @@ async function claimRewardFromCard(card, buttonEl) {
             });
 
             if (response.status === 401 || response.status === 403) {
+                // Restore before bailing — the session may be restored behind
+                // this modal, and a button left mid-spin never recovers.
+                restoreButton();
                 localStorage.removeItem('token');
                 checkAuth();
                 return;
@@ -912,8 +924,7 @@ async function claimRewardFromCard(card, buttonEl) {
 
             data = await response.json();
             if (!response.ok || !data.success) {
-                buttonEl.disabled = false;
-                buttonEl.innerText = originalText;
+                restoreButton();
                 alert(data.error || 'Unable to claim reward right now.');
                 return;
             }
@@ -926,6 +937,7 @@ async function claimRewardFromCard(card, buttonEl) {
 
         card.dataset.claimed = 'true';
         card.classList.add('claim-card--locked');
+        buttonEl.classList.remove('is-busy');
         buttonEl.innerText = 'Claimed';
         buttonEl.disabled = true;
 
@@ -946,8 +958,7 @@ async function claimRewardFromCard(card, buttonEl) {
         }
     } catch (error) {
         console.error('Claim error:', error);
-        buttonEl.disabled = false;
-        buttonEl.innerText = originalText;
+        restoreButton();
         alert('Network error while claiming reward.');
     }
 }
@@ -2109,3 +2120,122 @@ if (historySearchInput) {
 if (historyCategoryFilter) {
     historyCategoryFilter.addEventListener('change', filterHistoryTable);
 }
+
+/* ── CUSTOM SELECT ──────────────────────────────────────────────
+   Enhances a real <select> rather than replacing it. The native element stays
+   in the DOM as the source of truth, so `historyCategoryFilter.value` and the
+   'change' listener in filterHistoryTable() keep working untouched — and if
+   this never runs, the page still has a usable control. */
+function enhanceSelect(selectEl) {
+    if (!selectEl || selectEl.dataset.enhanced === 'true') return;
+    selectEl.dataset.enhanced = 'true';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'custom-select';
+    selectEl.parentNode.insertBefore(wrap, selectEl);
+    wrap.appendChild(selectEl);
+    selectEl.classList.add('custom-select__native');
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';                  // never submit a surrounding form
+    trigger.className = 'custom-select__trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = '<span class="custom-select__label"></span>'
+                      + '<span class="custom-select__caret" aria-hidden="true">▾</span>';
+
+    const panel = document.createElement('ul');
+    panel.className = 'custom-select__panel';
+    panel.setAttribute('role', 'listbox');
+
+    const label = trigger.querySelector('.custom-select__label');
+    const options = Array.from(selectEl.options);
+
+    options.forEach((opt, i) => {
+        const li = document.createElement('li');
+        li.className = 'custom-select__option';
+        li.setAttribute('role', 'option');
+        li.dataset.index = String(i);
+        li.textContent = opt.textContent;
+        panel.appendChild(li);
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+
+    const items = Array.from(panel.children);
+    let activeIndex = selectEl.selectedIndex;
+
+    function syncFromNative() {
+        const i = selectEl.selectedIndex;
+        label.textContent = options[i] ? options[i].textContent : '';
+        items.forEach((li, n) => li.setAttribute('aria-selected', n === i ? 'true' : 'false'));
+    }
+
+    function setActive(i) {
+        activeIndex = Math.max(0, Math.min(items.length - 1, i));
+        items.forEach((li, n) => li.classList.toggle('is-active', n === activeIndex));
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    function open() {
+        wrap.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        setActive(selectEl.selectedIndex);
+    }
+
+    function close() {
+        wrap.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        items.forEach(li => li.classList.remove('is-active'));
+    }
+
+    function choose(i) {
+        if (selectEl.selectedIndex !== i) {
+            selectEl.selectedIndex = i;
+            // Dispatch so existing listeners fire — assigning .value in code
+            // does not raise 'change' on its own.
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        syncFromNative();
+        close();
+        trigger.focus();
+    }
+
+    trigger.addEventListener('click', () => {
+        wrap.classList.contains('is-open') ? close() : open();
+    });
+
+    panel.addEventListener('click', e => {
+        const li = e.target.closest('.custom-select__option');
+        if (li) choose(Number(li.dataset.index));
+    });
+
+    trigger.addEventListener('keydown', e => {
+        const isOpen = wrap.classList.contains('is-open');
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!isOpen) return open();
+            setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1));
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            isOpen ? choose(activeIndex) : open();
+        } else if (e.key === 'Escape' && isOpen) {
+            close();
+        } else if (e.key === 'Home' && isOpen) {
+            e.preventDefault(); setActive(0);
+        } else if (e.key === 'End' && isOpen) {
+            e.preventDefault(); setActive(items.length - 1);
+        }
+    });
+
+    document.addEventListener('click', e => {
+        if (!wrap.contains(e.target)) close();
+    });
+
+    // Keep the label honest if anything sets the value programmatically.
+    selectEl.addEventListener('change', syncFromNative);
+    syncFromNative();
+}
+
+document.querySelectorAll('select.history-select').forEach(enhanceSelect);
