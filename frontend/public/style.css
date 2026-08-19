@@ -2263,7 +2263,11 @@ body::before {
     grid-template-columns: repeat(auto-fit, minmax(clamp(200px, 22vw, 260px), 1fr));
     gap: 1rem;
     overflow-y: auto;
-    align-items: start;
+    /* Default `stretch` is what keeps every card in a row the height of the
+       tallest one. `align-items: start` sized each card to its own content,
+       which let a taller card paint outside its grid area and sit on top of the
+       row below. */
+    align-items: stretch;
 }
 
 .claim-card {
@@ -2274,7 +2278,11 @@ body::before {
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    min-height: 236px;
+    /* No min-height. It was being taken as the row size — the grid resolved
+       every track to exactly 236px, so a card whose content needed 332px
+       overflowed its own box and the button landed on the row below. Natural
+       height keeps the rows honest; padding alone gives short cards enough
+       presence without a floor. */
     height: auto;
     box-shadow: 0 12px 30px rgba(15, 20, 25, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.58);
     backdrop-filter: blur(24px) saturate(185%);
