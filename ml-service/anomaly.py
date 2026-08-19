@@ -79,13 +79,17 @@ def _load_bundle():
     return _bundle
 
 
-def _reference_amount(user_id, bundle):
+def _reference_amount(user_id):
     """
     The 'typical receipt' this amount is judged against.
 
     Prefers the user's own median once they have enough history — that is the
-    per-user behaviour the route promises. Falls back to the population median
-    the model was trained on.
+    per-user behaviour the route promises. Otherwise falls back to
+    POPULATION_REFERENCE_INR.
+
+    Note the history is in-process (see _user_history): a restart drops it, so
+    the "user" basis only applies once a user has scanned
+    MIN_HISTORY_FOR_USER_REFERENCE receipts against THIS process.
     """
     history = _user_history[user_id]
     if len(history) >= MIN_HISTORY_FOR_USER_REFERENCE:
@@ -115,7 +119,7 @@ def score(user_id: str, amount: float, category: str, date: str) -> dict:
     if bundle is None or amount_value <= 0:
         return {"anomaly_score": BASELINE_SCORE, "is_anomaly": False}
 
-    reference, basis = _reference_amount(user_id, bundle)
+    reference, basis = _reference_amount(user_id)
 
     try:
         import numpy as np

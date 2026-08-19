@@ -19,6 +19,10 @@ const admin = require('firebase-admin');            // Firestore database access
 // ── CONSTANTS ──────────────────────────────────────────────────
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';  // Python Flask ML service
 const CLASSIFIER_MIN_CONFIDENCE = 0.45;  // below this, keep Gemini's category instead of the classifier's
+// How many recent receipts to compare a new upload against perceptually. Every
+// hash is sent to the ML service on each scan, so this trades duplicate recall
+// against payload size; at this project's data volume it covers the whole corpus.
+const PHASH_LOOKBACK = 300;
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'serviceAccountKey.json');
 const SUPPORTED_IMAGE_MIME_TYPES = new Set([  // Receipt image formats accepted at upload
     'image/jpeg',
@@ -281,6 +285,13 @@ function authenticateToken(req, res, next) {
 // ── REWARD ENGINE ──────────────────────────────────────────────
 // Points formula: ₹100 = 1 base pt → multiplied by category, tier, and streak bonuses
 // Grocery +20% | Food & Beverage +50% | Premium tier +50% | Streak +30%
+//
+// NOTE: `streak` is stored on the user and read here, but nothing in the system
+// ever sets it after the document is created — there is no daily-activity
+// calculation. Both creation paths seed it false, so the +30% branch is
+// currently unreachable in practice. It is left in place because the reward
+// formula is documented in the report; awarding it needs a streak calculation
+// that does not exist yet.
 function calculateRewards(totalAmount, category, isStreak = false, tier = "Standard") {
     let points = 0;
     let logicText = "";
@@ -317,7 +328,13 @@ async function ensureUserExists(userId) {
         await userRef.set({
             total_points: 0,
             tier: 'Standard',
-            streak: true,
+            // false, matching /api/signup. This path used to seed `true`, so a
+            // user document created here rather than at signup earned the +30%
+            // streak multiplier on every receipt, permanently — nothing
+            // recomputes the flag — while a normally registered user never did.
+            // Two users with identical behaviour were paid at different rates
+            // depending on which code path happened to create their document.
+            streak: false,
             created_at: admin.firestore.FieldValue.serverTimestamp()
         });
     }
@@ -1009,6 +1026,30 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         let fraudScore = 0.05;
         let riskLevel = "Low";
         let fraudSignals = {};
+        let tamperProbability = null;
+        // Perceptual hashes of recent receipts. fraud.py can only compare against
+        // hashes it is handed, and nothing here ever stored or sent one — so the
+        // duplicate signal was implemented, documented as live, and returned false
+        // on every upload since it was written.
+        //
+        // This is a NEAR-duplicate check, which is why it earns its place next to
+        // the SHA-256 fingerprint above: that catches an identical resubmission,
+        // but the same bill photographed twice yields different bytes, different
+        // OCR text and a different fingerprint, while still hashing close here.
+        let knownHashes = [];
+        try {
+            const recentHashDocs = await db.collection('Receipts')
+                .orderBy('created_at', 'desc')
+                .limit(PHASH_LOOKBACK)
+                .get();
+            knownHashes = recentHashDocs.docs
+                .map(doc => (doc.data() || {}).image_phash)
+                .filter(Boolean);
+        } catch (hashErr) {
+            // Comparing against nothing is the old behaviour, not a new failure.
+            console.warn("Could not load recent perceptual hashes:", hashErr.message);
+        }
+
         try {
             // The image goes with it. Without it the ML service can only apply
             // the OCR rule signals — the perceptual-hash duplicate check and the
@@ -1017,7 +1058,8 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             const fraudRes = await axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
                 ocr_result: receiptData,
                 image: receiptPayload,
-                mimeType
+                mimeType,
+                known_hashes: knownHashes
             });
             if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
                 fraudScore = fraudRes.data.fraud_score;
@@ -1025,18 +1067,23 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 // without forwarding it the client can only guess why a score is
                 // what it is, and guessing produced a misleading explanation.
                 fraudSignals = fraudRes.data.signals || {};
+                tamperProbability = fraudRes.data.tamper_probability ?? null;
                 riskLevel = fraudScore > 0.7 ? "High" : (fraudScore > 0.3 ? "Medium" : "Low");
+
+                // Persist this receipt's hash so the NEXT upload has something to
+                // compare against. Written separately because the receipt document
+                // is created before the score exists.
+                if (fraudRes.data.image_phash) {
+                    await newReceiptRef.update({ image_phash: fraudRes.data.image_phash });
+                }
             }
         } catch (mlError) {
             console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
         }
 
-        // Cross-user duplicate → escalate to High regardless of ML score
-        if (crossUserDuplicate) {
-            console.warn(`[FRAUD] Cross-user duplicate detected for fingerprint ${receiptFingerprint}`);
-            fraudScore = Math.max(fraudScore, 0.85);
-            riskLevel = "High";
-        }
+        // No cross-user branch here any more: that case now returns 409
+        // ALREADY_CLAIMED before any of this runs, so escalating the score was
+        // unreachable code describing a path the request can no longer take.
 
         // Items/total mismatch → bump to at least Medium
         if (itemsMismatch) {
@@ -1124,6 +1171,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 crossUserDuplicate: crossUserDuplicate,
                 itemsTotalMismatch: itemsMismatch,
                 fraudSignals: fraudSignals,
+                // What the tamper CNN itself returned, separate from the blended
+                // score. The client was showing the blended figure labelled as a
+                // tamper score, which is not the same number.
+                tamperProbability: tamperProbability,
                 recommendedRewards: recommendedRewards
             }
         });

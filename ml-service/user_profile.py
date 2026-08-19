@@ -128,8 +128,11 @@ def _normalised(weights):
 def interest_vector(user_id: str) -> dict:
     """Category -> share of recent spend, summing to 1. Empty for a new user."""
     with _lock:
-        profile = _load().get(user_id)
-        return _normalised(profile["weights"]) if profile else {}
+        profile = _load().get(user_id) or {}
+        # .get, not ["weights"]: a profile that predates this schema, or one left
+        # half-written, raised KeyError here and took /ml/recommend down with it,
+        # while receipt_count() beside it handled the same shape safely.
+        return _normalised(profile.get("weights") or {})
 
 
 def receipt_count(user_id: str) -> int:

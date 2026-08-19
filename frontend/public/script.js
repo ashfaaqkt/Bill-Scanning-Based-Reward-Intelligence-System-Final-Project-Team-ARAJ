@@ -1939,8 +1939,10 @@ function stopOcrProgress(complete) {
 }
 
 
-// Renders the verification verdict: the tamper CNN score, the spending-anomaly
-// flag, and the reason the risk level landed where it did. The backend always
+// Renders the verification verdict: the composite fraud score, the
+// spending-anomaly flag, and the reason the risk level landed where it did.
+// The score shown is the blend fraud.py returns, NOT the tamper CNN's own
+// probability — that arrives separately as tamperProbability. The backend always
 // sends these fields (it falls back to a 0.05 baseline when the ML service is
 // unreachable), so the block is driven by the response rather than guessed at.
 function renderVerification(receiptData) {
@@ -1977,7 +1979,9 @@ function renderVerification(receiptData) {
     if (receiptData.crossUserDuplicate) {
         reasons.push('already submitted by a different account');
     } else if (signals.duplicate) {
-        reasons.push('matches a receipt you have already scanned');
+        // The perceptual-hash check compares against recent receipts from every
+        // account, not just this user's, so it cannot promise whose it was.
+        reasons.push('closely matches a receipt already in the system');
     }
     if (signals.tamper) reasons.push('the image shows signs of editing');
     if (receiptData.itemsTotalMismatch) reasons.push('line items do not add up to the total');

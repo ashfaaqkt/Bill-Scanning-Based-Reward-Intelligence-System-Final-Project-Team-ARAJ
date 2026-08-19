@@ -1280,49 +1280,6 @@ body::before {
     margin-bottom: 1.5rem;
 }
 
-.landing-steps {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 0;
-}
-
-.landing-step {
-    flex: 1;
-    min-width: 120px;
-    max-width: 200px;
-    text-align: center;
-    padding: 1.25rem;
-}
-
-.step-arrow {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-gold);
-}
-
-.step-arrow svg {
-    width: 24px;
-    height: 24px;
-    animation: arrow-pulse 2s ease-in-out infinite;
-}
-
-.step-arrow:nth-of-type(2) svg {
-    animation-delay: 0.2s;
-}
-
-.step-arrow:nth-of-type(4) svg {
-    animation-delay: 0.4s;
-}
-
-.step-arrow:nth-of-type(6) svg {
-    animation-delay: 0.6s;
-}
 
 @keyframes arrow-pulse {
 
@@ -1343,22 +1300,6 @@ body::before {
         padding: 1.3rem 1rem 1.1rem;
     }
 
-    .landing-steps {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .landing-step {
-        max-width: none;
-    }
-
-    .step-arrow {
-        transform: rotate(90deg);
-    }
-
-    .step-arrow svg {
-        animation: arrow-pulse-down 2s ease-in-out infinite;
-    }
 
     @keyframes arrow-pulse-down {
 
@@ -1375,31 +1316,6 @@ body::before {
     }
 }
 
-.landing-step-num {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-gold-muted);
-    color: var(--color-gold);
-    font-weight: 700;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.75rem;
-}
-
-.landing-step h4 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-ink);
-}
-
-.landing-step p {
-    font-size: 0.8rem;
-    color: var(--color-smoke);
-    margin-top: 0.25rem;
-}
 
 /* Trust badges */
 .landing-trust {
@@ -1424,10 +1340,6 @@ body::before {
     color: var(--color-ink);
 }
 
-/* ——— Auth ——— */
-.auth-floating-wrapper {
-    margin-top: 2rem;
-}
 
 .auth-container.card.glass-panel {
     max-width: 400px;

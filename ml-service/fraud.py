@@ -65,13 +65,24 @@ def calculate_fraud_score(ocr_result):
 # Called by /ml/fraud-score; combines OCR signals into a single score + flags
 def score(image_path, ocr_result, known_hashes=None):
     """
-    Public API — returns fraud_score (0–1) and a signals breakdown dict.
-    pHash duplicate check and CNN tamper detection are active signals.
+    Public API — returns fraud_score (0–1), a signals breakdown, the tamper
+    probability, and the image's perceptual hash.
+
+    `image_phash` is returned so the caller can STORE it. The duplicate check
+    can only compare against hashes it is given, and until the backend persists
+    one per receipt there is nothing to compare against — the signal was
+    implemented and dead. See check_phash_duplicate().
     """
     fraud_score, signals = calculate_fraud_score(ocr_result)
+    image_phash = None
+    tamper_probability = None
 
     if image_path:
-        if check_phash_duplicate(image_path, known_hashes or []):
+        # Hash once and reuse: the comparison and the value handed back to the
+        # caller are the same number, and phash() decodes the whole image.
+        image_phash = compute_phash(image_path)
+
+        if is_duplicate_hash(image_phash, known_hashes or []):
             fraud_score += 0.40
             signals["duplicate"] = True
 
@@ -82,39 +93,70 @@ def score(image_path, ocr_result, known_hashes=None):
 
     return {
         "fraud_score": min(1.0, round(fraud_score, 4)),
-        "signals": signals
+        "signals": signals,
+        # Surfaced so the client can show what the CNN actually said rather than
+        # inferring it from the blended score.
+        "tamper_probability": (round(tamper_probability, 4)
+                               if tamper_probability is not None else None),
+        "image_phash": image_phash,
     }
 
 
 # ── DETECTOR IMPLEMENTATIONS (Notebook 03) ───────────────────
 # pHash duplicate check and CNN tamper classifier — trained/validated in NB 03.
 
-def check_phash_duplicate(image_path, known_hashes):
-    """Perceptual hash duplicate check — compare image pHash against set of known hashes."""
-    if not image_path or not known_hashes:
+def compute_phash(image_path):
+    """Perceptual hash of an image as a hex string, or None if it cannot be read."""
+    if not image_path:
+        return None
+    try:
+        from PIL import Image
+        import imagehash
+    except Exception:
+        return None
+    try:
+        with Image.open(image_path) as img:
+            return str(imagehash.phash(img))
+    except Exception:
+        return None
+
+
+def is_duplicate_hash(current_hash, known_hashes):
+    """
+    True when `current_hash` is within PHASH_DISTANCE_THRESHOLD of any known one.
+
+    This is a NEAR-duplicate test, which is the point: the SHA-256 fingerprint in
+    the backend catches byte-identical resubmissions, but a receipt photographed
+    a second time, cropped or re-compressed produces different bytes and different
+    OCR text. Those still hash close together perceptually.
+    """
+    if not current_hash or not known_hashes:
         return False
 
     try:
-        from PIL import Image
         import imagehash
     except Exception:
         return False
 
     try:
-        with Image.open(image_path) as img:
-            current_hash = imagehash.phash(img)
+        current = imagehash.hex_to_hash(str(current_hash))
     except Exception:
         return False
 
     for raw_hash in known_hashes:
         try:
-            known_hash = imagehash.hex_to_hash(str(raw_hash))
+            known = imagehash.hex_to_hash(str(raw_hash))
         except Exception:
-            continue
-        if current_hash - known_hash <= PHASH_DISTANCE_THRESHOLD:
+            continue                      # skip a malformed stored hash
+        if current - known <= PHASH_DISTANCE_THRESHOLD:
             return True
 
     return False
+
+
+def check_phash_duplicate(image_path, known_hashes):
+    """Back-compat wrapper — hashes the file, then compares. Used by test_fraud.py."""
+    return is_duplicate_hash(compute_phash(image_path), known_hashes)
 
 def _load_tamper_model(device):
     """Loads the CNN once per process — it is ~45 MB, too big to reload per receipt."""
@@ -149,8 +191,9 @@ def check_tamper_cnn(image_path):
         return 0.05
 
     if not MODEL_PATH.exists():
-        # Model file missing (gitignored by design). Upload tamper_cnn_sprint2_auc076.pt from
-        # Drive to ml-service/models/ to enable CNN inference; returns baseline until then.
+        # Model file missing (gitignored by design). Fetch the checkpoint named in
+        # MODEL_PATH above into ml-service/models/ — see fetch_models.py — to enable
+        # CNN inference; every receipt scores the baseline until then.
         return 0.05
 
     try:
