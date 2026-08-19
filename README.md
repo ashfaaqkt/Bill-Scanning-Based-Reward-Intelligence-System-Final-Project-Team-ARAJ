@@ -65,6 +65,7 @@ See docs/SETUP.md for full local setup instructions.
 | **[dataset/DATA_PREP.md](dataset/DATA_PREP.md)** | Prepared training-data outputs, schemas, and caveats | Anyone training the ML models |
 | **[report/model_cards/](report/model_cards/README.md)** | Per-model algorithm, data, comparison, results and limitations | Viva prep, report writing, anyone quoting a number |
 | **[report/fraud_test_report.md](report/fraud_test_report.md)** | Full fraud evaluation — splits, ablation, significance testing | Fraud module review |
+| **[Project brochure](https://drive.google.com/file/d/1loYtGc66bu3yF7Xkgka_RDp3yvDJOA0g/view?usp=sharing)** | One-page overview of the project (PDF, Google Drive) | Reviewers, panel, anyone new to the project |
 
 **Start Here:**
 1. **New to the project?** → Read [SETUP.md](docs/SETUP.md) to get your environment running
