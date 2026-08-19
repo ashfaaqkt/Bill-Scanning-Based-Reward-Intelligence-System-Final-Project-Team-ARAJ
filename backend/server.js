@@ -951,8 +951,14 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         let fraudScore = 0.05;
         let riskLevel = "Low";
         try {
+            // The image goes with it. Without it the ML service can only apply
+            // the OCR rule signals — the perceptual-hash duplicate check and the
+            // 448px tamper CNN both need the pixels, and silently score nothing
+            // when they are absent.
             const fraudRes = await axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
-                ocr_result: receiptData
+                ocr_result: receiptData,
+                image: receiptPayload,
+                mimeType
             });
             if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
                 fraudScore = fraudRes.data.fraud_score;

@@ -69,14 +69,52 @@ def classify_route():
 
 
 # ── FRAUD SCORER ───────────────────────────────────────────────
-# POST { ocr_result, known_hashes? } → returns { fraud_score 0–1, signals dict }
-# ocr_result is the Gemini OCR JSON (may contain error, reason, handwritten_flag fields)
+# POST { ocr_result, image?, mimeType?, known_hashes? }
+#   → returns { fraud_score 0–1, signals dict }
+#
+# ocr_result is the Gemini OCR JSON (may contain error, reason, handwritten_flag).
+# `image` is the same base64 payload sent to /ml/ocr.
+#
+# The image matters: fraud.score() only runs the perceptual-hash duplicate check
+# and the 448px tamper CNN when it is given a path. This route previously passed
+# an empty string, so both signals were skipped on every request and the live
+# fraud score was OCR rule signals alone — the trained CNN never saw an upload.
 @app.route("/ml/fraud-score", methods=["POST"])
 def fraud_score_route():
     data = request.get_json() or {}
     ocr_result = data.get("ocr_result", {})
     known_hashes = data.get("known_hashes", [])
-    result = fraud.score("", ocr_result, known_hashes)
+    image_b64 = data.get("image")
+    mime_type = data.get("mimeType", "")
+
+    # No image: still a valid request — score on OCR signals alone rather than
+    # failing, which is what the backend falls back to if the upload is text-only.
+    if not image_b64:
+        return jsonify(fraud.score("", ocr_result, known_hashes))
+
+    import base64
+    import tempfile
+
+    suffix = ocr._MIME_SUFFIX.get((mime_type or "").lower().strip(), ".jpg")
+    tmp_path = None
+    try:
+        image_bytes = base64.b64decode(image_b64)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(image_bytes)
+            tmp_path = tmp.name
+        result = fraud.score(tmp_path, ocr_result, known_hashes)
+    except Exception as exc:
+        # A decode or scoring failure must not fail the upload; fall back to the
+        # OCR-signal score and say so in the log.
+        print(f"[WARN] fraud-score image path failed ({exc}) — OCR signals only")
+        result = fraud.score("", ocr_result, known_hashes)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError as exc:
+                print(f"[WARN] Could not remove temp fraud file {tmp_path}: {exc}")
+
     return jsonify(result)
 
 
