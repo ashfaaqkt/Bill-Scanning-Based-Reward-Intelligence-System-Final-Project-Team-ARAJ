@@ -758,6 +758,16 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                     : 'Scan Failed: Please ensure the receipt is clear.';
                 return res.status(422).json({ error: reason });
             }
+            // The ML service returns 429 when every API key has hit its
+            // per-minute quota. That is a wait-and-retry condition, not a fault
+            // in the receipt — collapsing it into the generic 503 below told the
+            // user their image could not be processed, which is simply untrue
+            // and sends them off to re-photograph a perfectly good bill.
+            if (status === 429) {
+                return res.status(429).json({
+                    error: 'The AI service has hit its rate limit. Wait about a minute and try the same receipt again.'
+                });
+            }
             console.error('[ERROR] OCR service unreachable:', ocrErr.message);
             return res.status(503).json({ error: 'OCR service is unavailable. Please try again shortly.' });
         }

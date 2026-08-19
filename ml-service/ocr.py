@@ -12,6 +12,7 @@ import tempfile
 import cv2
 import numpy as np
 from google import genai
+from google.genai import types as genai_types
 from PIL import Image
 from dotenv import load_dotenv
 
@@ -227,6 +228,10 @@ def extract_receipt_data(image_path):
     UNSUPPORTED = ("404", "not_found", "no longer available")
 
     DEADLINE_SECONDS = 40
+    # Per-call ceiling. Without it the deadline is only checked BETWEEN
+    # attempts, so one slow call cannot be interrupted — a request was observed
+    # running 93 seconds past its budget because a single call hung that long.
+    CALL_TIMEOUT_SECONDS = 15
     MAX_ATTEMPTS = 4              # across all key/model combinations
     BACKOFF_SECONDS = 2
     QUOTA_COOLDOWN = 65           # a per-minute window, plus a margin
@@ -312,9 +317,19 @@ def extract_receipt_data(image_path):
                 state["last_used"] = time.time()
                 last_request_time = state["last_used"]
 
+                # Cap the call at whichever is smaller: the per-call ceiling or
+                # what remains of the overall budget.
+                budget_left = max(1.0, deadline - time.time())
+                call_timeout = min(CALL_TIMEOUT_SECONDS, budget_left)
+
                 response = _client_for(key_name, key_value).models.generate_content(
                     model=model_name,
                     contents=[RECEIPT_PROMPT, img],
+                    config=genai_types.GenerateContentConfig(
+                        http_options=genai_types.HttpOptions(
+                            timeout=int(call_timeout * 1000)   # milliseconds
+                        )
+                    ),
                 )
 
                 raw = (response.text or "").strip()
