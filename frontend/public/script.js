@@ -242,19 +242,29 @@ async function loadRecommendations() {
 // from the ML ranking when available — in rank order, best match first — and from
 // the shuffled static pool otherwise.
 function generateClaimCatalog() {
-    const vouchers = [];
     const usingRanked = RECOMMENDED_OFFERS.length > 0;
     const source = usingRanked ? RECOMMENDED_OFFERS : shuffleArray(VOUCHER_POOL);
 
-    for (let i = 0; i < 9; i += 1) {
-        const voucher = source[i % source.length];
+    const vouchers = [];
+    const count = Math.min(9, source.length);
+    for (let i = 0; i < count; i += 1) {
+        const voucher = source[i];
         vouchers.push({
             type: 'voucher',
             icon: voucher.icon,
             title: voucher.title,
             offer: voucher.offer,
-            reason: voucher.reason || null,
-            requiredPoints: randomIntBetween(20, 90)
+            // The recommender's own explanation — "matches 56% of your recent
+            // spend". It was being captured and then never displayed.
+            reason: usingRanked ? (voucher.reason || null) : null,
+            rank: usingRanked ? i + 1 : null,
+            // Cost follows rank rather than a fresh random number each render.
+            // randomIntBetween() meant the same voucher cost a different amount
+            // every time the modal opened, and made the ordering look arbitrary
+            // even when the ranking underneath was not.
+            requiredPoints: usingRanked
+                ? 30 + i * 5
+                : randomIntBetween(20, 90)
         });
     }
 
@@ -270,6 +280,16 @@ function generateClaimCatalog() {
         });
     }
 
+    // Signed in: keep the ranking intact. The previous version shuffled the
+    // combined list, which threw away the ordering the recommender had just
+    // computed — the vault looked random however good the model was. Scratch
+    // cards go after the ranked vouchers instead of being dealt through them.
+    if (usingRanked) {
+        return [...vouchers, ...scratches];
+    }
+
+    // Guest: nothing to personalise against, so the static pool is shuffled and
+    // presented as the generic catalogue it is.
     return shuffleArray([...vouchers, ...scratches]);
 }
 
@@ -320,6 +340,7 @@ function renderClaimCards() {
                 </div>
                 <h3>${reward.title}</h3>
                 <p class="claim-offer">${reward.offer}</p>
+                ${reward.reason ? `<p class="claim-reason">🎯 ${reward.reason}</p>` : ''}
                 <p class="claim-required">Required: <strong>${reward.requiredPoints} points</strong></p>
                 <button class="btn btn-primary" data-voucher-btn ${canClaim ? '' : 'disabled'}>
                     ${canClaim ? 'Claim Voucher' : `Need ${reward.requiredPoints} pts`}
@@ -1672,6 +1693,12 @@ function processReceiptData(receiptData) {
         if (getComputedStyle(sectionHistory).display !== 'none') {
             loadScanHistory();
         }
+
+        // Re-rank the vault against the receipt just scanned. The backend has
+        // already updated this user's interest vector, so without this the
+        // vault keeps showing the ranking from login and a fresh scan appears
+        // to change nothing.
+        loadRecommendations();
     }, 600);
 }
 

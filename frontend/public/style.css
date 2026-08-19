@@ -2338,6 +2338,14 @@ body::before {
     margin-bottom: 0.45rem;
 }
 
+.claim-reason {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--color-gold);
+    font-weight: 600;
+}
+
 .claim-offer {
     font-size: 0.9rem;
     color: var(--color-charcoal);
