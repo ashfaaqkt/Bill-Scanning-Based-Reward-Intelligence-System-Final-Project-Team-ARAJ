@@ -3882,3 +3882,8 @@ button.is-busy:disabled,
 }
 
 .vault-refreshing[hidden] { display: none; }
+
+/* Skeleton rows reuse .claim-skeleton__line; inside a table cell the line needs
+   to be a block so its width and the sheen animation apply. */
+.claimed-skeleton-row td { padding: 1rem 0.5rem; }
+.claimed-skeleton-row .claim-skeleton__line { display: block; }

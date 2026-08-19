@@ -693,9 +693,51 @@ async function openClaimedModal() {
         openAuthModal(true);
         return;
     }
-    await loadClaimedHistory();
+
+    // Same fault the vault had: this awaited the fetch before opening, so the
+    // click sat on a dead page — and the #claimed-loading notice the markup
+    // already provides was useless, because it lived inside a modal that had
+    // not been shown yet. Open first, then load against skeleton rows.
+    //
+    // Unlike the vault there is nothing cached to paint: claimed history exists
+    // only on the server, so placeholders are the honest first frame.
+    showClaimedSkeletons();
     claimedModal.classList.remove('hidden');
     syncBodyScrollLock();
+
+    try {
+        await withTimeout(loadClaimedHistory(), VAULT_REFRESH_TIMEOUT);
+    } catch (err) {
+        // Never leave the placeholders up forever — say what happened instead.
+        console.warn('Claimed history did not load.', err);
+        clearClaimedSkeletons();
+        if (!claimedTableBody.children.length) {
+            claimedLoading.style.display = 'none';
+            claimedEmpty.style.display = 'block';
+            claimedEmpty.textContent =
+                'Could not load your claimed vouchers. Please close this and try again.';
+        }
+    }
+}
+
+/** Placeholder rows for the claimed-history table while it loads. */
+function showClaimedSkeletons(rows = 4) {
+    if (!claimedTableBody) return;
+    claimedLoading.style.display = 'none';   // superseded by the rows themselves
+    claimedEmpty.style.display = 'none';
+    claimedTableBody.innerHTML = Array.from({ length: rows }, () => `
+        <tr class="claimed-skeleton-row" aria-hidden="true">
+            <td><span class="claim-skeleton__line" style="width:80%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:55%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:70%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:65%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:40%;margin-left:auto"></span></td>
+        </tr>`).join('');
+}
+
+function clearClaimedSkeletons() {
+    if (!claimedTableBody) return;
+    claimedTableBody.querySelectorAll('.claimed-skeleton-row').forEach(r => r.remove());
 }
 
 function closeClaimedModal() {
@@ -2076,9 +2118,14 @@ historyTableBody.addEventListener('click', async (e) => {
 });
 
 async function loadClaimedHistory() {
-    claimedLoading.style.display = 'block';
+    // Do NOT blank the table here. On open it holds skeleton rows, and on a
+    // refresh-in-place it holds the previous claims — clearing either would
+    // flash an empty table for the length of the request. The rows are replaced
+    // wholesale once the data arrives, and the empty/error branches below clear
+    // the placeholders themselves.
+    const hasSkeletons = !!claimedTableBody.querySelector('.claimed-skeleton-row');
+    claimedLoading.style.display = hasSkeletons ? 'none' : 'block';
     claimedEmpty.style.display = 'none';
-    claimedTableBody.innerHTML = '';
 
     try {
         let claimsData = [];
@@ -2091,6 +2138,7 @@ async function loadClaimedHistory() {
         } else {
             const response = await fetch('/api/claimed-rewards', { headers: getAuthHeaders() });
             if (response.status === 401 || response.status === 403) {
+                clearClaimedSkeletons();   // else the placeholders outlive the session
                 localStorage.removeItem('token');
                 checkAuth();
                 return;
@@ -2124,10 +2172,12 @@ async function loadClaimedHistory() {
                 </tr>
             `).join('');
         } else {
+            clearClaimedSkeletons();
             claimedEmpty.style.display = 'block';
         }
     } catch (error) {
         console.error('Error fetching claimed history:', error);
+        clearClaimedSkeletons();
         claimedLoading.style.display = 'none';
         claimedEmpty.style.display = 'block';
         claimedEmpty.innerText = 'Failed to load claimed vouchers.';
