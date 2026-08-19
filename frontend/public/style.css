@@ -3939,3 +3939,23 @@ body.modal-open {
     }
     #error-modal-message { font-size: 0.9rem; }
 }
+
+/* Vault footer disclaimer. Deliberately quiet — it must be readable without
+   competing with the rewards, so it is small and muted but not so faint that
+   it reads as decoration. */
+.vault-disclaimer {
+    max-width: 70ch;
+    margin: 1.75rem auto 0;
+    padding-top: 1rem;
+    border-top: var(--border-refined);
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--color-smoke);
+    text-align: center;
+}
+
+.vault-disclaimer strong { color: var(--color-charcoal); }
+
+@media (max-width: 480px) {
+    .vault-disclaimer { font-size: 0.74rem; text-align: left; }
+}
