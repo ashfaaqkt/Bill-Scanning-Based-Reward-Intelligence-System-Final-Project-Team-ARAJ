@@ -211,6 +211,18 @@ among several**, contributing +0.40 to the fraud score above a 0.50 threshold,
 alongside perceptual-hash duplicate detection and OCR-derived flags. It degrades
 gracefully to a 0.05 baseline when the model file is absent.
 
+> **Both image-based signals were dead in production until 19 Aug 2026, and this
+> is worth stating plainly.** `/ml/fraud-score` was being called without the
+> image, and `fraud.score()` only runs the CNN and the perceptual hash when it is
+> given a path — so every upload was scored on OCR flags alone. Separately, no
+> perceptual hash was ever stored or sent, so the duplicate check compared
+> against an empty list and returned false every time. Neither fault touched the
+> evaluation in this report, which was measured directly against the image
+> corpus rather than through the API. But the *deployed* fraud score was not the
+> score described here until those seams were fixed. `torch` was also missing
+> from the serving environment, so the CNN returned its 0.05 fallback for every
+> receipt while logging a single warning.
+
 At AUC 0.805 (0.864 on real receipts) it is suitable for **flagging receipts for
 human review**. It is not
 suitable for automatic rejection, and the system does not use it that way.

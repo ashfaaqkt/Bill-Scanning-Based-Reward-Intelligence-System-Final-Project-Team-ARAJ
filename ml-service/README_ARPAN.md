@@ -1,5 +1,23 @@
 # Fake Receipt Detection System
 
+> **Status: standalone tool, not part of the live pipeline.** Nothing in
+> `app.py` or `fraud.py` imports `fake_receipt_detector_arpan.py` — the serving
+> fraud path is the 448px tamper CNN plus the perceptual-hash and OCR signals in
+> `fraud.py`. This detector is run manually from the CLI, and by
+> `dataset/process_labels_arpan.py`.
+>
+> It needs `pytesseract` (a system install) plus `ml-service/requirements_arpan.txt`,
+> which are deliberately kept out of the service's own `requirements.txt` so a
+> deployment never depends on them.
+>
+> Five of its eight analyzers are genuinely new work — paper characteristics,
+> printing artifacts, geometry, FFT/AI-artifact detection and EXIF metadata. The
+> other three overlap with checks `ocr.py` and Gemini already perform. Its output
+> on our 200 labelled samples is quarantined in
+> `dataset/processed/processed_labels_arpan.csv`: the run was done against mock
+> images, so every row reads "LIKELY AUTHENTIC" and the file is excluded from all
+> prepared data.
+
 A comprehensive OCR-based system to detect AI-generated and fake receipts using computer vision, image forensics, and logical consistency analysis.
 
 ## 🎯 Features

@@ -48,8 +48,20 @@ python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# Create ml-service/.env with your Gemini key (ocr.py reads it):
-#   GEMINI_API_KEY=your_key_here
+# Create ml-service/.env with your Gemini key(s) — ocr.py reads them:
+#   GEMINI_API_KEY_1=your_key_here
+#
+# One key is enough to run. ocr.py accepts GEMINI_API_KEY_1..N and rotates over
+# them, because the free tier's 5 requests/minute is PER PROJECT — keys from
+# separate projects multiply the ceiling. A bare GEMINI_API_KEY still works.
+#
+# If a key is on a billed plan, name it so it is tried first and skips the
+# 23-second free-tier spacing:
+#   GEMINI_PAID_KEYS=GEMINI_API_KEY_1
+#
+# Billing removes 429 quota errors. It does NOT remove 503 "model overloaded" —
+# that is Google's shared capacity. ocr.py handles it by rotating across both
+# keys and models and cooling a model that 503s for 120s.
 
 python app.py
 # ML service runs on http://localhost:5001
@@ -83,7 +95,20 @@ jupyter notebook
 the CSVs alone. Notebook 03 (fraud CNN) additionally needs the receipt **images** downloaded
 from Drive into `dataset/tampered/` and `dataset/indian/`. See `dataset/DATA_PREP.md`.
 
-Notebooks 01, 02 and 03 are committed **with their outputs**. 04 and 05 are still TODO stubs.
+**All five notebooks are committed with outputs** (04 and 05 landed 19 Aug 2026).
+Executed code cells per notebook, counted from the committed `.ipynb`:
+
+| Notebook | Code cells | With outputs |
+|---|---|---|
+| 01 data exploration | 11 | 11 |
+| 02 category classifier | 9 | 7 |
+| 03 fraud detection | 13 | 13 |
+| 04 collaborative filter | 4 | 4 |
+| 05 reward engine | 4 | 3 |
+
+The gaps in 02 and 05 are cells that write artefacts rather than produce a
+result; every figure and metric quoted in the report comes from a cell that does
+carry its output.
 
 ---
 

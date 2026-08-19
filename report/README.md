@@ -16,8 +16,9 @@ This folder holds the written evaluation record for the project.
 | `fraud_test_report.md` | Full fraud-detection evaluation (Sprint 3) |
 | `sprint3_summary_report.md` | Sprint 3 summary — what changed and why |
 | `assets/` | Figures (`fig_*.png`) and every results CSV behind them |
+| `Team_ARAJ_Progress_Report_v3.pdf` | Progress report for Prof. Uma. v1 and v2 were removed on 19 Aug — v2 carried a transposed fraud-label split (it read genuine 64.5% / tampered 32.5% when it is the reverse) which v3 corrects and states openly |
 
-## Results at a glance (Aug 7, 2026)
+## Results at a glance (Aug 19, 2026)
 
 | Model | Result | Target | Status |
 |---|---|---|---|
@@ -28,6 +29,12 @@ This folder holds the written evaluation record for the project.
 
 Every figure regenerates from the commands in `fraud_test_report.md` §7. Model
 detail and limitations: [`model_cards/README.md`](model_cards/README.md).
+
+> **Read `fraud_test_report.md` §6 alongside the fraud number.** The CNN and the
+> perceptual-hash check were both dead in the deployed pipeline until 19 Aug —
+> the upload path never passed the image, and no hash was ever stored. The
+> evaluation here was measured directly against the corpus and is unaffected, but
+> the running system did not produce these scores until those seams were fixed.
 
 ## Chapters (as built, against the BITS template)
 

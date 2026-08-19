@@ -45,18 +45,27 @@ and `"Low"` rather than omitting them.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `fraudScore` | 0–1 | Tamper score. OCR signals, perceptual-hash duplicate check and the 448px CNN |
-| `riskLevel` | `Low` \| `Medium` \| `High` | Banded from `fraudScore`, then escalated by the rules below |
+| `fraudScore` | 0–1 | **Composite** score: OCR signals + perceptual-hash duplicate (+0.40) + 448px CNN when it clears 0.50 (+0.40) |
+| `tamperProbability` | 0–1 \| null | What the CNN alone returned. Distinct from `fraudScore`; null when no image reached the scorer |
+| `riskLevel` | `Low` \| `Medium` \| `High` | Banded from `fraudScore` (>0.7 High, >0.3 Medium), then escalated by the rules below |
 | `anomalyScore` | 0–1 | Isolation Forest score for the amount |
 | `anomalyFlag` | bool | True when the amount is an outlier for this user/category |
-| `crossUserDuplicate` | bool | Same fingerprint already submitted by a **different** account |
+| `crossUserDuplicate` | bool | Always `false` in a 200 response — that case is now rejected with 409 before scoring (see below) |
 | `itemsTotalMismatch` | bool | Line items do not sum to the printed total |
+| `fraudSignals` | object | Which signals fired: `blur`, `duplicate`, `tamper`, `handwritten`, `multi_bill` |
 
-Escalation order, applied after the model score: a cross-user duplicate forces
-`High`; an items/total mismatch raises `Low` to `Medium`; an anomaly flag raises
-`Low` to `Medium`. The last two booleans exist so the client can state *why* a
-receipt was flagged instead of showing an unexplained number — the web client
-renders them in the verification block of the results panel.
+Escalation order, applied after the model score: an items/total mismatch raises
+`Low` to `Medium`; an anomaly flag raises `Low` to `Medium`. The booleans and
+`fraudSignals` exist so the client can state *why* a receipt was flagged instead
+of showing an unexplained number — the web client renders every signal that fired
+in the verification block of the results panel.
+
+**409 responses carry a `code`.** `ALREADY_CLAIMED` means the same physical
+receipt has already been claimed on a different account: it is rejected before
+scoring, no points are awarded and no receipt is written, and the attempt is
+logged to `Fraud_Scores` with `blocked: true`, the fingerprint, and which claim
+won. A 409 without that code is an ordinary duplicate of the caller's own
+receipt (exact fingerprint or fuzzy merchant match).
 
 ---
 
@@ -122,15 +131,32 @@ otherwise it falls back to the OCR/Gemini category. The upload response includes
 
 ### Example: POST /ml/fraud-score
 
-Request:
+Request. `image` and `known_hashes` are both optional but the check degrades
+without them: no image means the tamper CNN and the perceptual hash are skipped
+entirely, and no hashes means the duplicate check has nothing to compare against
+and always returns false.
 ```json
-{ "ocr_result": { "handwritten_flag": true, "error": null } }
+{
+  "ocr_result": { "handwritten_flag": true, "error": null },
+  "image": "<base64>",
+  "mimeType": "image/jpeg",
+  "known_hashes": ["d4d069ec7871e538"]
+}
 ```
 
 Response:
 ```json
-{ "fraud_score": 0.35, "signals": { "blur": false, "duplicate": false, "tamper": true, "handwritten": true, "multi_bill": false } }
+{
+  "fraud_score": 0.35,
+  "signals": { "blur": false, "duplicate": false, "tamper": true, "handwritten": true, "multi_bill": false },
+  "tamper_probability": 0.4631,
+  "image_phash": "d4d069ec7871e538"
+}
 ```
+
+`image_phash` is returned so the caller can **store** it — `server.js` writes it
+to the receipt document and sends the last 300 back on the next upload. Without
+that loop the duplicate signal can never fire.
 
 ---
 

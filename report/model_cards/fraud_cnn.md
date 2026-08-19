@@ -21,6 +21,15 @@ above a 0.50 threshold, alongside perceptual-hash duplicate detection and
 OCR-derived flags (blur, multi-bill, handwriting).
 
 It is **not** an automatic rejection gate, and the system does not use it as one.
+The only hard block in the pipeline is the cross-user fingerprint check, which
+rejects a receipt already claimed on another account before any model runs.
+
+> **Wiring note (19 Aug 2026).** This signal did not reach production until that
+> date: the upload path called `/ml/fraud-score` without the image, and `torch`
+> was absent from the serving venv, so every receipt scored the 0.05 fallback.
+> Both are fixed and verified over HTTP — tampered images now mean 0.763 against
+> 0.539 for genuine. The evaluation numbers below were always measured directly
+> against the corpus and are unaffected.
 
 ## Data
 

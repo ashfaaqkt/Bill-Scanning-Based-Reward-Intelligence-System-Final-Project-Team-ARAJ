@@ -35,9 +35,18 @@ are the questions a viva panel will ask:
 ## Not machine learning
 
 For completeness, since the pipeline mixes them: **perceptual-hash duplicate
-detection** (`fraud.py:check_phash_duplicate`) is a deterministic algorithm, not
-a learned model, and the **OCR pipeline** is a prompted Gemini call plus
-classical CV checks (Laplacian blur, density anomaly).
+detection** (`fraud.py:is_duplicate_hash`) is a deterministic algorithm, not a
+learned model, and the **OCR pipeline** is a prompted Gemini call plus classical
+CV checks (Laplacian blur, density anomaly).
+
+4. **Two integration seams were dead while every component test passed.** The
+   tamper CNN was never given the image on an upload, and no perceptual hash was
+   ever stored or sent, so the duplicate check returned false from the day it was
+   written. Both were found and fixed on 19 Aug, and both are the same lesson:
+   a green unit test says nothing about whether the caller passes the argument.
+   Component-level results in these cards were never affected — they were
+   measured directly, not through the API — but the *system* did not behave as
+   the cards described until those fixes landed.
 
 ## Definition of Done — status
 
@@ -50,7 +59,15 @@ Per the sprint plan, a model counts as done only when all six hold:
 | Best chosen + justified | ✅ | ✅ | ✅ | ✅ |
 | Model card written | ✅ | ✅ | ✅ | ✅ |
 | Wired into pipeline | ✅ | ✅ | ✅ | ✅ |
-| Tested end-to-end | ⚠️ routes only | ⚠️ routes only | ⚠️ routes only | ⚠️ routes only |
+| Tested end-to-end | ✅ live stack | ✅ live stack | ✅ live stack | ✅ live stack |
 
-**One gap remains:** no component has been tested through the live stack with
-Firestore and Gemini — only through the Flask routes directly.
+**Closed 19 Aug.** The full chain has run against live Firestore and live Gemini
+through `POST /api/upload` with JWT auth — OCR → classifier → fraud → anomaly →
+profile → recommend — with the extracted fields, points, scores and persisted
+documents all checked afterwards. That run is what exposed the two dead seams
+noted above.
+
+**What is still open** is not this row: TC-26 asks for the four demo scenarios
+(clean / blurry / tampered / duplicate) driven through the *browser* in one
+session with screenshots and a recording. The pipeline is verified; the
+demonstration artefact is not yet captured.

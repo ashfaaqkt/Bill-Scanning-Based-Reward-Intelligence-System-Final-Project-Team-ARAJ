@@ -12,18 +12,27 @@ A production-grade AI + ML system where consumers scan retail receipts, extract 
 
 **PoC Reference →** [Phase 3 PoC Repo](https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-study-project-bits-poc-phase-3-Team-ARAJ) (for read only)
 
-### ML results (as of Aug 7, 2026)
+### ML results (as of Aug 19, 2026)
 
 | Model | Type | Result | Target |
 |---|---|---|---|
 | Category classifier | Supervised — TF-IDF + Random Forest | test macro-F1 **0.942** / acc 0.944 | 0.80 ✅ |
 | Anomaly detector | **Unsupervised** — Isolation Forest | FPR **13.2%**, 100% recall ≥10× | <15% ✅ |
 | Fraud tamper CNN | Supervised transfer learning — MobileNetV2 @ 448 | AUC **0.805** · **0.864** on real receipts | 0.90 ⚠️ |
-| Recommender | Content-based ranking (not trained) | no offline metric possible | NDCG@5 ⏳ |
-| Reward ranker | — | not started (NB 05) | — |
+| Recommender | Hybrid — content affinity + SVD collaborative filter (NB 04) | 5-fold CV RMSE **0.9157** | NDCG@5 🔸 **not claimed** |
+| Reward ranker | Evaluation harness (NB 05), not a trained ranker | P@5 0.50 · R@5 0.8833 · NDCG@5 0.7984 | 🔸 **not claimed** |
 
-All five ML endpoints are wired and backed by real logic. Perceptual-hash duplicate
-detection is a deterministic algorithm, not a learned model.
+All five ML endpoints are wired and backed by real logic, and all five notebooks
+carry outputs. Perceptual-hash duplicate detection is a deterministic algorithm,
+not a learned model.
+
+> **The recommender's NDCG target is deliberately not claimed.** Both the SVD and
+> the evaluation run on `synthetic_user_interactions.csv`, where the relevance
+> labels come from the same rule that generated the ratings — a strong score
+> there measures the generator, not the ranker. NB 05 was also delivered as an
+> evaluation harness rather than the XGBoost ranker the plan specified, so its
+> "≥3 algorithms compared" criterion is unmet. See
+> [`report/model_cards/recommender.md`](report/model_cards/recommender.md).
 
 Per-model detail, comparisons and **limitations** → [`report/model_cards/`](report/model_cards/README.md).
 Fraud evaluation in full → [`report/fraud_test_report.md`](report/fraud_test_report.md).
@@ -87,6 +96,21 @@ See docs/SETUP.md for full local setup instructions.
 Every member works on their own feature branch. `main` and `dev` are shared
 branches, not anyone's workspace — Ashfaaq administers both in addition to
 developing on `ashfaaq/ml-integration`.
+
+### Where each member's work stands (19 Aug 2026)
+
+| Member | Delivered | Open |
+|---|---|---|
+| **Ashfaaq** | Backend, OCR pipeline and Gemini key rotation, ML integration, frontend, NB 01/03, anomaly detector, all model cards, report + deck + Q&A bank | Deployment, TC-26 browser run, `dev` → `main` release |
+| **Arpan** | `receipts_master.csv` (CORD + SROIE consolidation), NB 04 collaborative filter, NB 05 evaluation harness, standalone fake-receipt detector | Present dataset + classifier results to the advisor |
+| **Jyoti** | 100 Indian receipt photos, `labels.csv` labelling, dataset README + DATA_PREP, progress report v3 | A strict 2-page executive summary if the advisor wants one (v3 is 10 pages) |
+| **Ranjeet** | 100 tampered images, tampered-receipt generator, fraud test report input | Regression checklist (de-scoped at the Aug 12 freeze) |
+
+Two attributions are corrected here rather than left implied. **NB 02 and NB 03
+were completed by Ashfaaq**, not by their nominal owners, and the fraud CNN
+checkpoint originally credited with AUC 0.76 was withdrawn — the file supplied
+loads as EfficientNet-B0, not MobileNetV2, and scores 0.55. Every fraud number
+in this repository comes from the 448px MobileNetV2 under grouped CV instead.
 
 **Rules:**
 - `main` is protected — Ashfaaq merges only
