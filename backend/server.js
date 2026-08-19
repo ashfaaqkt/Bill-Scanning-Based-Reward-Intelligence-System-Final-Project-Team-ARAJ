@@ -905,6 +905,37 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         // message points at support instead of accusing the user.
         if (crossUserDuplicate) {
             console.warn(`[FRAUD] Cross-user duplicate blocked for fingerprint ${receiptFingerprint} (user ${req.userId})`);
+
+            // A blocked attempt is the control doing its job, and it leaves no
+            // receipt behind — so without this row the only evidence it ever
+            // fired is a console line. Logged with `blocked: true` so audit
+            // queries can separate prevented claims from scored ones, and with
+            // the winning receipt's id so a disputed bill can be traced.
+            //
+            // score is null on purpose: the block happens before the fraud
+            // model runs, and recording a number we never computed would put a
+            // fabricated score in the audit trail.
+            try {
+                const claimedBy = crossUserDuplicateCheck.docs[0];
+                await db.collection('Fraud_Scores').doc().set({
+                    receipt_id: null,
+                    user_id: req.userId,
+                    score: null,
+                    risk_level: 'Blocked',
+                    blocked: true,
+                    blocked_reason: 'cross_user_duplicate',
+                    receipt_fingerprint: receiptFingerprint,
+                    claimed_by_receipt_id: claimedBy ? claimedBy.id : null,
+                    claimed_by_user_id: claimedBy ? (claimedBy.data() || {}).user_id || null : null,
+                    cross_user_duplicate: true,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (auditErr) {
+                // Never fail the block because the audit write failed — the
+                // user must still be told, and the console line survives.
+                console.error('[FRAUD] Could not log blocked attempt:', auditErr.message);
+            }
+
             return res.status(409).json({
                 code: 'ALREADY_CLAIMED',
                 error: "This bill has already been claimed on another account. Each receipt can be rewarded only once. If you believe this is a mistake, please contact support."
