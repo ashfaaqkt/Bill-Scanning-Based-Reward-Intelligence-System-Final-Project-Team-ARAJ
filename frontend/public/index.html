@@ -743,49 +743,64 @@
                     generate analytics.</div>
 
                 <div class="analytics-content hidden" id="analytics-content">
-                    <section class="analytics-metrics-grid">
-                        <article class="analytics-metric-card">
-                            <span class="analytics-metric-label">Total Bills</span>
-                            <strong id="analytics-total-bills">0</strong>
-                        </article>
-                        <article class="analytics-metric-card">
-                            <span class="analytics-metric-label">Total Spend</span>
-                            <strong id="analytics-total-spend">₹0</strong>
-                        </article>
-                        <article class="analytics-metric-card">
-                            <span class="analytics-metric-label">Avg Bill Value</span>
-                            <strong id="analytics-avg-bill">₹0</strong>
-                        </article>
-                        <article class="analytics-metric-card">
-                            <span class="analytics-metric-label">Points Earned</span>
-                            <strong id="analytics-total-points-earned">0</strong>
-                        </article>
-                        <article class="analytics-metric-card">
-                            <span class="analytics-metric-label">Top Category</span>
-                            <strong id="analytics-top-category-label">-</strong>
-                        </article>
-                        <article class="analytics-metric-card">
-                            <span class="analytics-metric-label">Preferred Merchant</span>
-                            <strong id="analytics-top-merchant-label">-</strong>
-                        </article>
-                    </section>
-
-                    <section class="analytics-chart-shell">
-                        <div class="analytics-donut-wrap">
-                            <div class="analytics-donut" id="analytics-category-chart" role="img"
-                                aria-label="Category distribution chart"></div>
-                            <div class="analytics-donut-center">
-                                <span>Main Interest</span>
-                                <strong id="analytics-main-interest">-</strong>
+                    <!-- Hero: one headline number, because a dashboard that shouts
+                         six numbers equally makes the reader pick which matters. -->
+                    <section class="an-hero">
+                        <div class="an-hero-main">
+                            <span class="an-hero-label">Total spend analysed</span>
+                            <strong class="an-hero-value" id="analytics-total-spend">₹0</strong>
+                            <span class="an-hero-sub">
+                                across <b id="analytics-total-bills">0</b> receipts
+                                · <b id="analytics-total-points-earned">0</b> points earned
+                            </span>
+                        </div>
+                        <div class="an-hero-side">
+                            <div class="an-chip">
+                                <span class="an-chip-label">Avg bill</span>
+                                <strong id="analytics-avg-bill">₹0</strong>
+                            </div>
+                            <div class="an-chip">
+                                <span class="an-chip-label">Top category</span>
+                                <strong id="analytics-top-category-label">-</strong>
+                            </div>
+                            <div class="an-chip">
+                                <span class="an-chip-label">Preferred merchant</span>
+                                <strong id="analytics-top-merchant-label">-</strong>
                             </div>
                         </div>
-                        <ul class="analytics-legend" id="analytics-legend"></ul>
                     </section>
 
-                    <section class="analytics-insights-shell">
-                        <h3>Interest Report</h3>
-                        <ul id="analytics-insights-list"></ul>
-                    </section>
+                    <div class="an-split">
+                        <!-- Donut is drawn as SVG arcs rather than a conic-gradient:
+                             segments can then carry a gap, a hover state and a label. -->
+                        <section class="an-card an-donut-card">
+                            <header class="an-card-head">
+                                <h3>Where your money goes</h3>
+                                <span class="an-card-note">share of total spend</span>
+                            </header>
+                            <div class="an-donut-wrap">
+                                <svg class="an-donut" id="analytics-category-chart"
+                                     viewBox="0 0 42 42" role="img"
+                                     aria-label="Spend by category"></svg>
+                                <div class="an-donut-center">
+                                    <span>Main interest</span>
+                                    <strong id="analytics-main-interest">-</strong>
+                                </div>
+                            </div>
+                            <ul class="an-legend" id="analytics-legend"></ul>
+                        </section>
+
+                        <section class="an-card an-insights-card">
+                            <header class="an-card-head">
+                                <h3>Interest report</h3>
+                                <span class="an-card-note">generated from your history</span>
+                            </header>
+                            <ul class="an-insights" id="analytics-insights-list"></ul>
+                        </section>
+                    </div>
+
+                    <p class="an-footnote" id="analytics-footnote"></p>
+                </div>
                 </div>
             </div>
         </div>

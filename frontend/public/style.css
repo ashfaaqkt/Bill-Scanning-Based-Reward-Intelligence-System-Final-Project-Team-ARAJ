@@ -3108,7 +3108,9 @@ body::before {
 .analytics-modal-panel {
     position: relative;
     width: 95%;
-    max-width: 850px;
+    /* Widened from 850px: the rebuilt board is two columns, and at 850 the
+       donut and the interest report were both squeezed. */
+    max-width: 1060px;
     max-height: 90vh;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(200, 200, 200, 0.1) 100%);
     backdrop-filter: blur(16px);
@@ -3178,180 +3180,16 @@ body::before {
 }
 
 /* Metrics Grid */
-.analytics-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2.5rem;
-}
-
-.analytics-metric-card {
-    background: #f8fafc;
-    padding: 1.25rem;
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.03);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    transition: transform 0.2s;
-}
-
-.analytics-metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.analytics-metric-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-    font-weight: 600;
-}
-
-.analytics-metric-card strong {
-    font-size: 1.25rem;
-    color: #1e293b;
-    font-weight: 700;
-    word-break: break-word;
-    overflow-wrap: break-word;
-}
-
-/* Chart Shell */
-.analytics-chart-shell {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2.5rem;
-    align-items: center;
-    margin-bottom: 2.5rem;
-    padding: 2rem;
-    background: #f8fafc;
-    border-radius: 20px;
-}
-
-.analytics-donut-wrap {
-    position: relative;
-    width: 180px;
-    height: 180px;
-    margin: 0 auto;
-}
-
-.analytics-donut {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: conic-gradient(#5ba3e8 0% 100%);
-    mask: radial-gradient(transparent 55%, black 56%);
-    -webkit-mask: radial-gradient(transparent 55%, black 56%);
-}
-
-.analytics-donut-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    width: 100%;
-}
-
-.analytics-donut-center span {
-    font-size: 0.7rem;
-    color: #64748b;
-    text-transform: uppercase;
-    display: block;
-}
-
-.analytics-donut-center strong {
-    font-size: 1rem;
-    color: #3b82f6;
-    font-weight: 700;
-}
-
-.analytics-legend {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin: 0;
-}
-
-.analytics-legend li {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.9rem;
-}
-
-.legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    flex-shrink: 0;
-}
-
-.legend-label {
-    flex-grow: 1;
-    color: #64748b;
-}
-
-.legend-value {
-    font-weight: 600;
-    color: #1e293b;
-}
-
-/* Insights */
-.analytics-insights-shell h3 {
-    font-size: 1.2rem;
-    margin-bottom: 1.25rem;
-    color: #ffffff;
-    margin-top: 0;
-}
-
-#analytics-insights-list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin: 0;
-}
-
-.insight-item {
-    display: flex;
-    gap: 1.25rem;
-    padding: 1.25rem;
-    background: #f8fafc;
-    border-radius: 16px;
-    border-left: 4px solid #3b82f6;
-}
-
-.insight-icon {
-    font-size: 1.5rem;
-    padding-top: 0.25rem;
-}
-
-.insight-body h4 {
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-    color: #1e293b;
-    margin-top: 0;
-}
-
-.insight-body p {
-    font-size: 0.9rem;
-    color: #64748b;
-    line-height: 1.5;
-    margin: 0;
-}
-
-/* Loading/Empty States */
+/* Loading / empty states.
+   These sit directly on the modal panel, which is a translucent white wash over
+   a dark blurred backdrop — so it reads DARK, like the header above it. Light
+   text is correct here; the dark ink used by the cards below would vanish. The
+   cards set their own near-opaque light surface, which is why they differ. */
 .analytics-loading,
 .analytics-empty {
-    padding: 4rem 2rem;
+    padding: 3.5rem 2rem;
     text-align: center;
-    color: rgba(255, 255, 255, 0.85);
-    font-style: italic;
+    color: rgba(255, 255, 255, 0.88);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3359,10 +3197,17 @@ body::before {
     gap: 1rem;
 }
 
+.analytics-empty {
+    max-width: 30rem;
+    margin: 0 auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
 .analytics-progress-wrap {
     width: 200px;
     height: 6px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.22);
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -3372,7 +3217,7 @@ body::before {
 .analytics-progress-bar {
     width: 0%;
     height: 100%;
-    background: #ffffff;
+    background: linear-gradient(90deg, #ffffff, rgba(255, 255, 255, 0.65));
     border-radius: 4px;
     animation: analyticsFillBar 2s ease-in-out infinite;
     transform-origin: left;
@@ -3393,14 +3238,6 @@ body::before {
         width: 100%;
         transform: translateX(100%);
     }
-}
-
-@media (max-width: 600px) {
-    .analytics-chart-shell {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
 }
 
 /* --- Generic Error Modal Styles --- */
@@ -3973,4 +3810,334 @@ body.modal-open {
         text-wrap: initial;
         font-size: 0.74rem;
     }
+}
+
+/* ═══ INTELLIGENT ANALYTICS ═════════════════════════════════════
+   Rebuilt. The previous board gave six metric tiles equal weight, so nothing
+   led, and drew the donut with a conic-gradient — which cannot carry a gap, a
+   hover state or a label because it is a background image, not geometry.
+
+   Series colours are Okabe-Ito, the published colourblind-safe categorical set,
+   assigned in fixed order and never cycled. Category identity is also carried
+   by its written name in the legend and by a percentage, so it never rests on
+   colour alone. */
+:root {
+    --an-c1: #0072B2;   /* blue      */
+    --an-c2: #D55E00;   /* vermillion */
+    --an-c3: #009E73;   /* green     */
+    --an-c4: #CC79A7;   /* purple    */
+    --an-c5: #E69F00;   /* orange    */
+    /* Near-opaque on purpose. The panel beneath is a translucent wash over a
+       dark backdrop, so a card at 0.72 let that darkness bleed through and the
+       ink lost contrast. At 0.88 each card is its own light surface and the
+       dark type on it is unambiguous. */
+    --an-surface: rgba(255, 255, 255, 0.88);
+    /* Label ink for this board only. --color-smoke (#64748b) measures 3.44:1 on
+       the hero and 3.99:1 on a card once the translucent surfaces composite —
+       both under the 4.5:1 needed for text this size. #475569 measures 5.48:1
+       and 6.35:1 while staying visibly secondary to the values it labels. */
+    --an-label: #475569;
+    --an-line: rgba(30, 41, 59, 0.10);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.an-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.6rem 1.75rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--an-line);
+    border-radius: 18px;
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(13, 79, 139, 0.10) 0%, transparent 60%),
+        var(--an-surface);
+}
+
+.an-hero-label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--an-label);
+}
+
+.an-hero-value {
+    display: block;
+    margin: 0.15rem 0 0.3rem;
+    font-family: var(--font-display);
+    font-size: clamp(2.1rem, 5vw, 3rem);
+    line-height: 1.05;
+    color: var(--color-ink);
+    /* Cormorant defaults to oldstyle figures, which rendered the hero as
+       "₹1 5,430" — the 1 and 4 dropping below the 5 and 3 read as a space.
+       lnum forces lining figures; tnum keeps them from reflowing on update. */
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+.an-hero-sub { font-size: 0.88rem; color: var(--color-charcoal); }
+.an-hero-sub b { color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+.an-hero-side { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+.an-chip {
+    min-width: 116px;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--an-line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.an-chip-label {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--an-label);
+    margin-bottom: 0.15rem;
+}
+
+.an-chip strong {
+    font-size: 0.98rem;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.an-split {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1.1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.an-card {
+    padding: 1.35rem 1.5rem;
+    border: 1px solid var(--an-line);
+    border-radius: 18px;
+    background: var(--an-surface);
+}
+
+.an-card-head { margin-bottom: 1.1rem; }
+
+.an-card-head h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.22rem;
+    color: var(--color-ink);
+}
+
+.an-card-note {
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--an-label);
+}
+
+/* ── Donut ────────────────────────────────────────────────────── */
+.an-donut-wrap {
+    position: relative;
+    width: min(210px, 62%);
+    margin: 0 auto 1.2rem;
+    aspect-ratio: 1;
+}
+
+.an-donut { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+.an-donut circle {
+    fill: none;
+    stroke-width: 5.2;
+    transition: stroke-width 0.18s ease, opacity 0.18s ease;
+}
+
+/* Hovering a slice thickens it and dims the rest, so the pairing with the
+   legend row is unambiguous without a tooltip library. */
+.an-donut:hover circle { opacity: 0.42; }
+.an-donut circle:hover,
+.an-donut circle.is-active { opacity: 1; stroke-width: 6.6; }
+
+.an-donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;   /* never steal the hover from a slice */
+    padding: 0 18%;
+}
+
+.an-donut-center span {
+    font-size: 0.66rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--an-label);
+}
+
+.an-donut-center strong {
+    font-family: var(--font-display);
+    font-feature-settings: "lnum" 1;
+    font-size: 1.12rem;
+    line-height: 1.15;
+    color: var(--color-ink);
+}
+
+/* ── Legend ───────────────────────────────────────────────────── */
+.an-legend { list-style: none; margin: 0; padding: 0; }
+
+.an-legend li {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.5rem 0.4rem;
+    border-radius: 8px;
+    font-size: 0.87rem;
+    cursor: default;
+    transition: background 0.15s ease;
+}
+
+.an-legend li:hover, .an-legend li.is-active { background: rgba(13, 79, 139, 0.07); }
+
+.an-legend .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+}
+
+.an-legend .legend-label { color: var(--color-charcoal); }
+
+.an-legend .legend-value {
+    font-weight: 600;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* A bar under each row gives magnitude a second, non-colour encoding. */
+.an-legend .legend-bar {
+    grid-column: 2 / -1;
+    height: 4px;
+    margin-top: -0.15rem;
+    border-radius: 2px;
+    background: var(--an-line);
+    overflow: hidden;
+}
+
+.an-legend .legend-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+}
+
+/* ── Interest report ──────────────────────────────────────────────
+   Each finding is a card with the icon in its own tinted disc, so the eye can
+   count the findings at a glance instead of parsing a wall of bordered rows.
+   The accent rotates through the same categorical ramp as the donut, keeping
+   one colour language across the board — it is decoration here, never the
+   carrier of meaning, so the heading always states the finding in words. */
+.an-insights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+    counter-reset: insight;
+}
+
+.an-insights li {
+    --accent: var(--color-gold);
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: start;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--an-line);
+    border-radius: 14px;
+    background: #fff;
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Accent rail, drawn rather than bordered so the radius stays clean. */
+.an-insights li::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--accent);
+}
+
+.an-insights li:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.an-insights li:nth-child(1) { --accent: var(--an-c1); }
+.an-insights li:nth-child(2) { --accent: var(--an-c2); }
+.an-insights li:nth-child(3) { --accent: var(--an-c3); }
+.an-insights li:nth-child(4) { --accent: var(--an-c4); }
+.an-insights li:nth-child(5) { --accent: var(--an-c5); }
+
+.an-insights .insight-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    font-size: 1.15rem;
+    line-height: 1;
+    /* colour-mix keeps the disc tied to the accent without five more rules;
+       the flat rgba below is the fallback where it is unsupported. */
+    background: rgba(13, 79, 139, 0.09);
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.an-insights .insight-body { min-width: 0; }   /* let long words wrap, not overflow */
+
+.an-insights h4 {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    line-height: 1.25;
+    color: var(--color-ink);
+}
+
+.an-insights p {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--color-charcoal);
+    overflow-wrap: anywhere;
+}
+
+.an-footnote {
+    /* Sits on the panel itself rather than a card, and the panel reads dark —
+       so this is the one piece of board copy that must be light. */
+    margin: 1.25rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.82);
+    text-align: center;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 780px) {
+    .an-split { grid-template-columns: 1fr; }
+    .an-hero { padding: 1.25rem; }
+    .an-hero-side { width: 100%; }
+    .an-chip { flex: 1 1 30%; min-width: 0; }
+}
+
+@media (max-width: 480px) {
+    .an-donut-wrap { width: min(180px, 78%); }
+    .an-card { padding: 1.1rem; }
+    .an-chip { flex: 1 1 45%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .an-donut circle { transition: none; }
 }

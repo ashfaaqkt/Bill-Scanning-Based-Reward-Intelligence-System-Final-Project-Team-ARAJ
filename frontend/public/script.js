@@ -129,6 +129,7 @@ const analyticsCategoryChart = document.getElementById('analytics-category-chart
 const analyticsMainInterest = document.getElementById('analytics-main-interest');
 const analyticsLegend = document.getElementById('analytics-legend');
 const analyticsInsightsList = document.getElementById('analytics-insights-list');
+const analyticsFootnote = document.getElementById('analytics-footnote');
 
 // Error Modal DOM Elements
 const errorModal = document.getElementById('error-modal');
@@ -864,6 +865,17 @@ async function loadAnalytics() {
         analyticsContent.classList.remove('hidden');
         const s = data.summary;
 
+        // The footnote must not claim the classifier produced these shares when
+        // the guest board is fixed sample data. Two different statements,
+        // because one of them would be false in the other mode.
+        if (analyticsFootnote) {
+            analyticsFootnote.innerText = currentUserName === 'Guest Explorer'
+                ? 'Demo data. These figures are a fixed sample used to show the layout — '
+                  + 'no receipts were analysed and no model produced them.'
+                : 'Computed from the receipts on this account. Category shares come from the '
+                  + 'trained classifier, not from the merchant name alone.';
+        }
+
         // Numbers
         analyticsTotalBills.innerText = s.totalBills;
         analyticsTotalSpend.innerText = `₹${s.totalSpend.toLocaleString('en-IN')}`;
@@ -873,33 +885,94 @@ async function loadAnalytics() {
         analyticsTopMerchantLabel.innerText = s.topMerchant;
         analyticsMainInterest.innerText = s.topCategory;
 
-        // Donut Chart simulation
-        if (data.categories && data.categories.length > 0) {
-            const palette = ['#5ba3e8', '#2d6bb5', '#ffd93d', '#ff6b6b', '#6bc167'];
-            let currentPct = 0;
-            const gradientParts = data.categories.map((c, i) => {
-                const color = palette[i % palette.length];
-                const start = currentPct;
-                currentPct += c.percentage;
-                return `${color} ${start}% ${currentPct}%`;
-            });
-            analyticsCategoryChart.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+        // Donut drawn as SVG arcs on a 42x42 viewBox: circumference is
+        // 2*pi*r with r = 15.9155, i.e. exactly 100 units, so a category's
+        // percentage IS its dash length and no conversion is needed.
+        //
+        // Okabe-Ito, assigned in fixed order and never cycled. A ninth category
+        // would repeat a colour, so the tail is folded into "Other" instead.
+        const AN_PALETTE = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00'];
+        const AN_CIRCUMFERENCE = 100;
 
-            // Legend
-            analyticsLegend.innerHTML = data.categories.map((c, i) => `
-                <li>
-                    <span class="legend-color" style="background: ${palette[i % palette.length]}"></span>
+        if (data.categories && data.categories.length > 0) {
+            let cats = data.categories.slice();
+            if (cats.length > AN_PALETTE.length) {
+                const keep = cats.slice(0, AN_PALETTE.length - 1);
+                const rest = cats.slice(AN_PALETTE.length - 1);
+                keep.push({
+                    name: 'Other',
+                    percentage: rest.reduce((t, c) => t + Number(c.percentage || 0), 0)
+                });
+                cats = keep;
+            }
+
+            const NS = 'http://www.w3.org/2000/svg';
+            analyticsCategoryChart.innerHTML = '';
+
+            // Track behind the arcs, so a partial total still reads as a ring.
+            const track = document.createElementNS(NS, 'circle');
+            track.setAttribute('cx', '21');
+            track.setAttribute('cy', '21');
+            track.setAttribute('r', '15.9155');
+            track.setAttribute('stroke', 'rgba(30,41,59,0.08)');
+            analyticsCategoryChart.appendChild(track);
+
+            let offset = 25;   // start at 12 o'clock
+            const arcs = cats.map((c, i) => {
+                const pct = Math.max(0, Number(c.percentage) || 0);
+                const arc = document.createElementNS(NS, 'circle');
+                arc.setAttribute('cx', '21');
+                arc.setAttribute('cy', '21');
+                arc.setAttribute('r', '15.9155');
+                arc.setAttribute('stroke', AN_PALETTE[i]);
+                // 0.8 shaved off the dash leaves a hairline gap between
+                // neighbours so two adjacent slices never read as one.
+                arc.setAttribute('stroke-dasharray',
+                    `${Math.max(pct - 0.8, 0.4)} ${AN_CIRCUMFERENCE - pct}`);
+                arc.setAttribute('stroke-dashoffset', String(offset));
+                arc.setAttribute('stroke-linecap', 'butt');
+                const title = document.createElementNS(NS, 'title');
+                title.textContent = `${c.name}: ${pct}%`;   // native tooltip
+                arc.appendChild(title);
+                offset -= pct;
+                return arc;
+            });
+            arcs.forEach(a => analyticsCategoryChart.appendChild(a));
+
+            analyticsLegend.innerHTML = cats.map((c, i) => `
+                <li data-slice="${i}">
+                    <span class="legend-dot" style="background:${AN_PALETTE[i]}"></span>
                     <span class="legend-label">${c.name}</span>
                     <span class="legend-value">${c.percentage}%</span>
+                    <span class="legend-bar">
+                        <span style="width:${Math.min(100, c.percentage)}%;background:${AN_PALETTE[i]}"></span>
+                    </span>
                 </li>
             `).join('');
+
+            // Hovering either the slice or its legend row highlights both, so
+            // the mapping between them never has to be guessed.
+            const rows = [...analyticsLegend.querySelectorAll('li')];
+            const link = (i, on) => {
+                if (arcs[i]) arcs[i].classList.toggle('is-active', on);
+                if (rows[i]) rows[i].classList.toggle('is-active', on);
+                analyticsCategoryChart.classList.toggle('is-hovered', on);
+            };
+            rows.forEach((row, i) => {
+                row.addEventListener('mouseenter', () => link(i, true));
+                row.addEventListener('mouseleave', () => link(i, false));
+            });
+            arcs.forEach((arc, i) => {
+                arc.addEventListener('mouseenter', () => link(i, true));
+                arc.addEventListener('mouseleave', () => link(i, false));
+            });
         }
 
         // Insights
         if (data.insights && data.insights.length > 0) {
             analyticsInsightsList.innerHTML = data.insights.map(ins => `
-                <li class="insight-item">
-                    <div class="insight-icon">💡</div>
+                <li>
+                    <span class="insight-icon" aria-hidden="true">💡</span>
                     <div class="insight-body">
                         <h4>${ins.title}</h4>
                         <p>${ins.text}</p>
@@ -907,7 +980,10 @@ async function loadAnalytics() {
                 </li>
             `).join('');
         } else {
-            analyticsInsightsList.innerHTML = '<li>No insights available yet.</li>';
+            analyticsInsightsList.innerHTML =
+                '<li><span class="insight-icon" aria-hidden="true">📄</span>'
+                + '<div class="insight-body"><h4>Not enough history yet</h4>'
+                + '<p>Scan a few more receipts and patterns will appear here.</p></div></li>';
         }
 
     } catch (err) {
