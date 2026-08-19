@@ -65,7 +65,7 @@ def load_collaborative_model():
     return _collab_model
 
 
-def _score(offer, interest, personalised):
+def _score(offer, interest, personalised, user_id=None):
     """Blend of category affinity and static popularity, both already 0–1."""
     affinity = interest.get(offer["category"], 0.0) if personalised else 0.0
 
@@ -73,6 +73,21 @@ def _score(offer, interest, personalised):
     # score zero affinity and be permanently buried.
     if offer["category"] == offers.GENERAL:
         affinity = GENERAL_AFFINITY
+
+    # Blend with SVD collaborative filter if available
+    collab_model = load_collaborative_model()
+    if personalised and collab_model is not None and user_id is not None:
+        try:
+            # SVD predict(user_id, item_id)
+            pred = collab_model.predict(user_id, offer["category"]).est
+            # Normalize 1-5 rating scale to 0-1
+            collab_affinity = (pred - 1.0) / 4.0
+            # Clip to 0-1 range to be safe
+            collab_affinity = max(0.0, min(1.0, collab_affinity))
+            # Blend weight: 50% content-based affinity, 50% collaborative-based affinity
+            affinity = 0.5 * affinity + 0.5 * collab_affinity
+        except Exception:
+            pass
 
     if not personalised:
         return offer["popularity"], "popular with other users"
@@ -106,7 +121,7 @@ def rank(user_id: str, top_n: int = 5) -> dict:
 
     scored = []
     for offer in offers.CATALOGUE:
-        value, reason = _score(offer, interest, personalised)
+        value, reason = _score(offer, interest, personalised, user_id)
         scored.append({**{k: offer[k] for k in ("id", "icon", "title", "offer", "category")},
                        "score": round(float(value), 4), "reason": reason})
 
