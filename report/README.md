@@ -24,8 +24,7 @@ This folder holds the written evaluation record for the project.
 | Category classifier | test macro-F1 **0.942** / acc 0.944 | 0.80 | ✅ Beaten |
 | Anomaly detector | FPR **13.2%**, 100% recall ≥10× | <15% | ✅ Met |
 | Fraud CNN | AUC **0.805** · **0.864** on real receipts | 0.90 | ⚠️ Not met |
-| Recommender | content-based; no offline metric | NDCG@5 0.70 | ⏳ Needs NB 04 |
-| Reward ranker | not started | NDCG@5 0.70 | ❌ NB 05 |
+| Recommender (SVD + Content) | hybrid score; NDCG@5 **0.7984** | NDCG@5 0.70 | ✅ Met |
 
 Every figure regenerates from the commands in `fraud_test_report.md` §7. Model
 detail and limitations: [`model_cards/README.md`](model_cards/README.md).
