@@ -52,6 +52,12 @@ def ocr_route():
     if result.get("error") in ("unreadable", "multi_bill_detected"):
         return jsonify(result), 422  # Image rejected due to blur or multiple receipts detected
 
+    # Quota exhaustion is not a fault in the receipt — it is the free tier's
+    # five-per-minute cap. 429 lets the client say "wait a moment and retry"
+    # instead of blaming the image, which is what the generic error path did.
+    if result.get("error") == "RATE_LIMITED":
+        return jsonify(result), 429
+
     return jsonify(result)
 
 
