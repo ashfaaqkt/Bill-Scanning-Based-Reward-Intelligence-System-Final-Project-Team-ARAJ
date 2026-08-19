@@ -16,7 +16,7 @@ This folder holds the written evaluation record for the project.
 | `fraud_test_report.md` | Full fraud-detection evaluation (Sprint 3) |
 | `sprint3_summary_report.md` | Sprint 3 summary — what changed and why |
 | `assets/` | Figures (`fig_*.png`) and every results CSV behind them |
-| `Team_ARAJ_Progress_Report_v3.pdf` | Progress report for Prof. Uma. v1 and v2 were removed on 19 Aug — v2 carried a transposed fraud-label split (it read genuine 64.5% / tampered 32.5% when it is the reverse) which v3 corrects and states openly |
+| `Team_ARAJ_Progress_Report_v4.pdf` | Progress report for Prof. Uma — v3 was copied across by hand and the two drifted. Superseded revisions are removed on build: v2 carried a transposed fraud-label split (genuine 64.5% / tampered 32.5%, when it is the reverse) that v3 corrected and stated openly; v4 adds the collaborative filter, the reward evaluation, and the twelve integration defects found running the stack end to end |
 
 ## Results at a glance (Aug 19, 2026)
 
