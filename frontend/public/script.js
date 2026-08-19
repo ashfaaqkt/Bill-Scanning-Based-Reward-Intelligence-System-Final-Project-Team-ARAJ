@@ -1,7 +1,14 @@
-// --- State Management ---
-let totalPoints = 0;
+/**
+ * Frontend Logic — Team ARAJ (Ashfaaq Feroz)
+ * Handles auth, receipt upload, reward claiming, history, and analytics.
+ * Vanilla JS — no framework. Communicates with backend via fetch().
+ */
 
-// --- DOM Elements ---
+// ── APP STATE ──────────────────────────────────────────────────
+let totalPoints = 0;  // In-memory points balance, synced from /api/user
+
+// ── DOM ELEMENT REFERENCES ─────────────────────────────────────
+// Stepper progress indicators (Upload → Extract → Process → Reward)
 const stepUpload = document.getElementById('step-upload');
 const stepExtract = document.getElementById('step-extract');
 const stepProcess = document.getElementById('step-process');
@@ -14,6 +21,10 @@ const stageResults = document.getElementById('stage-results');
 const fileInput = document.getElementById('file-input');
 const dropZone = document.getElementById('drop-zone');
 const ocrProgress = document.getElementById('ocr-progress');
+const ocrProgressPct = document.getElementById('ocr-progress-pct');
+const ocrProgressNote = document.getElementById('ocr-progress-note');
+const ocrProgressElapsed = document.getElementById('ocr-progress-elapsed');
+const ocrProgressMeta = ocrProgressPct ? ocrProgressPct.parentElement : null;
 
 // Result Elements
 const valRawMerchant = document.getElementById('val-raw-merchant');
@@ -21,6 +32,11 @@ const valDate = document.getElementById('val-date');
 const valTotal = document.getElementById('val-total');
 const valItems = document.getElementById('val-items');
 const valCategory = document.getElementById('val-category');
+const valRisk = document.getElementById('val-risk');
+const verificationDetail = document.getElementById('verification-detail');
+const valFraudScore = document.getElementById('val-fraud-score');
+const valAnomaly = document.getElementById('val-anomaly');
+const verifyNote = document.getElementById('verify-note');
 const valEarnedPoints = document.getElementById('val-earned-points');
 const valRewardLogic = document.getElementById('val-reward-logic');
 const totalPointsDisplay = document.getElementById('total-points');
@@ -113,6 +129,7 @@ const analyticsCategoryChart = document.getElementById('analytics-category-chart
 const analyticsMainInterest = document.getElementById('analytics-main-interest');
 const analyticsLegend = document.getElementById('analytics-legend');
 const analyticsInsightsList = document.getElementById('analytics-insights-list');
+const analyticsFootnote = document.getElementById('analytics-footnote');
 
 // Error Modal DOM Elements
 const errorModal = document.getElementById('error-modal');
@@ -132,6 +149,8 @@ let currentStepIndex = 0;
 
 const STEP_SEQUENCE = [stepUpload, stepExtract, stepProcess, stepReward];
 
+// ── REWARD CATALOG DATA ────────────────────────────────────────
+// Static pool of vouchers and scratch cards shown in the claim modal
 const VOUCHER_POOL = [
     { icon: '🛒', title: 'BigBasket Voucher', offer: 'Flat ₹150 OFF on groceries' },
     { icon: '🍕', title: 'Domino\'s Voucher', offer: 'Get ₹200 OFF on orders above ₹499' },
@@ -156,7 +175,9 @@ const SCRATCH_REWARD_POOL = [
     'Win Surprise Meal Coupon'
 ];
 
-// API Auth Headers helper
+// ── SHARED HELPERS ─────────────────────────────────────────────
+
+// Builds Authorization header from JWT stored in localStorage
 function getAuthHeaders() {
     const token = localStorage.getItem('token');
     return {
@@ -194,32 +215,167 @@ function randomIntBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// ── CLAIM MODAL — CATALOG & RENDERING ─────────────────────────
+
+// Below this many receipts the interest vector is too thin to shape a reward,
+// so scratch cards stay generic rather than pretending to personalise.
+const MIN_RECEIPTS_FOR_SCRATCH = 2;
+let USER_INTEREST = {};
+let USER_RECEIPTS_SEEN = 0;
+
+// Offers ranked for this user by /ml/recommend, refreshed by loadRecommendations().
+// Empty until that returns, and left empty if the ML service is unreachable — in
+// which case the catalog falls back to the shuffled static pool below.
+let RECOMMENDED_OFFERS = [];
+
+// Asks the backend for personalised offers. Never throws: a failure just leaves
+// the static pool in place, so the claim modal always has something to show.
+async function loadRecommendations() {
+    if (!localStorage.getItem('token')) {
+        RECOMMENDED_OFFERS = [];   // guest session — nothing to personalise against
+        return;
+    }
+    try {
+        const res = await fetch('/api/recommendations?top_n=9', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        RECOMMENDED_OFFERS = Array.isArray(data.recommendations) ? data.recommendations : [];
+        // The same response carries the user's category interest vector and how
+        // many receipts it was built from. The scratch cards use both.
+        USER_INTEREST = data.interest || {};
+        USER_RECEIPTS_SEEN = Number(data.receipts_seen) || 0;
+    } catch (err) {
+        RECOMMENDED_OFFERS = [];
+        USER_INTEREST = {};
+        USER_RECEIPTS_SEEN = 0;
+    }
+}
+
+// Scratch rewards drawn from the category the user actually spends in, rather
+// than at random. The category is sampled from the interest vector — a user who
+// is 70% grocery gets grocery rewards about 70% of the time, so the vault still
+// varies without ever offering something unrelated to their spending.
+const SCRATCH_BY_CATEGORY = {
+    grocery: ['Win a ₹250 Grocery Pass', 'Win 2X points on your next grocery run',
+              'Win a Free Delivery Voucher'],
+    food:    ['Win a Free Coffee Combo', 'Win a Surprise Meal Coupon',
+              'Win 2X points on your next dining bill'],
+    retail:  ['Win a ₹300 Fashion Voucher', 'Win a ₹500 Shopping Cashback',
+              'Win 2X points on your next retail buy'],
+    general: ['Win ₹500 Cashback', 'Win a 2X Reward Multiplier',
+              'Win a ₹300 Gift Voucher']
+};
+
+function pickInterestCategory() {
+    const entries = Object.entries(USER_INTEREST)
+        .filter(([, w]) => Number(w) > 0);
+    if (!entries.length) return null;
+
+    const total = entries.reduce((sum, [, w]) => sum + Number(w), 0);
+    let roll = Math.random() * total;
+    for (const [cat, w] of entries) {
+        roll -= Number(w);
+        if (roll <= 0) return cat;
+    }
+    return entries[0][0];
+}
+
+// Reward value should track how much the user actually spends. Someone with a
+// handful of receipts and someone with fifty should not see the same headline.
+function scratchTierFor(points) {
+    if (points >= 500) return { label: 'Gold', boost: 2.0 };
+    if (points >= 200) return { label: 'Silver', boost: 1.5 };
+    return { label: 'Bronze', boost: 1.0 };
+}
+
+function buildScratchReward(index) {
+    const personalised = USER_RECEIPTS_SEEN >= MIN_RECEIPTS_FOR_SCRATCH
+        && Object.keys(USER_INTEREST).length > 0;
+
+    if (!personalised) {
+        // Guest, or too little history to infer anything — the generic pool,
+        // presented as generic.
+        return {
+            reward: randomPick(SCRATCH_REWARD_POOL),
+            category: null,
+            tier: null
+        };
+    }
+
+    const category = pickInterestCategory() || 'general';
+    const pool = SCRATCH_BY_CATEGORY[category] || SCRATCH_BY_CATEGORY.general;
+    const tier = scratchTierFor(Number(totalPoints) || 0);
+    return {
+        reward: pool[index % pool.length],
+        category: category,
+        tier: tier.label
+    };
+}
+
+// Combines 9 vouchers + 3 scratch cards into the claim catalog. Vouchers come
+// from the ML ranking when available — in rank order, best match first — and from
+// the shuffled static pool otherwise.
 function generateClaimCatalog() {
+    const isGuest = currentUserName === 'Guest Explorer';
+    const usingRanked = RECOMMENDED_OFFERS.length > 0;
+
+    // A signed-in user sees ONLY what the recommender ranked for them. The
+    // static pool is the guest catalogue: falling back to it here would dress
+    // a generic list up as personalised, which is exactly the claim the vault
+    // is making. No ranking yet means show nothing and keep the skeletons.
+    if (!isGuest && !usingRanked) return [];
+
+    const source = usingRanked ? RECOMMENDED_OFFERS : shuffleArray(VOUCHER_POOL);
+
     const vouchers = [];
-    const shuffledVouchers = shuffleArray(VOUCHER_POOL);
-    for (let i = 0; i < 9; i += 1) {
-        const voucher = shuffledVouchers[i % shuffledVouchers.length];
+    const count = Math.min(9, source.length);
+    for (let i = 0; i < count; i += 1) {
+        const voucher = source[i];
         vouchers.push({
             type: 'voucher',
             icon: voucher.icon,
             title: voucher.title,
             offer: voucher.offer,
-            requiredPoints: randomIntBetween(20, 90)
+            // The recommender's own explanation — "matches 56% of your recent
+            // spend". It was being captured and then never displayed.
+            reason: usingRanked ? (voucher.reason || null) : null,
+            rank: usingRanked ? i + 1 : null,
+            // Cost follows rank rather than a fresh random number each render.
+            // randomIntBetween() meant the same voucher cost a different amount
+            // every time the modal opened, and made the ordering look arbitrary
+            // even when the ranking underneath was not.
+            requiredPoints: usingRanked
+                ? 30 + i * 5
+                : randomIntBetween(20, 90)
         });
     }
 
     const scratches = [];
     for (let i = 0; i < 3; i += 1) {
+        const s = buildScratchReward(i);
         scratches.push({
             type: 'scratch',
             icon: '🃏',
-            title: `Scratch & Win Card ${i + 1}`,
+            title: s.tier ? `${s.tier} Scratch Card` : `Scratch & Win Card ${i + 1}`,
             offer: 'Scratch the card to reveal your reward',
-            reward: randomPick(SCRATCH_REWARD_POOL),
-            requiredPoints: randomIntBetween(20, 90)
+            reward: s.reward,
+            reason: s.category
+                ? `drawn from your ${s.category} spending`
+                : null,
+            requiredPoints: usingRanked ? 25 + i * 10 : randomIntBetween(20, 90)
         });
     }
 
+    // Signed in: keep the ranking intact. The previous version shuffled the
+    // combined list, which threw away the ordering the recommender had just
+    // computed — the vault looked random however good the model was. Scratch
+    // cards go after the ranked vouchers instead of being dealt through them.
+    if (usingRanked) {
+        return [...vouchers, ...scratches];
+    }
+
+    // Guest: nothing to personalise against, so the static pool is shuffled and
+    // presented as the generic catalogue it is.
     return shuffleArray([...vouchers, ...scratches]);
 }
 
@@ -250,6 +406,7 @@ function renderClaimCards() {
                         <canvas class="scratch-canvas" data-scratch-canvas aria-label="Scratch card area"></canvas>
                     </div>
                     <p class="scratch-hint">Scratch card to unlock claim</p>
+                    ${reward.reason ? `<p class="claim-reason">🎯 ${reward.reason}</p>` : ''}
                     <p class="claim-required">Required: <strong>${reward.requiredPoints} points</strong></p>
                     <button class="btn btn-secondary" data-scratch-btn disabled>
                         ${canClaim ? 'Scratch to Unlock' : `Need ${reward.requiredPoints} pts`}
@@ -270,6 +427,7 @@ function renderClaimCards() {
                 </div>
                 <h3>${reward.title}</h3>
                 <p class="claim-offer">${reward.offer}</p>
+                ${reward.reason ? `<p class="claim-reason">🎯 ${reward.reason}</p>` : ''}
                 <p class="claim-required">Required: <strong>${reward.requiredPoints} points</strong></p>
                 <button class="btn btn-primary" data-voucher-btn ${canClaim ? '' : 'disabled'}>
                     ${canClaim ? 'Claim Voucher' : `Need ${reward.requiredPoints} pts`}
@@ -313,6 +471,9 @@ function getScratchRevealRatio(ctx, width, height) {
     return sampledPixels ? transparentPixels / sampledPixels : 0;
 }
 
+// ── SCRATCH CARD CANVAS ────────────────────────────────────────
+// Draws a grey overlay on a <canvas>; pointer events erase it to reveal the reward
+// Tracks reveal ratio — card is "scratched" once 42% of pixels are cleared
 function setupScratchCard(card, retries = 0) {
     if (!card) return;
     const shell = card.querySelector('[data-scratch-shell]');
@@ -409,19 +570,130 @@ function initScratchCards() {
     });
 }
 
+// How long the vault waits for its background refresh before falling back to
+// what is already rendered.
+const VAULT_REFRESH_TIMEOUT = 8000;
+
+/** Rejects if `promise` has not settled within `ms`. The underlying request is
+    not cancelled — it simply stops being waited on. */
+function withTimeout(promise, ms) {
+    let timer;
+    return Promise.race([
+        promise.finally(() => clearTimeout(timer)),
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+        })
+    ]);
+}
+
+/** Small "working" pill shown while the vault refreshes in the background.
+    The cards are already on screen and usable — this only signals that the
+    personalised ranking is still being fetched, so it informs without blocking. */
+function setVaultRefreshing(on) {
+    if (!claimCardsGrid) return;
+    let pill = document.getElementById('vault-refreshing');
+    if (on) {
+        if (!pill) {
+            pill = document.createElement('p');
+            pill.id = 'vault-refreshing';
+            pill.className = 'vault-refreshing';
+            pill.setAttribute('role', 'status');       // announced, not intrusive
+            pill.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>'
+                           + 'Personalising your offers…';
+            claimCardsGrid.parentNode.insertBefore(pill, claimCardsGrid);
+        }
+        pill.hidden = false;
+    } else if (pill) {
+        pill.hidden = true;
+    }
+}
+
+/** Placeholder cards shown while the vault's two network calls are in flight. */
+function showClaimSkeletons(count = 4) {
+    if (!claimCardsGrid) return;
+    claimCardsGrid.innerHTML = Array.from({ length: count }, () => `
+        <div class="claim-skeleton" aria-hidden="true">
+            <div class="claim-skeleton__line claim-skeleton__line--title"></div>
+            <div class="claim-skeleton__line claim-skeleton__line--body"></div>
+            <div class="claim-skeleton__line claim-skeleton__line--short"></div>
+            <div class="claim-skeleton__line claim-skeleton__line--button"></div>
+        </div>`).join('');
+}
+
 async function openClaimModal() {
     if (!localStorage.getItem('token') && currentUserName !== 'Guest Explorer') {
         openAuthModal(true);
         return;
     }
-    if (localStorage.getItem('token')) {
-        await fetchTotalPoints();
+
+    // Paint FIRST, refresh after.
+    //
+    // This used to await points and the ranked offers before opening, so the
+    // click landed on a frozen page for as long as the slower call took. Worse,
+    // clicking while the page's own start-up /api/user was still in flight left
+    // the second request unresolved in the browser and the vault never opened
+    // at all — the server answers both in under a second, so the stall is on the
+    // client side of that race.
+    //
+    // Nothing here needs the network to be useful: the catalogue and the point
+    // balance are already in memory. Render them now, then refresh quietly and
+    // re-render only if the data actually changed.
+    // Signed in, the vault has nothing to show until the ranking arrives, so
+    // it opens on skeletons. A guest's catalogue is local, so it paints at once.
+    if (localStorage.getItem('token') && !RECOMMENDED_OFFERS.length) {
+        showClaimSkeletons();
+    } else {
+        showClaimCards();
     }
-    renderClaimCards();
-    refreshClaimButtonStates();
-    claimAvailablePoints.innerText = totalPoints;
     claimModal.classList.remove('hidden');
     syncBodyScrollLock();
+
+    if (localStorage.getItem('token')) {
+        const before = claimStateSignature();
+        setVaultRefreshing(true);
+        try {
+            // Bounded on purpose. Clicking while the page's own start-up
+            // /api/user is still in flight can leave the follow-up request
+            // unresolved in the browser — the server answers both in under a
+            // second, so this is a client-side race, not a slow backend.
+            // Without a ceiling the indicator would spin for the rest of the
+            // session. The cards are already on screen either way.
+            await withTimeout(
+                (async () => { await fetchTotalPoints(); await loadRecommendations(); })(),
+                VAULT_REFRESH_TIMEOUT
+            );
+        } catch (err) {
+            console.warn('Vault refresh did not complete; showing cached offers.', err);
+        } finally {
+            setVaultRefreshing(false);
+        }
+        // Repaint if anything changed, and always on the first open, where
+        // there are skeletons standing in for cards that do not exist yet.
+        if (claimStateSignature() !== before
+            || claimCardsGrid.querySelector('.claim-skeleton')) {
+            showClaimCards();
+        }
+    }
+    return;
+}
+
+/** Point balance + ranked offer ids — cheap way to tell if a re-render is warranted. */
+function claimStateSignature() {
+    const ids = (RECOMMENDED_OFFERS || []).map(o => o && o.id).join(',');
+    return `${Number(totalPoints) || 0}|${USER_RECEIPTS_SEEN}|${ids}`;
+}
+
+/** Render the vault from whatever is currently in memory. */
+function showClaimCards() {
+    renderClaimCards();
+    // Nothing to rank yet (a new account with no receipts). Say so — leaving
+    // skeletons up would imply data is still coming when it is not.
+    if (claimCardsGrid && !claimCardsGrid.children.length) {
+        claimCardsGrid.innerHTML =
+            '<p class="vault-empty">Scan a receipt to unlock rewards picked for you.</p>';
+    }
+    refreshClaimButtonStates();
+    claimAvailablePoints.innerText = totalPoints;
 
     // Wait for modal layout so scratch canvases get the correct size.
     window.requestAnimationFrame(() => {
@@ -442,9 +714,51 @@ async function openClaimedModal() {
         openAuthModal(true);
         return;
     }
-    await loadClaimedHistory();
+
+    // Same fault the vault had: this awaited the fetch before opening, so the
+    // click sat on a dead page — and the #claimed-loading notice the markup
+    // already provides was useless, because it lived inside a modal that had
+    // not been shown yet. Open first, then load against skeleton rows.
+    //
+    // Unlike the vault there is nothing cached to paint: claimed history exists
+    // only on the server, so placeholders are the honest first frame.
+    showClaimedSkeletons();
     claimedModal.classList.remove('hidden');
     syncBodyScrollLock();
+
+    try {
+        await withTimeout(loadClaimedHistory(), VAULT_REFRESH_TIMEOUT);
+    } catch (err) {
+        // Never leave the placeholders up forever — say what happened instead.
+        console.warn('Claimed history did not load.', err);
+        clearClaimedSkeletons();
+        if (!claimedTableBody.children.length) {
+            claimedLoading.style.display = 'none';
+            claimedEmpty.style.display = 'block';
+            claimedEmpty.textContent =
+                'Could not load your claimed vouchers. Please close this and try again.';
+        }
+    }
+}
+
+/** Placeholder rows for the claimed-history table while it loads. */
+function showClaimedSkeletons(rows = 4) {
+    if (!claimedTableBody) return;
+    claimedLoading.style.display = 'none';   // superseded by the rows themselves
+    claimedEmpty.style.display = 'none';
+    claimedTableBody.innerHTML = Array.from({ length: rows }, () => `
+        <tr class="claimed-skeleton-row" aria-hidden="true">
+            <td><span class="claim-skeleton__line" style="width:80%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:55%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:70%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:65%"></span></td>
+            <td><span class="claim-skeleton__line" style="width:40%;margin-left:auto"></span></td>
+        </tr>`).join('');
+}
+
+function clearClaimedSkeletons() {
+    if (!claimedTableBody) return;
+    claimedTableBody.querySelectorAll('.claimed-skeleton-row').forEach(r => r.remove());
 }
 
 function closeClaimedModal() {
@@ -551,6 +865,17 @@ async function loadAnalytics() {
         analyticsContent.classList.remove('hidden');
         const s = data.summary;
 
+        // The footnote must not claim the classifier produced these shares when
+        // the guest board is fixed sample data. Two different statements,
+        // because one of them would be false in the other mode.
+        if (analyticsFootnote) {
+            analyticsFootnote.innerText = currentUserName === 'Guest Explorer'
+                ? 'Demo data. These figures are a fixed sample used to show the layout — '
+                  + 'no receipts were analysed and no model produced them.'
+                : 'Computed from the receipts on this account. Category shares come from the '
+                  + 'trained classifier, not from the merchant name alone.';
+        }
+
         // Numbers
         analyticsTotalBills.innerText = s.totalBills;
         analyticsTotalSpend.innerText = `₹${s.totalSpend.toLocaleString('en-IN')}`;
@@ -560,33 +885,94 @@ async function loadAnalytics() {
         analyticsTopMerchantLabel.innerText = s.topMerchant;
         analyticsMainInterest.innerText = s.topCategory;
 
-        // Donut Chart simulation
-        if (data.categories && data.categories.length > 0) {
-            const palette = ['#5ba3e8', '#2d6bb5', '#ffd93d', '#ff6b6b', '#6bc167'];
-            let currentPct = 0;
-            const gradientParts = data.categories.map((c, i) => {
-                const color = palette[i % palette.length];
-                const start = currentPct;
-                currentPct += c.percentage;
-                return `${color} ${start}% ${currentPct}%`;
-            });
-            analyticsCategoryChart.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+        // Donut drawn as SVG arcs on a 42x42 viewBox: circumference is
+        // 2*pi*r with r = 15.9155, i.e. exactly 100 units, so a category's
+        // percentage IS its dash length and no conversion is needed.
+        //
+        // Okabe-Ito, assigned in fixed order and never cycled. A ninth category
+        // would repeat a colour, so the tail is folded into "Other" instead.
+        const AN_PALETTE = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00'];
+        const AN_CIRCUMFERENCE = 100;
 
-            // Legend
-            analyticsLegend.innerHTML = data.categories.map((c, i) => `
-                <li>
-                    <span class="legend-color" style="background: ${palette[i % palette.length]}"></span>
+        if (data.categories && data.categories.length > 0) {
+            let cats = data.categories.slice();
+            if (cats.length > AN_PALETTE.length) {
+                const keep = cats.slice(0, AN_PALETTE.length - 1);
+                const rest = cats.slice(AN_PALETTE.length - 1);
+                keep.push({
+                    name: 'Other',
+                    percentage: rest.reduce((t, c) => t + Number(c.percentage || 0), 0)
+                });
+                cats = keep;
+            }
+
+            const NS = 'http://www.w3.org/2000/svg';
+            analyticsCategoryChart.innerHTML = '';
+
+            // Track behind the arcs, so a partial total still reads as a ring.
+            const track = document.createElementNS(NS, 'circle');
+            track.setAttribute('cx', '21');
+            track.setAttribute('cy', '21');
+            track.setAttribute('r', '15.9155');
+            track.setAttribute('stroke', 'rgba(30,41,59,0.08)');
+            analyticsCategoryChart.appendChild(track);
+
+            let offset = 25;   // start at 12 o'clock
+            const arcs = cats.map((c, i) => {
+                const pct = Math.max(0, Number(c.percentage) || 0);
+                const arc = document.createElementNS(NS, 'circle');
+                arc.setAttribute('cx', '21');
+                arc.setAttribute('cy', '21');
+                arc.setAttribute('r', '15.9155');
+                arc.setAttribute('stroke', AN_PALETTE[i]);
+                // 0.8 shaved off the dash leaves a hairline gap between
+                // neighbours so two adjacent slices never read as one.
+                arc.setAttribute('stroke-dasharray',
+                    `${Math.max(pct - 0.8, 0.4)} ${AN_CIRCUMFERENCE - pct}`);
+                arc.setAttribute('stroke-dashoffset', String(offset));
+                arc.setAttribute('stroke-linecap', 'butt');
+                const title = document.createElementNS(NS, 'title');
+                title.textContent = `${c.name}: ${pct}%`;   // native tooltip
+                arc.appendChild(title);
+                offset -= pct;
+                return arc;
+            });
+            arcs.forEach(a => analyticsCategoryChart.appendChild(a));
+
+            analyticsLegend.innerHTML = cats.map((c, i) => `
+                <li data-slice="${i}">
+                    <span class="legend-dot" style="background:${AN_PALETTE[i]}"></span>
                     <span class="legend-label">${c.name}</span>
                     <span class="legend-value">${c.percentage}%</span>
+                    <span class="legend-bar">
+                        <span style="width:${Math.min(100, c.percentage)}%;background:${AN_PALETTE[i]}"></span>
+                    </span>
                 </li>
             `).join('');
+
+            // Hovering either the slice or its legend row highlights both, so
+            // the mapping between them never has to be guessed.
+            const rows = [...analyticsLegend.querySelectorAll('li')];
+            const link = (i, on) => {
+                if (arcs[i]) arcs[i].classList.toggle('is-active', on);
+                if (rows[i]) rows[i].classList.toggle('is-active', on);
+                analyticsCategoryChart.classList.toggle('is-hovered', on);
+            };
+            rows.forEach((row, i) => {
+                row.addEventListener('mouseenter', () => link(i, true));
+                row.addEventListener('mouseleave', () => link(i, false));
+            });
+            arcs.forEach((arc, i) => {
+                arc.addEventListener('mouseenter', () => link(i, true));
+                arc.addEventListener('mouseleave', () => link(i, false));
+            });
         }
 
         // Insights
         if (data.insights && data.insights.length > 0) {
             analyticsInsightsList.innerHTML = data.insights.map(ins => `
-                <li class="insight-item">
-                    <div class="insight-icon">💡</div>
+                <li>
+                    <span class="insight-icon" aria-hidden="true">💡</span>
                     <div class="insight-body">
                         <h4>${ins.title}</h4>
                         <p>${ins.text}</p>
@@ -594,7 +980,10 @@ async function loadAnalytics() {
                 </li>
             `).join('');
         } else {
-            analyticsInsightsList.innerHTML = '<li>No insights available yet.</li>';
+            analyticsInsightsList.innerHTML =
+                '<li><span class="insight-icon" aria-hidden="true">📄</span>'
+                + '<div class="insight-body"><h4>Not enough history yet</h4>'
+                + '<p>Scan a few more receipts and patterns will appear here.</p></div></li>';
         }
 
     } catch (err) {
@@ -604,6 +993,22 @@ async function loadAnalytics() {
 }
 
 // --- Error Modal Logic ---
+
+/** Shown once on entering guest mode — see the note at the call site. */
+function openGuestDisclaimer() {
+    openErrorModal(
+        'Guest Mode — Demo Data Only',
+        'You are exploring the interface with mock data.\n\n'
+        + '• No receipt is sent to the AI — the Gemini OCR call is skipped entirely\n'
+        + '• No trained model runs — category, fraud, anomaly and recommendation '
+        + 'results are placeholders, not predictions\n'
+        + '• Nothing is saved — points, vouchers and claim codes are generated in '
+        + 'your browser and disappear on refresh\n\n'
+        + 'Sign up for a free account to run the real pipeline end to end.\n\n'
+        + '— Team ARAJ',
+        '🎭'
+    );
+}
 
 function openErrorModal(title = "Error", message = "An error occurred.", icon = "⚠️") {
     if (errorModalIcon) errorModalIcon.innerText = icon;
@@ -729,9 +1134,18 @@ async function claimRewardFromCard(card, buttonEl) {
         code: random12DigitCode()
     };
 
-    const originalText = buttonEl.innerText;
+    // Claiming is a network round trip plus an atomic Firestore transaction, so
+    // the wait is real. Capture innerHTML rather than innerText — the restore
+    // path has to put back exactly what was there, spinner markup included.
+    const originalHTML = buttonEl.innerHTML;
+    const restoreButton = () => {
+        buttonEl.disabled = false;
+        buttonEl.classList.remove('is-busy');
+        buttonEl.innerHTML = originalHTML;
+    };
     buttonEl.disabled = true;
-    buttonEl.innerText = 'Claiming...';
+    buttonEl.classList.add('is-busy');
+    buttonEl.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>Claiming...';
 
     try {
         let data = {};
@@ -752,6 +1166,9 @@ async function claimRewardFromCard(card, buttonEl) {
             });
 
             if (response.status === 401 || response.status === 403) {
+                // Restore before bailing — the session may be restored behind
+                // this modal, and a button left mid-spin never recovers.
+                restoreButton();
                 localStorage.removeItem('token');
                 checkAuth();
                 return;
@@ -759,8 +1176,7 @@ async function claimRewardFromCard(card, buttonEl) {
 
             data = await response.json();
             if (!response.ok || !data.success) {
-                buttonEl.disabled = false;
-                buttonEl.innerText = originalText;
+                restoreButton();
                 alert(data.error || 'Unable to claim reward right now.');
                 return;
             }
@@ -773,6 +1189,7 @@ async function claimRewardFromCard(card, buttonEl) {
 
         card.dataset.claimed = 'true';
         card.classList.add('claim-card--locked');
+        buttonEl.classList.remove('is-busy');
         buttonEl.innerText = 'Claimed';
         buttonEl.disabled = true;
 
@@ -793,12 +1210,13 @@ async function claimRewardFromCard(card, buttonEl) {
         }
     } catch (error) {
         console.error('Claim error:', error);
-        buttonEl.disabled = false;
-        buttonEl.innerText = originalText;
+        restoreButton();
         alert('Network error while claiming reward.');
     }
 }
 
+// ── AUTH STATE MANAGEMENT ──────────────────────────────────────
+// Checks localStorage for a JWT; shows app or landing page accordingly
 function checkAuth() {
     const token = localStorage.getItem('token');
     if (token || currentUserName === 'Guest Explorer') {
@@ -827,14 +1245,143 @@ function checkAuth() {
     }
 }
 
-// --- Initialization ---
+// ── INITIALISATION ─────────────────────────────────────────────
+// On page load: check auth state and start hero typing animation
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     startHeroTyping();
+    initConsentGate();
+    initCarousels();
 });
+
+// ── MOBILE SWIPE CAROUSELS ─────────────────────────────────────
+// On phones the Learn More / How It Works / Under the Hood card groups turn
+// into one-card-per-view horizontal carousels (styling lives in the CSS).
+// This adds pagination dots and keeps the active dot in sync with the swipe,
+// so the sections take far less vertical space without cramping the cards.
+function initCarousels() {
+    const groups = [
+        { track: document.querySelector('.landing-features'), slide: '.landing-feature' },
+        { track: document.querySelector('.landing-section .hero-content'), slide: '.hero-block' },
+        { track: document.querySelector('.hiw-pipeline'), slide: '.hiw-stage' },
+        { track: document.querySelector('.hiw-arch-grid'), slide: '.hiw-arch-card' },
+    ];
+
+    groups.forEach(({ track, slide }) => {
+        if (!track) return;
+        const slides = track.querySelectorAll(slide);
+        if (slides.length < 2) return;
+
+        // Build the dots
+        const dots = document.createElement('div');
+        dots.className = 'carousel-dots';
+        slides.forEach((s, i) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('aria-label', 'Show item ' + (i + 1));
+            if (i === 0) b.classList.add('active');
+            b.addEventListener('click', () => {
+                s.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            });
+            dots.appendChild(b);
+        });
+        track.insertAdjacentElement('afterend', dots);
+
+        // Keep the active dot in sync as the user swipes
+        const buttons = dots.querySelectorAll('button');
+        let raf = null;
+        track.addEventListener('scroll', () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const cRect = track.getBoundingClientRect();
+                const center = cRect.left + cRect.width / 2;
+                let best = 0, bestDist = Infinity;
+                slides.forEach((s, i) => {
+                    const r = s.getBoundingClientRect();
+                    const dist = Math.abs((r.left + r.width / 2) - center);
+                    if (dist < bestDist) { bestDist = dist; best = i; }
+                });
+                buttons.forEach((d, i) => d.classList.toggle('active', i === best));
+            });
+        }, { passive: true });
+    });
+}
+
+// ── DATA CONSENT / TERMS & CONDITIONS GATE ─────────────────────
+// Simple educational consent flow: on first visit, ask the user to accept
+// how their receipt data is handled. Choice is stored in localStorage so it
+// only appears once. Frontend-only — no backend wiring.
+const CONSENT_KEY = 'dataConsentAccepted';
+
+function hasDataConsent() {
+    return localStorage.getItem(CONSENT_KEY) === 'true';
+}
+
+function initConsentGate() {
+    const modal = document.getElementById('consent-modal');
+    if (!modal) return;
+
+    const checkbox = document.getElementById('consent-checkbox');
+    const acceptBtn = document.getElementById('consent-accept');
+    const declineBtn = document.getElementById('consent-decline');
+    const declinedMsg = document.getElementById('consent-declined-msg');
+
+    // Already consented → never show again
+    if (hasDataConsent()) return;
+
+    const openModal = () => {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    };
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    };
+
+    // Accept button enables only once the checkbox is ticked
+    if (checkbox && acceptBtn) {
+        checkbox.addEventListener('change', () => {
+            acceptBtn.disabled = !checkbox.checked;
+            if (checkbox.checked && declinedMsg) declinedMsg.classList.add('hidden');
+        });
+    }
+
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', () => {
+            if (!checkbox || !checkbox.checked) return;
+            localStorage.setItem(CONSENT_KEY, 'true');
+            closeModal();
+        });
+    }
+
+    if (declineBtn) {
+        declineBtn.addEventListener('click', () => {
+            // Educational: consent is required to proceed — keep the gate up.
+            if (declinedMsg) declinedMsg.classList.remove('hidden');
+        });
+    }
+
+    openModal();
+}
+
+// Expose a way to re-open the terms later (e.g. from a footer link)
+function showConsentTerms() {
+    const modal = document.getElementById('consent-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+window.showConsentTerms = showConsentTerms;
 
 function startHeroTyping() {
     if (!heroTypingTitle) return;
+    // If a non-English language is active, i18n sets the title directly — skip typing.
+    try {
+        const savedLang = localStorage.getItem('lang');
+        if (savedLang && savedLang !== 'en') return;
+    } catch (e) { }
 
     const fullText = heroTypingTitle.dataset.typingText || heroTypingTitle.innerText || "";
     heroTypingTitle.classList.add('typing-active');
@@ -862,7 +1409,8 @@ function startHeroTyping() {
     typeNext();
 }
 
-// --- Auth Logic ---
+// ── AUTH MODAL & FORM ──────────────────────────────────────────
+// Handles login/signup form toggle, form submit, and JWT storage
 
 function setAuthMode(loginMode) {
     isLoginMode = loginMode;
@@ -954,6 +1502,13 @@ if (btnGuest) {
 
         await playWelcomeIntro('Guest Explorer');
         appContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Guest mode is a UI walkthrough, not the system. Nothing here touches
+        // Gemini, the trained models or Firestore — the points, offers and
+        // claim codes are all local fixtures. Saying so up front matters: a
+        // panel member clicking "Try as Guest" would otherwise see numbers that
+        // look like model output and reasonably assume they are.
+        openGuestDisclaimer();
     });
 }
 authModalClose.addEventListener('click', closeAuthModal);
@@ -1092,6 +1647,7 @@ btnLogout.addEventListener('click', async () => {
     valTotal.innerText = '--';
     valItems.innerHTML = '';
     valCategory.innerText = '--';
+    clearVerification();
     valEarnedPoints.innerText = '0';
     valRewardLogic.innerText = '--';
     resetUI();
@@ -1102,6 +1658,8 @@ btnLogout.addEventListener('click', async () => {
     checkAuth();
 });
 
+// ── POINTS SYNC ────────────────────────────────────────────────
+// Fetches live point balance from /api/user and updates all displays
 async function fetchTotalPoints() {
     try {
         const response = await fetch('/api/user', { headers: getAuthHeaders() });
@@ -1124,8 +1682,9 @@ async function fetchTotalPoints() {
     }
 }
 
-// --- Utility Functions ---
+// ── STEPPER & STAGE HELPERS ────────────────────────────────────
 
+// Advances the 4-step progress bar (Upload → Extract → Process → Reward)
 function activateStep(stepEl) {
     const nextIndex = STEP_SEQUENCE.indexOf(stepEl);
     if (nextIndex === -1) return;
@@ -1176,9 +1735,10 @@ function showStage(stageEl) {
 // Format currency
 const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
-// --- Core Logic ---
+// ── RECEIPT UPLOAD PIPELINE ────────────────────────────────────
+// File input / drag-drop → base64 encode → POST /api/upload → show results
 
-// 1. Upload Handler
+// 1. Upload Handler — wires file input and drag-and-drop zone to handleUpload()
 fileInput.addEventListener('change', handleUpload);
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -1198,9 +1758,7 @@ async function handleUpload() {
     activateStep(stepExtract);
     showStage(stageExtracting);
 
-    // Start an infinite progress bar for the UI while waiting for the Gemini API
-    ocrProgress.style.transition = 'width 10s ease-out';
-    ocrProgress.style.width = '90%';
+    startOcrProgress();
 
     const file = fileInput.files[0];
     const reader = new FileReader();
@@ -1251,27 +1809,40 @@ async function handleUpload() {
             }
 
             if (status === 200 && result.success) {
-                ocrProgress.style.transition = 'width 0.2s linear';
-                ocrProgress.style.width = '100%';
+                stopOcrProgress(true);
 
                 setTimeout(() => {
                     processReceiptData(result.data);
                 }, 500);
             } else if (status === 409) {
-                openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
+                stopOcrProgress();
+                // A bill claimed on someone else's account is not the user's
+                // fault, and the person seeing this may well be the rightful
+                // owner. Keep that case calm — the warning triangle reads as an
+                // accusation, which is wrong for a message we cannot be certain
+                // about. Re-uploading your own receipt stays a plain warning.
+                if (result.code === 'ALREADY_CLAIMED') {
+                    openErrorModal('Already Claimed', result.error, '🧾');
+                } else {
+                    openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
+                }
                 resetUI();
             } else if (status === 422) {
+                stopOcrProgress();
                 openErrorModal('Scan Failed', result.error || 'The receipt image is blurry or unreadable. Please try again with a clearer photo.', '📷');
                 resetUI();
             } else if (status === 429) {
+                stopOcrProgress();
                 openErrorModal('Rate Limit Exceeded', result.error || 'The AI service is currently busy. Please try again in a few moments.', '⏳');
                 resetUI();
             } else {
+                stopOcrProgress();
                 openErrorModal('Processing Error', 'Error processing receipt: ' + (result.error || `HTTP Status ${status}`), '📡');
                 resetUI();
             }
         } catch (error) {
             console.error('Upload Error:', error);
+            stopOcrProgress();
             openErrorModal('Network Error', 'A network error occurred while processing the receipt. Please check your connection.', '🌐');
             resetUI();
         }
@@ -1285,7 +1856,151 @@ async function handleUpload() {
     reader.readAsDataURL(file);
 }
 
-// 2. Process Data
+// 2. Process Data — populates result fields and advances to Reward step
+// Clears the verification block so one receipt's verdict never bleeds into the
+// next scan.
+function clearVerification() {
+    valRisk.innerText = '--';
+    valRisk.className = 'risk-badge';
+    valFraudScore.innerText = '--';
+    valFraudScore.classList.remove('is-flagged');
+    valAnomaly.innerText = '--';
+    valAnomaly.classList.remove('is-flagged');
+    verifyNote.innerText = '';
+    verificationDetail.hidden = true;
+}
+
+// ── OCR PROGRESS ───────────────────────────────────────────────
+// The extraction wait is long and variable: ocr.py holds a 23-second rate-limit
+// gate before it may call Gemini at all, and on a transient failure it retries
+// up to three times per model across two models. A worst case runs past a
+// minute. The old bar eased to 90% over ten seconds and then sat there, so
+// every slow extraction looked like a hang.
+//
+// There is no progress signal to report — the request is one blocking call — so
+// the percentage is an ESTIMATE against expected duration, not a measurement.
+// It is kept honest three ways: it rises on a curve that never stalls and never
+// reaches 100% until the response actually lands; the elapsed counter beside it
+// is measured, so something factual is always moving; and the caption names the
+// phase the pipeline is genuinely in at that point.
+let _ocrTimer = null;
+let _ocrStart = 0;
+
+// Time constant of the curve: pct = CEILING * (1 - e^(-t/TAU)).
+// ~33% at 8s, ~63% at 20s, ~86% at 40s, ~94% at 60s — always climbing,
+// never arriving. ocr.py bounds the attempt at 70s; the curve is paced to that. CEILING leaves headroom so the jump to 100% reads as completion.
+const OCR_TAU = 26;   // tuned to the 90s server-side deadline
+const OCR_CEILING = 97;
+
+function _ocrPhase(seconds) {
+    if (seconds < 2)  return ['Checking image quality…', false];
+    if (seconds < 20) return ['Waiting for the AI model…', false];
+    return ['Model is busy — retrying…', true];
+}
+
+function startOcrProgress() {
+    stopOcrProgress();                       // never run two tickers at once
+    _ocrStart = Date.now();
+
+    ocrProgress.style.width = '0%';
+    ocrProgress.classList.add('is-working');
+
+    _ocrTimer = setInterval(() => {
+        const seconds = (Date.now() - _ocrStart) / 1000;
+        const pct = OCR_CEILING * (1 - Math.exp(-seconds / OCR_TAU));
+
+        ocrProgress.style.width = pct.toFixed(1) + '%';
+        if (ocrProgressPct) ocrProgressPct.textContent = Math.floor(pct) + '%';
+        if (ocrProgressElapsed) ocrProgressElapsed.textContent = Math.floor(seconds) + 's';
+
+        const [note, slow] = _ocrPhase(seconds);
+        if (ocrProgressNote && ocrProgressNote.textContent !== note) {
+            ocrProgressNote.textContent = note;
+        }
+        if (ocrProgressMeta) ocrProgressMeta.classList.toggle('is-slow', slow);
+    }, 150);
+}
+
+// complete=true fills to 100% before the next stage; on failure the bar simply
+// stops where it is, rather than implying the work finished.
+function stopOcrProgress(complete) {
+    if (_ocrTimer) {
+        clearInterval(_ocrTimer);
+        _ocrTimer = null;
+    }
+    ocrProgress.classList.remove('is-working');
+
+    if (complete) {
+        ocrProgress.style.width = '100%';
+        if (ocrProgressPct) ocrProgressPct.textContent = '100%';
+        if (ocrProgressNote) ocrProgressNote.textContent = 'Extraction complete';
+        if (ocrProgressMeta) ocrProgressMeta.classList.remove('is-slow');
+    }
+}
+
+
+// Renders the verification verdict: the composite fraud score, the
+// spending-anomaly flag, and the reason the risk level landed where it did.
+// The score shown is the blend fraud.py returns, NOT the tamper CNN's own
+// probability — that arrives separately as tamperProbability. The backend always
+// sends these fields (it falls back to a 0.05 baseline when the ML service is
+// unreachable), so the block is driven by the response rather than guessed at.
+function renderVerification(receiptData) {
+    const score = Number(receiptData.fraudScore);
+    const level = receiptData.riskLevel || 'Low';
+    const hasScore = Number.isFinite(score);
+
+    valRisk.innerText = `${level} risk`;
+    valRisk.className = `risk-badge risk-${level.toLowerCase()}`;
+
+    if (!hasScore) {
+        verificationDetail.hidden = true;
+        return;
+    }
+    verificationDetail.hidden = false;
+
+    valFraudScore.innerText = score.toFixed(2);
+    valFraudScore.classList.toggle('is-flagged', score > 0.7);
+
+    const anomalous = receiptData.anomalyFlag === true;
+    valAnomaly.innerText = anomalous ? 'Flagged' : 'Normal';
+    valAnomaly.classList.toggle('is-flagged', anomalous);
+
+    // List EVERY signal that fired, not just the first match.
+    //
+    // The score is a composite — fraud.py starts from the OCR rule signals and
+    // adds 0.40 for a perceptual-hash duplicate and 0.40 when the tamper CNN
+    // clears 0.50. Showing one cause hid the others: a genuine bill scoring
+    // 0.45 displayed only "the amount is unusual" while the tamper signal had
+    // also fired, so the number and the explanation did not add up.
+    const signals = receiptData.fraudSignals || {};
+    const reasons = [];
+
+    if (receiptData.crossUserDuplicate) {
+        reasons.push('already submitted by a different account');
+    } else if (signals.duplicate) {
+        // The perceptual-hash check compares against recent receipts from every
+        // account, not just this user's, so it cannot promise whose it was.
+        reasons.push('closely matches a receipt already in the system');
+    }
+    if (signals.tamper) reasons.push('the image shows signs of editing');
+    if (receiptData.itemsTotalMismatch) reasons.push('line items do not add up to the total');
+    if (anomalous) reasons.push('the amount is unusual for this spend category');
+    if (signals.handwritten) reasons.push('handwriting detected on a printed bill');
+    if (signals.multi_bill) reasons.push('more than one receipt in the image');
+    if (signals.blur) reasons.push('the image is blurred');
+
+    let note = '';
+    if (reasons.length === 1) {
+        note = reasons[0].charAt(0).toUpperCase() + reasons[0].slice(1) + '.';
+    } else if (reasons.length > 1) {
+        note = 'Flagged because ' + reasons.slice(0, -1).join(', ')
+             + ' and ' + reasons[reasons.length - 1] + '.';
+    }
+    verifyNote.innerText = note;
+    verifyNote.hidden = !note;
+}
+
 function processReceiptData(receiptData) {
     activateStep(stepProcess);
 
@@ -1308,6 +2023,9 @@ function processReceiptData(receiptData) {
 
     // Display Category (from GenAI)
     valCategory.innerText = receiptData.category || 'General';
+
+    // Verification verdict from the fraud and anomaly models
+    renderVerification(receiptData);
     latestProcessedBillData = {
         merchant: receiptData.rawMerchant || 'Unknown Merchant',
         date: receiptData.date || '-',
@@ -1336,13 +2054,25 @@ function processReceiptData(receiptData) {
         if (getComputedStyle(sectionHistory).display !== 'none') {
             loadScanHistory();
         }
+
+        // Re-rank the vault against the receipt just scanned. The backend has
+        // already updated this user's interest vector, so without this the
+        // vault keeps showing the ranking from login and a fresh scan appears
+        // to change nothing.
+        loadRecommendations();
     }, 600);
 }
 
 function resetUI() {
     // Reset UI state
     fileInput.value = "";
+    stopOcrProgress();
     ocrProgress.style.width = '0%';
+    if (ocrProgressPct) ocrProgressPct.textContent = '0%';
+    if (ocrProgressElapsed) ocrProgressElapsed.textContent = '0s';
+    if (ocrProgressNote) ocrProgressNote.textContent = 'Preparing image…';
+    if (ocrProgressMeta) ocrProgressMeta.classList.remove('is-slow');
+    clearVerification();
     btnAddBalance.disabled = false;
     btnAddBalance.innerText = "Add to Balance";
     btnViewDigitalBill.disabled = true;
@@ -1352,6 +2082,8 @@ function resetUI() {
     showStage(stageUpload);
 }
 
+// ── SCAN HISTORY ───────────────────────────────────────────────
+// Fetches /api/history, renders table rows, and wires the search/filter inputs
 async function loadScanHistory() {
     historyLoading.style.display = 'block';
     historyTable.style.display = 'none';
@@ -1509,9 +2241,14 @@ historyTableBody.addEventListener('click', async (e) => {
 });
 
 async function loadClaimedHistory() {
-    claimedLoading.style.display = 'block';
+    // Do NOT blank the table here. On open it holds skeleton rows, and on a
+    // refresh-in-place it holds the previous claims — clearing either would
+    // flash an empty table for the length of the request. The rows are replaced
+    // wholesale once the data arrives, and the empty/error branches below clear
+    // the placeholders themselves.
+    const hasSkeletons = !!claimedTableBody.querySelector('.claimed-skeleton-row');
+    claimedLoading.style.display = hasSkeletons ? 'none' : 'block';
     claimedEmpty.style.display = 'none';
-    claimedTableBody.innerHTML = '';
 
     try {
         let claimsData = [];
@@ -1524,6 +2261,7 @@ async function loadClaimedHistory() {
         } else {
             const response = await fetch('/api/claimed-rewards', { headers: getAuthHeaders() });
             if (response.status === 401 || response.status === 403) {
+                clearClaimedSkeletons();   // else the placeholders outlive the session
                 localStorage.removeItem('token');
                 checkAuth();
                 return;
@@ -1557,10 +2295,12 @@ async function loadClaimedHistory() {
                 </tr>
             `).join('');
         } else {
+            clearClaimedSkeletons();
             claimedEmpty.style.display = 'block';
         }
     } catch (error) {
         console.error('Error fetching claimed history:', error);
+        clearClaimedSkeletons();
         claimedLoading.style.display = 'none';
         claimedEmpty.style.display = 'block';
         claimedEmpty.innerText = 'Failed to load claimed vouchers.';
@@ -1602,7 +2342,8 @@ claimCardsGrid.addEventListener('click', async (e) => {
     }
 });
 
-// History Search & Filter Logic
+// ── HISTORY SEARCH & FILTER ─────────────────────────────────────
+// Client-side text search + category dropdown applied to the rendered table rows
 const historySearchInput = document.getElementById('history-search');
 const historyCategoryFilter = document.getElementById('history-category-filter');
 
@@ -1650,3 +2391,122 @@ if (historySearchInput) {
 if (historyCategoryFilter) {
     historyCategoryFilter.addEventListener('change', filterHistoryTable);
 }
+
+/* ── CUSTOM SELECT ──────────────────────────────────────────────
+   Enhances a real <select> rather than replacing it. The native element stays
+   in the DOM as the source of truth, so `historyCategoryFilter.value` and the
+   'change' listener in filterHistoryTable() keep working untouched — and if
+   this never runs, the page still has a usable control. */
+function enhanceSelect(selectEl) {
+    if (!selectEl || selectEl.dataset.enhanced === 'true') return;
+    selectEl.dataset.enhanced = 'true';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'custom-select';
+    selectEl.parentNode.insertBefore(wrap, selectEl);
+    wrap.appendChild(selectEl);
+    selectEl.classList.add('custom-select__native');
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';                  // never submit a surrounding form
+    trigger.className = 'custom-select__trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = '<span class="custom-select__label"></span>'
+                      + '<span class="custom-select__caret" aria-hidden="true">▾</span>';
+
+    const panel = document.createElement('ul');
+    panel.className = 'custom-select__panel';
+    panel.setAttribute('role', 'listbox');
+
+    const label = trigger.querySelector('.custom-select__label');
+    const options = Array.from(selectEl.options);
+
+    options.forEach((opt, i) => {
+        const li = document.createElement('li');
+        li.className = 'custom-select__option';
+        li.setAttribute('role', 'option');
+        li.dataset.index = String(i);
+        li.textContent = opt.textContent;
+        panel.appendChild(li);
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+
+    const items = Array.from(panel.children);
+    let activeIndex = selectEl.selectedIndex;
+
+    function syncFromNative() {
+        const i = selectEl.selectedIndex;
+        label.textContent = options[i] ? options[i].textContent : '';
+        items.forEach((li, n) => li.setAttribute('aria-selected', n === i ? 'true' : 'false'));
+    }
+
+    function setActive(i) {
+        activeIndex = Math.max(0, Math.min(items.length - 1, i));
+        items.forEach((li, n) => li.classList.toggle('is-active', n === activeIndex));
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    function open() {
+        wrap.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        setActive(selectEl.selectedIndex);
+    }
+
+    function close() {
+        wrap.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        items.forEach(li => li.classList.remove('is-active'));
+    }
+
+    function choose(i) {
+        if (selectEl.selectedIndex !== i) {
+            selectEl.selectedIndex = i;
+            // Dispatch so existing listeners fire — assigning .value in code
+            // does not raise 'change' on its own.
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        syncFromNative();
+        close();
+        trigger.focus();
+    }
+
+    trigger.addEventListener('click', () => {
+        wrap.classList.contains('is-open') ? close() : open();
+    });
+
+    panel.addEventListener('click', e => {
+        const li = e.target.closest('.custom-select__option');
+        if (li) choose(Number(li.dataset.index));
+    });
+
+    trigger.addEventListener('keydown', e => {
+        const isOpen = wrap.classList.contains('is-open');
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!isOpen) return open();
+            setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1));
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            isOpen ? choose(activeIndex) : open();
+        } else if (e.key === 'Escape' && isOpen) {
+            close();
+        } else if (e.key === 'Home' && isOpen) {
+            e.preventDefault(); setActive(0);
+        } else if (e.key === 'End' && isOpen) {
+            e.preventDefault(); setActive(items.length - 1);
+        }
+    });
+
+    document.addEventListener('click', e => {
+        if (!wrap.contains(e.target)) close();
+    });
+
+    // Keep the label honest if anything sets the value programmatically.
+    selectEl.addEventListener('change', syncFromNative);
+    syncFromNative();
+}
+
+document.querySelectorAll('select.history-select').forEach(enhanceSelect);

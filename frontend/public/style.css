@@ -22,6 +22,15 @@
     --shadow-medium: 0 8px 40px rgba(15, 20, 25, 0.1);
     --shadow-rich: 0 16px 64px rgba(15, 20, 25, 0.12);
     --border-refined: 1px solid rgba(30, 41, 59, 0.12);
+
+    /* Verification status. Each risk level always ships with its word as well as
+       its colour, so the state is never carried by colour alone. */
+    --color-risk-low: #15803d;
+    --color-risk-low-bg: rgba(21, 128, 61, 0.12);
+    --color-risk-med: #b45309;
+    --color-risk-med-bg: rgba(180, 83, 9, 0.12);
+    --color-risk-high: #b91c1c;
+    --color-risk-high-bg: rgba(185, 28, 28, 0.12);
     --radius-sm: 6px;
     --radius-md: 12px;
     --radius-lg: 20px;
@@ -48,6 +57,10 @@ html {
     scroll-behavior: smooth;
 }
 
+html {
+    overflow-x: clip;
+}
+
 body {
     font-family: var(--font-body);
     color: var(--color-ink);
@@ -57,6 +70,10 @@ body {
     display: flex;
     flex-direction: column;
     line-height: 1.6;
+    /* prevent horizontal page scroll from the mobile card carousels
+       (overflow: clip keeps the sticky navbar + nested carousels intact) */
+    overflow-x: clip;
+    max-width: 100%;
 }
 
 /* Subtle pattern overlay */
@@ -672,6 +689,528 @@ body::before {
     border-radius: var(--radius-sm);
 }
 
+/* Repository link buttons in the About Capstone block */
+.repo-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.repo-links .btn {
+    text-decoration: none;
+}
+
+/* ── About This Capstone (standalone section) ─────────────── */
+.about-capstone-body {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.about-intro {
+    text-align: center;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--color-charcoal, #334155);
+    margin-bottom: 1.85rem;
+}
+
+.about-grid {
+    margin-bottom: 1.6rem;
+}
+
+.about-capstone .limitations-alert {
+    margin-top: 0;
+}
+
+.about-repo-links {
+    justify-content: center;
+    margin-top: 0;
+}
+
+/* ── Language switcher (landing page only) ────────────────── */
+.lang-switch {
+    position: fixed;
+    right: max(1.25rem, env(safe-area-inset-right, 0px));
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    z-index: 2500;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+}
+
+/* On phones, lift the button clear of the browser's bottom toolbar / gesture bar */
+@media (max-width: 600px) {
+    .lang-switch {
+        right: max(1rem, env(safe-area-inset-right, 0px));
+        bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+.lang-fab {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--color-accent, #0d4f8b), var(--color-accent-light, #1e6bb8));
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(13, 79, 139, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lang-fab:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 12px 28px rgba(13, 79, 139, 0.5);
+}
+
+.lang-drawer {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 18px 44px rgba(8, 27, 43, 0.28);
+    border: 1px solid rgba(30, 41, 59, 0.1);
+    padding: 0.5rem;
+    min-width: 190px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    animation: modalSlideInBounce 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: bottom right;
+}
+
+.lang-drawer-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-smoke, #64748b);
+    padding: 0.5rem 0.75rem 0.35rem;
+}
+
+.lang-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: var(--color-ink, #0f1419);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.18s ease;
+}
+
+.lang-option span {
+    font-size: 1.15rem;
+}
+
+.lang-option:hover {
+    background: rgba(13, 79, 139, 0.07);
+}
+
+.lang-option.active {
+    background: rgba(184, 134, 11, 0.12);
+    font-weight: 700;
+    color: var(--color-accent, #0d4f8b);
+}
+
+/* ── RTL (Arabic) — mirror the landing content ────────────── */
+#section-auth[dir="rtl"] {
+    text-align: right;
+}
+
+#section-auth[dir="rtl"] .hero-badge,
+#section-auth[dir="rtl"] .hero-title,
+#section-auth[dir="rtl"] .hero-subtitle,
+#section-auth[dir="rtl"] .about-intro,
+#section-auth[dir="rtl"] .hiw-lead,
+#section-auth[dir="rtl"] .hiw-arch-title,
+#section-auth[dir="rtl"] .hiw-arch-lead,
+#section-auth[dir="rtl"] .hiw-arch-card,
+#section-auth[dir="rtl"] .landing-feature,
+#section-auth[dir="rtl"] .hiw-flow {
+    text-align: center;
+}
+
+#section-auth[dir="rtl"] .team-list {
+    padding-right: 1.1rem;
+    padding-left: 0;
+}
+
+/* move the pipeline accent bar to the right side in RTL */
+#section-auth[dir="rtl"] .hiw-stage {
+    border-left: 1px solid rgba(30, 41, 59, 0.08);
+    border-right: 4px solid var(--color-gold, #b8860b);
+}
+
+#section-auth[dir="rtl"] .lang-option {
+    text-align: right;
+    flex-direction: row-reverse;
+}
+
+/* ── How It Works (redesigned: pipeline + architecture) ────── */
+.hiw-lead {
+    text-align: center;
+    color: var(--color-smoke);
+    font-size: 1rem;
+    max-width: 640px;
+    margin: 0.25rem auto 3rem;
+    line-height: 1.65;
+}
+
+.hiw-pipeline {
+    list-style: none;
+    margin: 0 auto 3.75rem;
+    padding: 0;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+}
+
+.hiw-stage {
+    display: flex;
+    gap: 1.35rem;
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-left: 4px solid var(--color-gold, #b8860b);
+    border-radius: var(--radius-md);
+    padding: 1.6rem 1.75rem;
+    box-shadow: 0 4px 14px rgba(8, 27, 43, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-left-color 0.25s ease;
+}
+
+.hiw-stage:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(8, 27, 43, 0.13);
+    border-left-color: var(--color-accent, #0d4f8b);
+}
+
+.hiw-stage-badge {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent, #0d4f8b), var(--color-accent-light, #1e6bb8));
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(13, 79, 139, 0.32);
+}
+
+.hiw-stage-body h4 {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0.2rem 0 0.5rem;
+}
+
+.hiw-stage-body p {
+    font-size: 0.92rem;
+    color: var(--color-charcoal, #334155);
+    line-height: 1.65;
+    margin: 0 0 0.85rem;
+}
+
+.hiw-tag {
+    display: inline-block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-accent, #0d4f8b);
+    background: rgba(13, 79, 139, 0.08);
+    border-radius: 999px;
+    padding: 0.28rem 0.8rem;
+}
+
+.hiw-arch {
+    border-top: 1px solid rgba(30, 41, 59, 0.1);
+    padding-top: 3rem;
+    margin-top: 0.5rem;
+}
+
+.hiw-arch-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    text-align: center;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.55rem;
+}
+
+.hiw-arch-lead {
+    text-align: center;
+    color: var(--color-smoke);
+    font-size: 0.95rem;
+    max-width: 620px;
+    margin: 0 auto 2.4rem;
+    line-height: 1.6;
+}
+
+.hiw-arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.4rem;
+    margin-bottom: 2.5rem;
+}
+
+.hiw-arch-card {
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(30, 41, 59, 0.08);
+    border-radius: var(--radius-md);
+    padding: 1.8rem 1.4rem;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(8, 27, 43, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.hiw-arch-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(8, 27, 43, 0.15);
+    border-color: rgba(184, 134, 11, 0.45);
+}
+
+.hiw-arch-icon {
+    font-size: 2.3rem;
+    line-height: 1;
+    margin-bottom: 0.75rem;
+}
+
+.hiw-arch-card h5 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0 0 0.5rem;
+}
+
+.hiw-arch-card p {
+    font-size: 0.84rem;
+    color: var(--color-smoke);
+    line-height: 1.55;
+    margin: 0 0 0.9rem;
+}
+
+.hiw-arch-tech {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--color-gold, #b8860b);
+    text-transform: uppercase;
+}
+
+.hiw-flow {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--color-charcoal, #334155);
+    line-height: 2;
+    margin-top: 0.5rem;
+}
+
+.hiw-flow-chain {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--color-accent, #0d4f8b);
+    background: rgba(13, 79, 139, 0.06);
+    border: 1px dashed rgba(13, 79, 139, 0.3);
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+}
+
+.hiw-arch code,
+.hiw-flow code {
+    background: rgba(30, 41, 59, 0.08);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+/* ── Responsive: Learn More / How It Works / Under the Hood ── */
+
+/* Tablet / iPad: ease the outer card padding a little */
+@media (max-width: 820px) {
+
+    .landing-blur-card {
+        padding: 2rem 1.6rem;
+    }
+
+    .landing-how-box {
+        padding: 2rem 1.6rem;
+    }
+
+    /* Under the Hood → 2 columns on tablet */
+    .hiw-arch-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Phones: compact swipe carousels — one FULL-WIDTH card per view */
+@media (max-width: 600px) {
+
+    .landing-blur-card {
+        padding: 1.6rem 1.15rem;
+    }
+
+    .landing-blur-card .hero-title {
+        font-size: 1.55rem;
+        margin-bottom: 1.35rem;
+        padding-bottom: 1rem;
+    }
+
+    /* The card groups become horizontal swipe tracks */
+    .landing-features,
+    .landing-section .hero-content,
+    .hiw-pipeline,
+    .hiw-arch-grid {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        gap: 0.85rem;
+        margin-bottom: 0.4rem;
+        padding-bottom: 0.25rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .landing-features::-webkit-scrollbar,
+    .landing-section .hero-content::-webkit-scrollbar,
+    .hiw-pipeline::-webkit-scrollbar,
+    .hiw-arch-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* one card fills the viewport → full breathing room, zero cramping */
+    .landing-feature,
+    .hero-block,
+    .hiw-stage,
+    .hiw-arch-card {
+        flex: 0 0 100%;
+        box-sizing: border-box;
+        scroll-snap-align: center;
+    }
+
+    .hiw-pipeline {
+        max-width: none;
+    }
+
+    .hero-block {
+        padding: 1.6rem 1.4rem;
+    }
+
+    .hero-block p {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        text-align: left;
+    }
+
+    .hiw-stage {
+        padding: 1.4rem 1.35rem;
+        gap: 1.1rem;
+    }
+
+    .hiw-arch-card {
+        padding: 1.6rem 1.4rem;
+    }
+
+    .landing-how {
+        margin-top: 2.25rem;
+    }
+
+    .landing-how-box {
+        padding: 1.75rem 1.2rem;
+    }
+
+    .hiw-lead {
+        margin: 0.25rem auto 1.75rem;
+    }
+
+    .hiw-arch {
+        padding-top: 2.25rem;
+    }
+
+    .hiw-flow-chain {
+        display: block;
+        margin-top: 0.6rem;
+    }
+}
+
+/* Carousel pagination dots — visible only in mobile carousel mode */
+.carousel-dots {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .carousel-dots {
+        display: flex;
+        justify-content: center;
+        gap: 0.45rem;
+        margin: 0.5rem 0 1.6rem;
+    }
+
+    .carousel-dots button {
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: rgba(30, 41, 59, 0.25);
+        cursor: pointer;
+        transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .carousel-dots button.active {
+        width: 22px;
+        background: var(--color-gold, #b8860b);
+    }
+
+    /* the hero-features carousel sits on a dark background → lighten its dots */
+    .landing-features+.carousel-dots button {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .landing-features+.carousel-dots button.active {
+        background: var(--color-gold-light, #d4af37);
+    }
+}
+
+/* Folds & very small screens: tighten but keep it readable */
+@media (max-width: 360px) {
+
+    .landing-blur-card,
+    .landing-how-box {
+        padding: 1.25rem 0.95rem;
+    }
+
+    .hero-block {
+        padding: 1.35rem 1.15rem;
+    }
+
+    .hiw-stage {
+        padding: 1.25rem 1.1rem;
+        gap: 0.9rem;
+    }
+
+    .landing-blur-card .hero-title {
+        font-size: 1.4rem;
+    }
+}
+
 .limitations-alert strong {
     color: var(--color-ink);
     font-size: 0.9rem;
@@ -692,7 +1231,7 @@ body::before {
 .landing-how-box {
     position: relative;
     overflow: hidden;
-    padding: 1.8rem 1.35rem 1.4rem;
+    padding: 2.75rem 2.25rem 2.5rem;
     border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.5);
     background: linear-gradient(155deg, rgba(105, 112, 120, 0.34), rgba(176, 184, 194, 0.24) 48%, rgba(255, 255, 255, 0.2));
@@ -741,49 +1280,6 @@ body::before {
     margin-bottom: 1.5rem;
 }
 
-.landing-steps {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 0;
-}
-
-.landing-step {
-    flex: 1;
-    min-width: 120px;
-    max-width: 200px;
-    text-align: center;
-    padding: 1.25rem;
-}
-
-.step-arrow {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-gold);
-}
-
-.step-arrow svg {
-    width: 24px;
-    height: 24px;
-    animation: arrow-pulse 2s ease-in-out infinite;
-}
-
-.step-arrow:nth-of-type(2) svg {
-    animation-delay: 0.2s;
-}
-
-.step-arrow:nth-of-type(4) svg {
-    animation-delay: 0.4s;
-}
-
-.step-arrow:nth-of-type(6) svg {
-    animation-delay: 0.6s;
-}
 
 @keyframes arrow-pulse {
 
@@ -804,22 +1300,6 @@ body::before {
         padding: 1.3rem 1rem 1.1rem;
     }
 
-    .landing-steps {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .landing-step {
-        max-width: none;
-    }
-
-    .step-arrow {
-        transform: rotate(90deg);
-    }
-
-    .step-arrow svg {
-        animation: arrow-pulse-down 2s ease-in-out infinite;
-    }
 
     @keyframes arrow-pulse-down {
 
@@ -836,31 +1316,6 @@ body::before {
     }
 }
 
-.landing-step-num {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-gold-muted);
-    color: var(--color-gold);
-    font-weight: 700;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.75rem;
-}
-
-.landing-step h4 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-ink);
-}
-
-.landing-step p {
-    font-size: 0.8rem;
-    color: var(--color-smoke);
-    margin-top: 0.25rem;
-}
 
 /* Trust badges */
 .landing-trust {
@@ -885,10 +1340,6 @@ body::before {
     color: var(--color-ink);
 }
 
-/* ——— Auth ——— */
-.auth-floating-wrapper {
-    margin-top: 2rem;
-}
 
 .auth-container.card.glass-panel {
     max-width: 400px;
@@ -1233,7 +1684,65 @@ body::before {
     width: 0%;
     background: linear-gradient(90deg, var(--color-gold), var(--color-gold-light));
     border-radius: 100px;
-    transition: width 0.3s ease;
+    /* Short transition only — width is now stepped every 150ms from JS, so a
+       long CSS transition would fight the ticker and look laggy. */
+    transition: width 0.2s linear;
+}
+
+/* A travelling sheen, so the bar is visibly alive even in the late phase where
+   the percentage advances by well under 1% per second. */
+.progress-bar.is-working {
+    background-image:
+        linear-gradient(90deg, var(--color-gold), var(--color-gold-light)),
+        linear-gradient(100deg,
+            rgba(255, 255, 255, 0) 30%,
+            rgba(255, 255, 255, 0.55) 50%,
+            rgba(255, 255, 255, 0) 70%);
+    background-size: 100% 100%, 220px 100%;
+    background-repeat: no-repeat, no-repeat;
+    animation: progress-sheen 1.4s linear infinite;
+}
+
+@keyframes progress-sheen {
+    from { background-position: 0 0, -220px 0; }
+    to   { background-position: 0 0, calc(100% + 220px) 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .progress-bar.is-working { animation: none; }
+}
+
+.progress-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-top: 0.55rem;
+    font-size: 0.82rem;
+    color: var(--color-smoke);
+}
+
+.progress-meta .progress-pct {
+    font-weight: 700;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    min-width: 3.2em;
+}
+
+.progress-meta .progress-note {
+    flex: 1;
+    text-align: left;
+}
+
+.progress-meta .progress-elapsed {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-mist);
+}
+
+/* Long waits are the model being slow, not a fault — say so in a calmer tone
+   than an error, but visibly enough that nobody assumes the page has hung. */
+.progress-meta.is-slow .progress-note {
+    color: var(--color-gold);
+    font-weight: 600;
 }
 
 /* Results grid */
@@ -1299,6 +1808,82 @@ body::before {
     border-radius: 100px;
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+/* ── Verification (tamper + anomaly) ───────────────────────────────── */
+.risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--color-smoke);
+}
+
+.risk-badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.risk-badge.risk-low {
+    background: var(--color-risk-low-bg);
+    color: var(--color-risk-low);
+}
+
+.risk-badge.risk-medium {
+    background: var(--color-risk-med-bg);
+    color: var(--color-risk-med);
+}
+
+.risk-badge.risk-high {
+    background: var(--color-risk-high-bg);
+    color: var(--color-risk-high);
+}
+
+.verification-detail {
+    margin-top: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    background: #fff;
+    border-radius: var(--radius-sm);
+    border: var(--border-refined);
+}
+
+.verification-detail[hidden] {
+    display: none;
+}
+
+.verify-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    padding: 0.15rem 0;
+}
+
+.verify-line span {
+    color: var(--color-smoke);
+}
+
+.verify-line strong {
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.verify-line strong.is-flagged {
+    color: var(--color-risk-high);
+}
+
+.verify-note {
+    margin: 0.45rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--color-mist);
 }
 
 .items-list {
@@ -1584,9 +2169,17 @@ body::before {
 .claim-cards-grid {
     padding: 1.4rem 1.75rem 1.75rem;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Fluid rather than stepped: cards wrap to whatever the width allows, so
+       there is no size between breakpoints where they are squeezed. The fixed
+       4/3/2/1 rules below are kept only as an upper bound on very wide screens. */
+    grid-template-columns: repeat(auto-fit, minmax(clamp(200px, 22vw, 260px), 1fr));
     gap: 1rem;
     overflow-y: auto;
+    /* Default `stretch` is what keeps every card in a row the height of the
+       tallest one. `align-items: start` sized each card to its own content,
+       which let a taller card paint outside its grid area and sit on top of the
+       row below. */
+    align-items: stretch;
 }
 
 .claim-card {
@@ -1597,12 +2190,30 @@ body::before {
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    min-height: 236px;
+    /* No min-height. It was being taken as the row size — the grid resolved
+       every track to exactly 236px, so a card whose content needed 332px
+       overflowed its own box and the button landed on the row below. Natural
+       height keeps the rows honest; padding alone gives short cards enough
+       presence without a floor. */
+    height: auto;
     box-shadow: 0 12px 30px rgba(15, 20, 25, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.58);
     backdrop-filter: blur(24px) saturate(185%);
     -webkit-backdrop-filter: blur(24px) saturate(185%);
     transition: transform 0.28s ease, box-shadow 0.28s ease;
-    overflow: hidden;
+    /* Was `overflow: hidden`, which clipped the claim button off the bottom of
+       any card whose text ran long — the match reason wrapping to two lines was
+       enough, and scratch cards lost their button entirely. min-height sets a
+       floor; the card must be free to grow past it. */
+    overflow: visible;
+}
+
+/* Pin the action to the bottom so buttons line up across a row regardless of
+   how much text sits above them. */
+.claim-card > button {
+    margin-top: auto;
+    width: 100%;
+    white-space: normal;
+    line-height: 1.25;
 }
 
 .claim-card::before {
@@ -1663,6 +2274,14 @@ body::before {
     line-height: 1.3;
     color: var(--color-ink);
     margin-bottom: 0.45rem;
+}
+
+.claim-reason {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--color-gold);
+    font-weight: 600;
 }
 
 .claim-offer {
@@ -1754,11 +2373,8 @@ body::before {
     margin: 0 0 0.45rem;
 }
 
-@media (max-width: 1100px) {
-    .claim-cards-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
+/* Column counts are handled by the auto-fit rule above; only spacing needs
+   adjusting at narrow widths. */
 
 @media (max-width: 800px) {
     .claim-modal {
@@ -1771,7 +2387,6 @@ body::before {
     }
 
     .claim-cards-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         padding: 1rem;
     }
 
@@ -1786,7 +2401,7 @@ body::before {
 
 @media (max-width: 540px) {
     .claim-cards-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr;   /* force a single column on phones */
     }
 
     .dashboard-actions {
@@ -2405,7 +3020,9 @@ body::before {
 .analytics-modal-panel {
     position: relative;
     width: 95%;
-    max-width: 850px;
+    /* Widened from 850px: the rebuilt board is two columns, and at 850 the
+       donut and the interest report were both squeezed. */
+    max-width: 1060px;
     max-height: 90vh;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(200, 200, 200, 0.1) 100%);
     backdrop-filter: blur(16px);
@@ -2475,180 +3092,16 @@ body::before {
 }
 
 /* Metrics Grid */
-.analytics-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2.5rem;
-}
-
-.analytics-metric-card {
-    background: #f8fafc;
-    padding: 1.25rem;
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.03);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    transition: transform 0.2s;
-}
-
-.analytics-metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.analytics-metric-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-    font-weight: 600;
-}
-
-.analytics-metric-card strong {
-    font-size: 1.25rem;
-    color: #1e293b;
-    font-weight: 700;
-    word-break: break-word;
-    overflow-wrap: break-word;
-}
-
-/* Chart Shell */
-.analytics-chart-shell {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2.5rem;
-    align-items: center;
-    margin-bottom: 2.5rem;
-    padding: 2rem;
-    background: #f8fafc;
-    border-radius: 20px;
-}
-
-.analytics-donut-wrap {
-    position: relative;
-    width: 180px;
-    height: 180px;
-    margin: 0 auto;
-}
-
-.analytics-donut {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: conic-gradient(#5ba3e8 0% 100%);
-    mask: radial-gradient(transparent 55%, black 56%);
-    -webkit-mask: radial-gradient(transparent 55%, black 56%);
-}
-
-.analytics-donut-center {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    width: 100%;
-}
-
-.analytics-donut-center span {
-    font-size: 0.7rem;
-    color: #64748b;
-    text-transform: uppercase;
-    display: block;
-}
-
-.analytics-donut-center strong {
-    font-size: 1rem;
-    color: #3b82f6;
-    font-weight: 700;
-}
-
-.analytics-legend {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin: 0;
-}
-
-.analytics-legend li {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 0.9rem;
-}
-
-.legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    flex-shrink: 0;
-}
-
-.legend-label {
-    flex-grow: 1;
-    color: #64748b;
-}
-
-.legend-value {
-    font-weight: 600;
-    color: #1e293b;
-}
-
-/* Insights */
-.analytics-insights-shell h3 {
-    font-size: 1.2rem;
-    margin-bottom: 1.25rem;
-    color: #ffffff;
-    margin-top: 0;
-}
-
-#analytics-insights-list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin: 0;
-}
-
-.insight-item {
-    display: flex;
-    gap: 1.25rem;
-    padding: 1.25rem;
-    background: #f8fafc;
-    border-radius: 16px;
-    border-left: 4px solid #3b82f6;
-}
-
-.insight-icon {
-    font-size: 1.5rem;
-    padding-top: 0.25rem;
-}
-
-.insight-body h4 {
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-    color: #1e293b;
-    margin-top: 0;
-}
-
-.insight-body p {
-    font-size: 0.9rem;
-    color: #64748b;
-    line-height: 1.5;
-    margin: 0;
-}
-
-/* Loading/Empty States */
+/* Loading / empty states.
+   These sit directly on the modal panel, which is a translucent white wash over
+   a dark blurred backdrop — so it reads DARK, like the header above it. Light
+   text is correct here; the dark ink used by the cards below would vanish. The
+   cards set their own near-opaque light surface, which is why they differ. */
 .analytics-loading,
 .analytics-empty {
-    padding: 4rem 2rem;
+    padding: 3.5rem 2rem;
     text-align: center;
-    color: rgba(255, 255, 255, 0.85);
-    font-style: italic;
+    color: rgba(255, 255, 255, 0.88);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2656,10 +3109,17 @@ body::before {
     gap: 1rem;
 }
 
+.analytics-empty {
+    max-width: 30rem;
+    margin: 0 auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
 .analytics-progress-wrap {
     width: 200px;
     height: 6px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.22);
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -2669,7 +3129,7 @@ body::before {
 .analytics-progress-bar {
     width: 0%;
     height: 100%;
-    background: #ffffff;
+    background: linear-gradient(90deg, #ffffff, rgba(255, 255, 255, 0.65));
     border-radius: 4px;
     animation: analyticsFillBar 2s ease-in-out infinite;
     transform-origin: left;
@@ -2690,14 +3150,6 @@ body::before {
         width: 100%;
         transform: translateX(100%);
     }
-}
-
-@media (max-width: 600px) {
-    .analytics-chart-shell {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
 }
 
 /* --- Generic Error Modal Styles --- */
@@ -2783,6 +3235,138 @@ body::before {
     filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
 }
 
+/* ── Data Consent / T&C Modal ─────────────────────────────── */
+.consent-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.consent-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(8px);
+}
+
+.consent-modal-panel {
+    position: relative;
+    width: 100%;
+    max-width: 540px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(200, 200, 200, 0.1) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    padding: 2rem;
+    text-align: center;
+    color: #ffffff;
+    animation: modalSlideInBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.consent-icon {
+    font-size: 2.75rem;
+    line-height: 1;
+    margin-bottom: 0.75rem;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+#consent-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.consent-lead {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 1.25rem;
+}
+
+.consent-terms {
+    text-align: left;
+    max-height: 240px;
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.consent-terms p {
+    margin: 0.5rem 0 0.35rem;
+}
+
+.consent-terms ul {
+    margin: 0 0 0.6rem 1.1rem;
+    padding: 0;
+}
+
+.consent-terms li {
+    margin-bottom: 0.3rem;
+}
+
+.consent-terms .consent-note {
+    margin-top: 0.9rem;
+    font-size: 0.82rem;
+    color: rgba(212, 175, 55, 0.95);
+    font-style: italic;
+}
+
+.consent-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    text-align: left;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.92);
+    margin-bottom: 1.25rem;
+    cursor: pointer;
+}
+
+.consent-check input {
+    margin-top: 0.15rem;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: var(--color-gold-light, #d4af37);
+}
+
+.consent-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.consent-actions .btn {
+    flex: 1;
+    max-width: 220px;
+}
+
+.consent-actions .btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.consent-declined-msg {
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+    color: #ff8a8a;
+    font-weight: 600;
+}
+
 #error-modal-title {
     font-size: 1.4rem;
     margin-bottom: 0.75rem;
@@ -2848,4 +3432,624 @@ body::before {
         flex-direction: column !important;
         text-align: center !important;
     }
+}
+/* ── CUSTOM SELECT ──────────────────────────────────────────────
+   Built around the real <select>, which stays in the DOM and remains the
+   source of truth — the filter code still reads .value and listens for
+   'change'. The native control is only visually hidden, so keyboard and
+   assistive tech keep a working control if the script never runs. */
+.custom-select {
+    position: relative;
+    display: inline-block;
+    font-family: var(--font-body);
+}
+
+.custom-select__native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.custom-select__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.5rem 0.85rem;
+    background: #fff;
+    border: var(--border-refined);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--color-slate);
+    cursor: pointer;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.custom-select__trigger:hover { border-color: rgba(30, 41, 59, 0.28); }
+
+.custom-select__trigger:focus-visible,
+.custom-select.is-open .custom-select__trigger {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(13, 79, 139, 0.12);
+}
+
+.custom-select__caret {
+    flex-shrink: 0;
+    transition: transform 0.18s ease;
+    color: var(--color-smoke);
+}
+
+.custom-select.is-open .custom-select__caret { transform: rotate(180deg); }
+
+.custom-select__panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 40;
+    min-width: 100%;
+    padding: 0.3rem;
+    margin: 0;
+    list-style: none;
+    background: #fff;
+    border: var(--border-refined);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-medium);
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.custom-select.is-open .custom-select__panel {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.custom-select__option {
+    padding: 0.5rem 0.7rem;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    color: var(--color-charcoal);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.custom-select__option:hover,
+.custom-select__option.is-active { background: var(--color-parchment); }
+
+/* Selected carries a tick as well as the gold, so the state is not colour-only */
+.custom-select__option[aria-selected="true"] {
+    color: var(--color-gold);
+    font-weight: 600;
+}
+
+.custom-select__option[aria-selected="true"]::after {
+    content: '✓';
+    margin-left: 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-select__panel,
+    .custom-select__caret,
+    .custom-select__trigger { transition: none; }
+}
+
+/* ── BUTTON LOADING STATE ───────────────────────────────────────
+   Claiming hits the network and deducts points in a transaction, so the wait
+   is real. Text alone left the button looking inert; the spinner shows the
+   request is alive. */
+.btn-spinner {
+    display: inline-block;
+    width: 0.85em;
+    height: 0.85em;
+    margin-right: 0.5em;
+    vertical-align: -0.1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: btn-spin 0.6s linear infinite;
+}
+
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* The button is disabled while claiming, and a :disabled rule's not-allowed
+   cursor otherwise wins — which reads as "you can't do this" rather than
+   "this is working".
+   `.claim-card .btn:disabled` scores 0,3,0 and outranks a plain
+   `button.is-busy:disabled` at 0,2,1, so that selector is matched explicitly
+   rather than reaching for !important. */
+button.is-busy,
+button.is-busy:disabled,
+.claim-card .btn.is-busy:disabled { cursor: progress; opacity: 0.85; }
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-spinner { animation-duration: 1.6s; }
+}
+
+/* ── VAULT LOADING SKELETON ─────────────────────────────────────
+   Opening the vault awaits two network calls (points, then the ranked
+   offers). Those used to run BEFORE the modal appeared, so a click landed on
+   a dead interface for as long as the slower call took. The modal now opens
+   at once over these placeholders, which are replaced the moment real cards
+   render. Pure CSS — no library, no JS timer. */
+.claim-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 200px;
+    padding: 1.25rem;
+    background: #fff;
+    border: var(--border-refined);
+    border-radius: var(--radius-md, 10px);
+}
+
+.claim-skeleton__line {
+    height: 12px;
+    border-radius: 6px;
+    /* Travelling highlight over a flat base */
+    background: linear-gradient(90deg,
+                var(--color-parchment) 25%,
+                rgba(184, 134, 11, 0.14) 37%,
+                var(--color-parchment) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-sheen 1.4s ease-in-out infinite;
+}
+
+.claim-skeleton__line--title  { width: 62%; height: 18px; }
+.claim-skeleton__line--body   { width: 100%; }
+.claim-skeleton__line--short  { width: 45%; }
+.claim-skeleton__line--button { width: 100%; height: 38px; margin-top: auto; border-radius: var(--radius-sm); }
+
+@keyframes skeleton-sheen {
+    0%   { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+/* Respect a reduced-motion preference: keep the placeholder, drop the travel. */
+@media (prefers-reduced-motion: reduce) {
+    .claim-skeleton__line { animation: none; background: var(--color-parchment); }
+}
+
+/* Background-refresh notice for the vault. The cards are already usable, so
+   this sits above them rather than covering them. */
+.vault-refreshing {
+    display: flex;
+    align-items: center;
+    margin: 0 0 0.9rem;
+    font-size: 0.85rem;
+    color: var(--color-smoke);
+}
+
+.vault-refreshing[hidden] { display: none; }
+
+/* Skeleton rows reuse .claim-skeleton__line; inside a table cell the line needs
+   to be a block so its width and the sheen animation apply. */
+.claimed-skeleton-row td { padding: 1rem 0.5rem; }
+.claimed-skeleton-row .claim-skeleton__line { display: block; }
+
+.vault-empty {
+    grid-column: 1 / -1;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--color-smoke);
+}
+
+/* The guest disclaimer is a short bulleted list set through innerText, so the
+   newlines need honouring. pre-line keeps the breaks and still wraps long
+   lines, unlike pre. Single-line messages are unaffected. */
+#error-modal-message {
+    white-space: pre-line;
+    text-align: left;
+}
+
+/* ── MODAL SCROLL LOCK ──────────────────────────────────────────
+   syncBodyScrollLock() has always toggled .modal-open on <body>, but nothing
+   ever styled it — so the page behind every modal stayed scrollable and a
+   stray wheel gesture moved the content under the dialog. */
+body.modal-open {
+    overflow: hidden;
+    /* Stops the touch scroll chaining through to the page on mobile once the
+       dialog's own content reaches its end. */
+    overscroll-behavior: contain;
+}
+
+/* ── ERROR / DISCLAIMER MODAL — SMALL SCREENS ───────────────────
+   The guest disclaimer is the longest message this dialog carries, and on a
+   short viewport (a laptop at 100% zoom, or a phone in landscape) it ran past
+   both edges with no way to reach the button. The panel now takes the height
+   it needs up to what the viewport allows, and scrolls inside itself beyond
+   that — so the page never scrolls and the action stays reachable. */
+.error-modal {
+    padding: 1.25rem;             /* never let the panel touch the edges */
+}
+
+.error-modal-panel {
+    max-height: calc(100vh - 2.5rem);
+    max-height: calc(100dvh - 2.5rem);   /* dvh excludes mobile browser chrome */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 480px) {
+    .error-modal { padding: 0.75rem; }
+    .error-modal-panel {
+        width: 100%;
+        max-height: calc(100dvh - 1.5rem);
+    }
+    #error-modal-message { font-size: 0.9rem; }
+}
+
+/* Vault footer disclaimer. Deliberately quiet — it must be readable without
+   competing with the rewards, so it is small and muted but not so faint that
+   it reads as decoration. */
+.vault-disclaimer {
+    /* Full width of the grid, not a narrow measure — at 70ch this wrapped to
+       four short lines that read as a paragraph competing with the cards. Run
+       across the panel it settles into two, which scans as a footnote. */
+    margin: 1.75rem 0 0;
+    padding: 0.85rem 1.15rem;
+    border: 1px solid rgba(184, 134, 11, 0.22);
+    border-radius: var(--radius-sm);
+    /* Warm parchment tint rather than the card white, so the block reads as a
+       different kind of content from the rewards above it. */
+    background: linear-gradient(180deg,
+                rgba(184, 134, 11, 0.07) 0%,
+                rgba(184, 134, 11, 0.04) 100%);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--color-charcoal);
+    text-align: center;
+    text-wrap: balance;          /* even line lengths where supported */
+}
+
+.vault-disclaimer strong { color: var(--color-gold); }
+
+/* Narrow screens cannot fit two lines at any readable size, so stop pretending:
+   left-align and let it wrap naturally. */
+@media (max-width: 700px) {
+    .vault-disclaimer {
+        text-align: left;
+        text-wrap: initial;
+        font-size: 0.74rem;
+    }
+}
+
+/* ═══ INTELLIGENT ANALYTICS ═════════════════════════════════════
+   Rebuilt. The previous board gave six metric tiles equal weight, so nothing
+   led, and drew the donut with a conic-gradient — which cannot carry a gap, a
+   hover state or a label because it is a background image, not geometry.
+
+   Series colours are Okabe-Ito, the published colourblind-safe categorical set,
+   assigned in fixed order and never cycled. Category identity is also carried
+   by its written name in the legend and by a percentage, so it never rests on
+   colour alone. */
+:root {
+    --an-c1: #0072B2;   /* blue      */
+    --an-c2: #D55E00;   /* vermillion */
+    --an-c3: #009E73;   /* green     */
+    --an-c4: #CC79A7;   /* purple    */
+    --an-c5: #E69F00;   /* orange    */
+    /* Near-opaque on purpose. The panel beneath is a translucent wash over a
+       dark backdrop, so a card at 0.72 let that darkness bleed through and the
+       ink lost contrast. At 0.88 each card is its own light surface and the
+       dark type on it is unambiguous. */
+    --an-surface: rgba(255, 255, 255, 0.88);
+    /* Label ink for this board only. --color-smoke (#64748b) measures 3.44:1 on
+       the hero and 3.99:1 on a card once the translucent surfaces composite —
+       both under the 4.5:1 needed for text this size. #475569 measures 5.48:1
+       and 6.35:1 while staying visibly secondary to the values it labels. */
+    --an-label: #475569;
+    --an-line: rgba(30, 41, 59, 0.10);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.an-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.6rem 1.75rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--an-line);
+    border-radius: 18px;
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(13, 79, 139, 0.10) 0%, transparent 60%),
+        var(--an-surface);
+}
+
+.an-hero-label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--an-label);
+}
+
+.an-hero-value {
+    display: block;
+    margin: 0.15rem 0 0.3rem;
+    font-family: var(--font-display);
+    font-size: clamp(2.1rem, 5vw, 3rem);
+    line-height: 1.05;
+    color: var(--color-ink);
+    /* Cormorant defaults to oldstyle figures, which rendered the hero as
+       "₹1 5,430" — the 1 and 4 dropping below the 5 and 3 read as a space.
+       lnum forces lining figures; tnum keeps them from reflowing on update. */
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+.an-hero-sub { font-size: 0.88rem; color: var(--color-charcoal); }
+.an-hero-sub b { color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+.an-hero-side { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+.an-chip {
+    min-width: 116px;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--an-line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.an-chip-label {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--an-label);
+    margin-bottom: 0.15rem;
+}
+
+.an-chip strong {
+    font-size: 0.98rem;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.an-split {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1.1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.an-card {
+    padding: 1.35rem 1.5rem;
+    border: 1px solid var(--an-line);
+    border-radius: 18px;
+    background: var(--an-surface);
+}
+
+.an-card-head { margin-bottom: 1.1rem; }
+
+.an-card-head h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.22rem;
+    color: var(--color-ink);
+}
+
+.an-card-note {
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--an-label);
+}
+
+/* ── Donut ────────────────────────────────────────────────────── */
+.an-donut-wrap {
+    position: relative;
+    width: min(210px, 62%);
+    margin: 0 auto 1.2rem;
+    aspect-ratio: 1;
+}
+
+.an-donut { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+.an-donut circle {
+    fill: none;
+    stroke-width: 5.2;
+    transition: stroke-width 0.18s ease, opacity 0.18s ease;
+}
+
+/* Hovering a slice thickens it and dims the rest, so the pairing with the
+   legend row is unambiguous without a tooltip library. */
+.an-donut:hover circle { opacity: 0.42; }
+.an-donut circle:hover,
+.an-donut circle.is-active { opacity: 1; stroke-width: 6.6; }
+
+.an-donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;   /* never steal the hover from a slice */
+    padding: 0 18%;
+}
+
+.an-donut-center span {
+    font-size: 0.66rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--an-label);
+}
+
+.an-donut-center strong {
+    font-family: var(--font-display);
+    font-feature-settings: "lnum" 1;
+    font-size: 1.12rem;
+    line-height: 1.15;
+    color: var(--color-ink);
+}
+
+/* ── Legend ───────────────────────────────────────────────────── */
+.an-legend { list-style: none; margin: 0; padding: 0; }
+
+.an-legend li {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.5rem 0.4rem;
+    border-radius: 8px;
+    font-size: 0.87rem;
+    cursor: default;
+    transition: background 0.15s ease;
+}
+
+.an-legend li:hover, .an-legend li.is-active { background: rgba(13, 79, 139, 0.07); }
+
+.an-legend .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+}
+
+.an-legend .legend-label { color: var(--color-charcoal); }
+
+.an-legend .legend-value {
+    font-weight: 600;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* A bar under each row gives magnitude a second, non-colour encoding. */
+.an-legend .legend-bar {
+    grid-column: 2 / -1;
+    height: 4px;
+    margin-top: -0.15rem;
+    border-radius: 2px;
+    background: var(--an-line);
+    overflow: hidden;
+}
+
+.an-legend .legend-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+}
+
+/* ── Interest report ──────────────────────────────────────────────
+   Each finding is a card with the icon in its own tinted disc, so the eye can
+   count the findings at a glance instead of parsing a wall of bordered rows.
+   The accent rotates through the same categorical ramp as the donut, keeping
+   one colour language across the board — it is decoration here, never the
+   carrier of meaning, so the heading always states the finding in words. */
+.an-insights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+    counter-reset: insight;
+}
+
+.an-insights li {
+    --accent: var(--color-gold);
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: start;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--an-line);
+    border-radius: 14px;
+    background: #fff;
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Accent rail, drawn rather than bordered so the radius stays clean. */
+.an-insights li::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--accent);
+}
+
+.an-insights li:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.an-insights li:nth-child(1) { --accent: var(--an-c1); }
+.an-insights li:nth-child(2) { --accent: var(--an-c2); }
+.an-insights li:nth-child(3) { --accent: var(--an-c3); }
+.an-insights li:nth-child(4) { --accent: var(--an-c4); }
+.an-insights li:nth-child(5) { --accent: var(--an-c5); }
+
+.an-insights .insight-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    font-size: 1.15rem;
+    line-height: 1;
+    /* colour-mix keeps the disc tied to the accent without five more rules;
+       the flat rgba below is the fallback where it is unsupported. */
+    background: rgba(13, 79, 139, 0.09);
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.an-insights .insight-body { min-width: 0; }   /* let long words wrap, not overflow */
+
+.an-insights h4 {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    line-height: 1.25;
+    color: var(--color-ink);
+}
+
+.an-insights p {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--color-charcoal);
+    overflow-wrap: anywhere;
+}
+
+.an-footnote {
+    /* Sits on the panel itself rather than a card, and the panel reads dark —
+       so this is the one piece of board copy that must be light. */
+    margin: 1.25rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.82);
+    text-align: center;
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 780px) {
+    .an-split { grid-template-columns: 1fr; }
+    .an-hero { padding: 1.25rem; }
+    .an-hero-side { width: 100%; }
+    .an-chip { flex: 1 1 30%; min-width: 0; }
+}
+
+@media (max-width: 480px) {
+    .an-donut-wrap { width: min(180px, 78%); }
+    .an-card { padding: 1.1rem; }
+    .an-chip { flex: 1 1 45%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .an-donut circle { transition: none; }
 }

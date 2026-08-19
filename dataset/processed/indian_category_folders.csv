@@ -1,0 +1,101 @@
+image_path,label,drive_category_folder
+dataset/indian/Receipt 1.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 2.jpg,tampered,Restaurant Bill
+dataset/indian/Receipt 3.jpg,multi_bill,Restaurant Bill
+dataset/indian/Receipt 4.jpg,multi_bill,Restaurant Bill
+dataset/indian/Receipt 5.jpg,multi_bill,Restaurant Bill
+dataset/indian/Receipt 6.jpg,multi_bill,Restaurant Bill
+dataset/indian/Receipt 7.jpg,tampered,Restaurant Bill
+dataset/indian/Receipt 8.jpg,multi_bill,Restaurant Bill
+dataset/indian/Receipt 9jpg.jpg,tampered,Marble and Stones shop bill
+dataset/indian/Receipt 10.jpg,genuine,Marble and Stones shop bill
+dataset/indian/Receipt 11.jpg,tampered,Marble and Stones shop bill
+dataset/indian/Receipt 12.jpg,tampered,Marble and Stones shop bill
+dataset/indian/Receipt 13.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 14.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 15.jpg,tampered,Shoe store bill
+dataset/indian/Receipt 16.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 17.jpg,tampered,Grocery Bills
+dataset/indian/Receipt 18.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 19.jpg,tampered,Pharmacy Bills
+dataset/indian/Receipt 20.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 21.jpg,tampered,Electricity and Water bill
+dataset/indian/Receipt 22.jpg,genuine,Electricity and Water bill
+dataset/indian/Receipt 23.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 24.jpg,tampered,Electricity and Water bill
+dataset/indian/Receipt 25.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 26.jpg,tampered,Grocery Bills
+dataset/indian/Receipt 27.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 28.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 29.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 30.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 31.jpg,genuine,Garments stores bills
+dataset/indian/Receipt 32.jpg,genuine,Garments stores bills
+dataset/indian/Receipt 33.jpg,tampered,Garments stores bills
+dataset/indian/Receipt 34.jpg,tampered,Garments stores bills
+dataset/indian/Receipt 35.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 36.jpg,genuine,Pharmacy Bills
+dataset/indian/Receipt 37.jpg,tampered,Electricity and Water bill
+dataset/indian/Receipt 38.jpg,genuine,Garments stores bills
+dataset/indian/Receipt 39.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 40.jpg,tampered,Pharmacy Bills
+dataset/indian/Receipt 41.jpg,handwritten,Garments stores bills
+dataset/indian/Receipt 42.jpg,tampered,Grocery Bills
+dataset/indian/Receipt 43.jpg,tampered,Jewellery store bills
+dataset/indian/Receipt 44.jpg,tampered,Grocery Bills
+dataset/indian/Receipt 45.jpg,tampered,Grocery Bills
+dataset/indian/Receipt 46.jpg,genuine,Online shopping bills
+dataset/indian/Receipt 47.jpg,genuine,Garments stores bills
+dataset/indian/Receipt 48.jpg,tampered,Grocery Bills
+dataset/indian/Receipt 49.jpg,tampered,Garments stores bills
+dataset/indian/Receipt 50.jpg,tampered,Garments stores bills
+dataset/indian/Receipt 51.pdf,genuine,Traveling bills
+dataset/indian/Receipt 52.pdf,genuine,Traveling bills
+dataset/indian/Receipt 53 pdf.pdf,genuine,Traveling bills
+dataset/indian/Receipt 54.pdf,genuine,Traveling bills
+dataset/indian/Receipt 55 pdf.pdf,genuine,Traveling bills
+dataset/indian/Receipt 56.pdf,genuine,Traveling bills
+dataset/indian/Receipt 57.pdf,genuine,Traveling bills
+dataset/indian/Receipt 58.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 59.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 60.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 61.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 62.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 63.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 64.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 65.jpg,tampered,Pharmacy Bills
+dataset/indian/Receipt 66.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 67.pdf,tampered,Online shopping bills
+dataset/indian/Receipt 68.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 69.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 70.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 71.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 72.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 73.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 74.pdf,tampered,Online shopping bills
+dataset/indian/Receipt 75.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 76.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 77.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 78.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 79.pdf,genuine,Online shopping bills
+dataset/indian/Receipt 80.pdf,tampered,Garments stores bills
+dataset/indian/Receipt 81.pdf,tampered,Garments stores bills
+dataset/indian/Receipt 82.jpg,genuine,Electronics shop
+dataset/indian/Receipt 83.jpg,tampered,Electronics shop
+dataset/indian/Receipt 84.jpg,genuine,Electronics shop
+dataset/indian/Receipt 85.jpg,genuine,Electronics shop
+dataset/indian/Receipt 86.jpg,genuine,Garments stores bills
+dataset/indian/Receipt 87.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 88.jpg,tampered,Pharmacy Bills
+dataset/indian/Receipt 89.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 90.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 91.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 92.jpg,genuine,Restaurant Bill
+dataset/indian/Receipt 93.jpg,genuine,Garments stores bills
+dataset/indian/Receipt 94.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 95.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 96.jpg,genuine,Grocery Bills
+dataset/indian/Receipt 97.jpg,genuine,Online shopping bills
+dataset/indian/Receipt 98.jpg,genuine,Online shopping bills
+dataset/indian/Receipt 99.jpg,genuine,Online shopping bills
+dataset/indian/Receipt 100.jpg,genuine,Online shopping bills

@@ -1,18 +1,30 @@
+/**
+ * Backend Server — Team ARAJ (Ashfaaq Feroz)
+ * Node.js / Express REST API connecting the frontend, Firestore, Gemini AI, and ML microservice.
+ * Handles auth, receipt OCR pipeline, reward calculation, fraud scoring, and analytics.
+ */
+
+// ── DEPENDENCIES ───────────────────────────────────────────────
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { GoogleGenAI } = require('@google/genai');
-const admin = require('firebase-admin');
+const axios = require('axios');          // HTTP client for calling ML microservice
+const jwt = require('jsonwebtoken');     // JWT creation and verification
+const bcrypt = require('bcrypt');        // Password hashing (salt rounds = 10)
+const admin = require('firebase-admin');            // Firestore database access
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
+// ── CONSTANTS ──────────────────────────────────────────────────
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';  // Python Flask ML service
+const CLASSIFIER_MIN_CONFIDENCE = 0.45;  // below this, keep Gemini's category instead of the classifier's
+// How many recent receipts to compare a new upload against perceptually. Every
+// hash is sent to the ML service on each scan, so this trades duplicate recall
+// against payload size; at this project's data volume it covers the whole corpus.
+const PHASH_LOOKBACK = 300;
 const SERVICE_ACCOUNT_PATH = path.join(__dirname, 'serviceAccountKey.json');
-const SUPPORTED_IMAGE_MIME_TYPES = new Set([
+const SUPPORTED_IMAGE_MIME_TYPES = new Set([  // Receipt image formats accepted at upload
     'image/jpeg',
     'image/jpg',
     'image/png',
@@ -21,6 +33,8 @@ const SUPPORTED_IMAGE_MIME_TYPES = new Set([
     'image/heif'
 ]);
 
+// ── FIREBASE INITIALISATION ────────────────────────────────────
+// Connects to live Firestore using serviceAccountKey.json or env credentials (CI/cloud)
 function initializeFirebaseAdmin() {
     if (admin.apps.length > 0) return;
 
@@ -42,10 +56,81 @@ function initializeFirebaseAdmin() {
     console.log("✅ Authenticated securely with Live Firebase Firestore.");
 }
 
+// ── UTILITY HELPERS ────────────────────────────────────────────
+
+// Trims and lowercases email for consistent Firestore queries
 function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
+// ── MERCHANT FUZZY MATCHING (Ranjeet Singh) ───────────────────
+// Used for fuzzy duplicate detection — catches typos and spacing variants
+
+function normalizeMerchantName(name) {
+    return String(name || '')
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function levenshteinDistance(a, b) {
+    const left = String(a || '');
+    const right = String(b || '');
+
+    if (left === right) return 0;
+    if (!left.length) return right.length;
+    if (!right.length) return left.length;
+
+    const prev = new Array(right.length + 1);
+    const curr = new Array(right.length + 1);
+
+    for (let j = 0; j <= right.length; j += 1) prev[j] = j;
+
+    for (let i = 1; i <= left.length; i += 1) {
+        curr[0] = i;
+        for (let j = 1; j <= right.length; j += 1) {
+            const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+            curr[j] = Math.min(
+                prev[j] + 1,        // deletion
+                curr[j - 1] + 1,    // insertion
+                prev[j - 1] + cost  // substitution
+            );
+        }
+        for (let j = 0; j <= right.length; j += 1) prev[j] = curr[j];
+    }
+    return prev[right.length];
+}
+
+function jaccardTokenSimilarity(a, b) {
+    const leftTokens = new Set(String(a || '').split(' ').filter(Boolean));
+    const rightTokens = new Set(String(b || '').split(' ').filter(Boolean));
+
+    if (leftTokens.size === 0 || rightTokens.size === 0) return 0;
+
+    let intersection = 0;
+    for (const token of leftTokens) {
+        if (rightTokens.has(token)) intersection += 1;
+    }
+    const union = leftTokens.size + rightTokens.size - intersection;
+    return union === 0 ? 0 : (intersection / union);
+}
+
+function merchantSimilarityScore(merchantA, merchantB) {
+    const left = normalizeMerchantName(merchantA);
+    const right = normalizeMerchantName(merchantB);
+    if (!left || !right) return 0;
+    if (left === right) return 1;
+
+    const editDistance = levenshteinDistance(left, right);
+    const maxLen = Math.max(left.length, right.length) || 1;
+    const editSimilarity = 1 - (editDistance / maxLen);
+    const tokenSimilarity = jaccardTokenSimilarity(left, right);
+    return Math.max(editSimilarity, tokenSimilarity);
+}
+
+// Validates a base64 string (used to reject malformed image payloads)
 function isValidBase64String(value) {
     return typeof value === 'string'
         && value.length > 0
@@ -53,6 +138,7 @@ function isValidBase64String(value) {
         && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
 }
 
+// Checks magic bytes in the image buffer to confirm mimeType matches actual file content
 function looksLikeExpectedImageType(imageBuffer, mimeType) {
     if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
         return imageBuffer.length > 3
@@ -162,6 +248,7 @@ function validateReceiptFields(data) {
     return errors;
 }
 
+// Generates a random 12-digit numeric code displayed to the user after claiming a reward
 function generateClaimCode() {
     let code = "";
     for (let i = 0; i < 12; i += 1) {
@@ -179,10 +266,10 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 
-const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_bits_pilani_123';
 
-// Auth Middleware
+// ── AUTH MIDDLEWARE ────────────────────────────────────────────
+// Verifies JWT from Authorization: Bearer <token> header on every protected route
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -195,7 +282,16 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// Logic Helper - Validates Reward Engine (FR Requirement)
+// ── REWARD ENGINE ──────────────────────────────────────────────
+// Points formula: ₹100 = 1 base pt → multiplied by category, tier, and streak bonuses
+// Grocery +20% | Food & Beverage +50% | Premium tier +50% | Streak +30%
+//
+// NOTE: `streak` is stored on the user and read here, but nothing in the system
+// ever sets it after the document is created — there is no daily-activity
+// calculation. Both creation paths seed it false, so the +30% branch is
+// currently unreachable in practice. It is left in place because the reward
+// formula is documented in the report; awarding it needs a streak calculation
+// that does not exist yet.
 function calculateRewards(totalAmount, category, isStreak = false, tier = "Standard") {
     let points = 0;
     let logicText = "";
@@ -223,7 +319,7 @@ function calculateRewards(totalAmount, category, isStreak = false, tier = "Stand
     return { points, logicText };
 }
 
-// Ensure user node exists physically in Firestore
+// Creates a user document in Firestore if it doesn't exist, then returns its ref
 async function ensureUserExists(userId) {
     if (!userId) throw new Error("userId missing in ensureUserExists");
     const userRef = db.collection('Users').doc(userId);
@@ -232,15 +328,22 @@ async function ensureUserExists(userId) {
         await userRef.set({
             total_points: 0,
             tier: 'Standard',
-            streak: true,
+            // false, matching /api/signup. This path used to seed `true`, so a
+            // user document created here rather than at signup earned the +30%
+            // streak multiplier on every receipt, permanently — nothing
+            // recomputes the flag — while a normally registered user never did.
+            // Two users with identical behaviour were paid at different rates
+            // depending on which code path happened to create their document.
+            streak: false,
             created_at: admin.firestore.FieldValue.serverTimestamp()
         });
     }
     return userRef;
 }
 
-// --- APIs ---
+// ── API ROUTES ─────────────────────────────────────────────────
 
+// POST /api/signup — creates new user, hashes password with bcrypt, returns 24h JWT
 app.post('/api/signup', async (req, res) => {
     try {
         const { email, password, name } = req.body || {};
@@ -270,6 +373,7 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
+// POST /api/login — verifies bcrypt password hash, returns JWT + user name
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body || {};
@@ -293,6 +397,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// GET /api/user — returns current point balance and display name (auth required)
 app.get('/api/user', authenticateToken, async (req, res) => {
     try {
         const userRef = await ensureUserExists(req.userId);
@@ -304,6 +409,8 @@ app.get('/api/user', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/history — returns all receipts scanned by this user, sorted newest-first
+// Sorted client-side to avoid requiring a Firestore composite index
 app.get('/api/history', authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection('Receipts')
@@ -334,6 +441,7 @@ app.get('/api/history', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/receipt/:id — returns single receipt + its line items; enforces ownership check
 app.get('/api/receipt/:id', authenticateToken, async (req, res) => {
     try {
         const receiptId = String(req.params.id || '').trim();
@@ -378,6 +486,7 @@ app.get('/api/receipt/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/analytics — aggregates all receipts into spend summary + category chart + insights
 app.get('/api/analytics', authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection('Receipts')
@@ -478,6 +587,7 @@ app.get('/api/analytics', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/claimed-rewards — returns all vouchers and scratch cards claimed by this user
 app.get('/api/claimed-rewards', authenticateToken, async (req, res) => {
     try {
         const snapshot = await db.collection('Claimed_Rewards')
@@ -506,6 +616,31 @@ app.get('/api/claimed-rewards', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/recommendations — reward offers ranked for this user by the ML service.
+// Lets the claim modal personalise without waiting for a scan. Returns an empty
+// list (not an error) when the ML service is down, so the frontend falls back to
+// its own static pool rather than showing nothing.
+app.get('/api/recommendations', authenticateToken, async (req, res) => {
+    const topN = Math.max(1, Math.min(parseInt(req.query.top_n, 10) || 6, 12));
+    try {
+        const mlRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
+            user_id: req.userId,
+            top_n: topN
+        }, { timeout: 3000 });
+
+        res.json({
+            recommendations: mlRes.data?.recommendations || [],
+            personalised: mlRes.data?.personalised === true,
+            model: mlRes.data?.model || 'unavailable'
+        });
+    } catch (e) {
+        console.warn('ML Service (Recommend) unreachable.');
+        res.json({ recommendations: [], personalised: false, model: 'unavailable' });
+    }
+});
+
+// POST /api/claim-reward — atomic Firestore transaction: deducts points + writes claim record
+// Throws INSUFFICIENT_POINTS if user balance is too low
 app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     try {
         const { type, title, offer, reward, requiredPoints } = req.body || {};
@@ -579,13 +714,6 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     }
 });
 
-let lastGeminiRequestTime = 0;
-const GEMINI_RATE_LIMIT_MS = 22000; // 22s gap — safe margin within 5 RPM free tier
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 /**
  * Generates a deterministic fingerprint for a receipt.
  * Used for cross-user duplicate detection — same physical receipt
@@ -596,14 +724,18 @@ function generateReceiptFingerprint(merchant, date, total) {
     return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+// POST /api/upload — the core receipt pipeline:
+//  1. Validate base64 image + MIME type
+//  2. Forward image to ML service /ml/ocr (ocr.py) → rate-limit gate + Gemini extraction
+//  3. Sanitise currency + validate required fields
+//  4. Per-user and cross-user duplicate fingerprint check
+//  5. Calculate reward points (category × tier × streak multipliers)
+//  6. Write to Firestore: Receipts, Receipt_Items, Merchants, Consent_Logs, Fraud_Scores
+//  7. Call ML microservice for fraud scoring (async fallback if unreachable)
 app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
         if (!req.body || !req.body.receipt) {
             return res.status(400).json({ error: 'No image data provided.' });
-        }
-
-        if (!ai) {
-            return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
         }
 
         const mimeType = String(req.body.mimeType || 'image/jpeg').toLowerCase().trim();
@@ -621,68 +753,59 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             return res.status(422).json({ error: 'Invalid or unreadable image payload.' });
         }
 
-        // Enforce 22s gap between requests (safe margin within 5 RPM free tier limit)
-        const now = Date.now();
-        const elapsed = now - lastGeminiRequestTime;
-        if (elapsed < GEMINI_RATE_LIMIT_MS) {
-            const waitTime = GEMINI_RATE_LIMIT_MS - elapsed;
-            console.log(`[INFO] Rate limiting: Waiting ${(waitTime / 1000).toFixed(1)}s before sending next Gemini request...`);
-            await sleep(waitTime);
-        }
-
-        console.log("Processing image with Gemini...");
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        { text: `Analyze this receipt image and extract the following details into a strict JSON format. If blurry/unreadable return exactly: {"error": "unreadable"}. Otherwise return: {"rawMerchant": "string", "date": "string (YYYY-MM-DD)", "total": number, "category": "string ('Supermarket / Grocery', 'Food & Beverage', or 'General Retail')", "items": [{ "name": "string", "price": number }]}` },
-                        { inlineData: { data: receiptPayload, mimeType } }
-                    ]
-                }
-            ],
-            config: { responseMimeType: "application/json" }
-        });
-
-        // Update last request time AFTER call
-        lastGeminiRequestTime = Date.now();
-
-        let textResponse = "";
-        if (response && response.text) {
-            textResponse = response.text;
-        } else if (response && response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
-            textResponse = response.candidates[0].content.parts[0].text;
-        }
-
+        // Hand the image to the ML service OCR pipeline (ml-service/ocr.py):
+        // blur check → rate-limit gate → Gemini extraction (with model fallback) →
+        // multi-bill / handwriting / density-anomaly checks → structured JSON.
+        // Gemini is invoked there, not here, so it runs exactly once per upload.
+        console.log("Processing image via ML OCR service (Gemini)...");
         let receiptData = null;
         try {
-            // Remove markdown code block syntax robustly
-            let cleanedText = textResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-            // Try to parse the cleaned text directly first
-            try {
-                receiptData = JSON.parse(cleanedText);
-            } catch (initialParseErr) {
-                // Fallback: aggressive extraction for hallucinated text around JSON
-                const startIndex = cleanedText.indexOf('{');
-                const endIndex = cleanedText.lastIndexOf('}');
-
-                if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-                    const jsonString = cleanedText.substring(startIndex, endIndex + 1);
-                    receiptData = JSON.parse(jsonString);
-                } else {
-                    throw initialParseErr; // Throw if no brackets found
-                }
+            const ocrRes = await axios.post(`${ML_SERVICE_URL}/ml/ocr`, {
+                image: receiptPayload,
+                mimeType
+            });
+            receiptData = ocrRes.data;
+        } catch (ocrErr) {
+            // ocr.py / app.py map blur + multi-bill rejections to HTTP 422
+            const status = ocrErr.response && ocrErr.response.status;
+            const body = (ocrErr.response && ocrErr.response.data) || {};
+            if (status === 422) {
+                const reason = body.error === 'multi_bill_detected'
+                    ? 'Multiple receipts detected. Please scan one receipt at a time.'
+                    : 'Scan Failed: Please ensure the receipt is clear.';
+                return res.status(422).json({ error: reason });
             }
-        } catch (e) {
-            console.error("Gemini Parse Failure. Raw Output was:", textResponse);
-            return res.status(500).json({ error: "The AI model returned an unreadable format. Please try again." });
+            // The ML service returns 429 when every API key has hit its
+            // per-minute quota. That is a wait-and-retry condition, not a fault
+            // in the receipt — collapsing it into the generic 503 below told the
+            // user their image could not be processed, which is simply untrue
+            // and sends them off to re-photograph a perfectly good bill.
+            if (status === 429) {
+                return res.status(429).json({
+                    error: 'The AI service has hit its rate limit. Wait about a minute and try the same receipt again.'
+                });
+            }
+            console.error('[ERROR] OCR service unreachable:', ocrErr.message);
+            return res.status(503).json({ error: 'OCR service is unavailable. Please try again shortly.' });
         }
 
-        // FR Compliance: 422 Unprocessable Entity
-        if (receiptData.error === "unreadable") {
-            return res.status(422).json({ error: "Scan Failed: Please ensure the receipt is clear." });
+        if (!receiptData || typeof receiptData !== 'object') {
+            return res.status(500).json({ error: 'The OCR service returned an unexpected response.' });
+        }
+
+        // Surface OCR-level error payloads (returned with HTTP 200 by the ML service)
+        if (receiptData.error) {
+            if (receiptData.error === 'unreadable') {
+                return res.status(422).json({ error: 'Scan Failed: Please ensure the receipt is clear.' });
+            }
+            if (receiptData.error === 'multi_bill_detected') {
+                return res.status(422).json({ error: 'Multiple receipts detected. Please scan one receipt at a time.' });
+            }
+            if (receiptData.error === 'GEMINI_API_KEY_MISSING') {
+                return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the ML service.' });
+            }
+            console.error('[ERROR] OCR extraction failed:', receiptData);
+            return res.status(502).json({ error: 'The AI model could not process this receipt. Please try again.' });
         }
 
         // Sanitize currency symbols from total and every item price
@@ -708,8 +831,36 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         }
         receiptData.date = normalizedDate;
 
+        const rawMerchant = String(receiptData.rawMerchant || '').trim();
+        const normalizedMerchant = normalizeMerchantName(rawMerchant);
+        const receiptDate = normalizedDate;
         const total = receiptData.total;
-        const receiptFingerprint = generateReceiptFingerprint(receiptData.rawMerchant, receiptData.date, total);
+        const receiptFingerprint = generateReceiptFingerprint(rawMerchant, receiptDate, total);
+
+        // Category: prefer the trained ML classifier (Notebook 02), fall back to Gemini's.
+        // Non-breaking: if the ML service or model is unavailable, we keep the OCR category.
+        // We keep Gemini's original as gemini_category for transparency/comparison.
+        const geminiCategory = receiptData.category;
+        try {
+            const itemsText = Array.isArray(receiptData.items)
+                ? receiptData.items.map(it => it.name).filter(Boolean).join(', ')
+                : '';
+            const classifyRes = await axios.post(`${ML_SERVICE_URL}/ml/classify`, {
+                items_text: itemsText,
+                merchant: rawMerchant
+            });
+            const ml = classifyRes.data || {};
+            if (ml.model_ready && ml.category && ml.confidence >= CLASSIFIER_MIN_CONFIDENCE) {
+                receiptData.category = ml.category;
+                receiptData.ml_confidence = ml.confidence;
+                console.log(`[INFO] Category from classifier: ${ml.category} (conf ${ml.confidence}); Gemini said ${geminiCategory}`);
+            } else {
+                console.log(`[INFO] Classifier not confident/ready (${JSON.stringify(ml)}); keeping Gemini category ${geminiCategory}`);
+            }
+        } catch (clsErr) {
+            console.warn('[WARN] /ml/classify unreachable — keeping Gemini category.', clsErr.message);
+        }
+        receiptData.gemini_category = geminiCategory;
 
         // Items total cross-check: flag if sum of items deviates >15% from stated total
         let itemsMismatch = false;
@@ -724,7 +875,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             }
         }
 
-        // Per-user duplicate check: same user submitting the same receipt twice
+        // Per-user exact duplicate check via SHA-256 fingerprint (merchant|date|total)
         const userDuplicateCheck = await db.collection('Receipts')
             .where('user_id', '==', req.userId)
             .where('receipt_fingerprint', '==', receiptFingerprint)
@@ -735,6 +886,23 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             return res.status(409).json({ error: "Duplicate receipt detected. This receipt has already been processed." });
         }
 
+        // Fuzzy duplicate check: catches merchant name typos and ±₹2 total variance on same date
+        const fuzzyCandidates = await db.collection('Receipts')
+            .where('user_id', '==', req.userId)
+            .where('date', '==', receiptDate)
+            .limit(80)
+            .get();
+
+        const fuzzyDuplicate = fuzzyCandidates.docs.find(doc => {
+            const data = doc.data() || {};
+            if (Math.abs((parseFloat(data.total) || 0) - total) > 2.0) return false;
+            return merchantSimilarityScore(data.merchant, rawMerchant) >= 0.84;
+        });
+
+        if (fuzzyDuplicate) {
+            return res.status(409).json({ error: "Possible duplicate receipt detected (fuzzy match). Please verify merchant/date/total before re-uploading." });
+        }
+
         // Cross-user duplicate check: same physical receipt submitted by a different account
         const crossUserDuplicateCheck = await db.collection('Receipts')
             .where('receipt_fingerprint', '==', receiptFingerprint)
@@ -742,6 +910,54 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             .get();
 
         const crossUserDuplicate = !crossUserDuplicateCheck.empty;
+
+        // One physical receipt earns a reward once. A fingerprint match across
+        // accounts is the double-dipping case the cross-user check exists to
+        // stop, so it blocks the claim rather than only colouring a badge —
+        // previously the second account was flagged High risk and still credited
+        // the full points, which made the control advisory.
+        //
+        // First upload wins. That does penalise a genuine owner who submits
+        // after someone else has already claimed their bill, which is why the
+        // message points at support instead of accusing the user.
+        if (crossUserDuplicate) {
+            console.warn(`[FRAUD] Cross-user duplicate blocked for fingerprint ${receiptFingerprint} (user ${req.userId})`);
+
+            // A blocked attempt is the control doing its job, and it leaves no
+            // receipt behind — so without this row the only evidence it ever
+            // fired is a console line. Logged with `blocked: true` so audit
+            // queries can separate prevented claims from scored ones, and with
+            // the winning receipt's id so a disputed bill can be traced.
+            //
+            // score is null on purpose: the block happens before the fraud
+            // model runs, and recording a number we never computed would put a
+            // fabricated score in the audit trail.
+            try {
+                const claimedBy = crossUserDuplicateCheck.docs[0];
+                await db.collection('Fraud_Scores').doc().set({
+                    receipt_id: null,
+                    user_id: req.userId,
+                    score: null,
+                    risk_level: 'Blocked',
+                    blocked: true,
+                    blocked_reason: 'cross_user_duplicate',
+                    receipt_fingerprint: receiptFingerprint,
+                    claimed_by_receipt_id: claimedBy ? claimedBy.id : null,
+                    claimed_by_user_id: claimedBy ? (claimedBy.data() || {}).user_id || null : null,
+                    cross_user_duplicate: true,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (auditErr) {
+                // Never fail the block because the audit write failed — the
+                // user must still be told, and the console line survives.
+                console.error('[FRAUD] Could not log blocked attempt:', auditErr.message);
+            }
+
+            return res.status(409).json({
+                code: 'ALREADY_CLAIMED',
+                error: "This bill has already been claimed on another account. Each receipt can be rewarded only once. If you believe this is a mistake, please contact support."
+            });
+        }
 
         // Processing Tier / Multipiler
         const userRef = await ensureUserExists(req.userId);
@@ -766,9 +982,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         const newReceiptRef = db.collection('Receipts').doc();
         await newReceiptRef.set({
             user_id: req.userId,
-            merchant: receiptData.rawMerchant,
+            merchant: rawMerchant,
+            merchant_normalized: normalizedMerchant,
             merchant_id: merchantRef.id,
-            date: receiptData.date,
+            date: receiptDate,
             total: total,
             category: receiptData.category,
             points_earned: rewardResult.points,
@@ -808,35 +1025,93 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         // 6. Fraud System - Call ML Microservice
         let fraudScore = 0.05;
         let riskLevel = "Low";
+        let fraudSignals = {};
+        let tamperProbability = null;
+        // Perceptual hashes of recent receipts. fraud.py can only compare against
+        // hashes it is handed, and nothing here ever stored or sent one — so the
+        // duplicate signal was implemented, documented as live, and returned false
+        // on every upload since it was written.
+        //
+        // This is a NEAR-duplicate check, which is why it earns its place next to
+        // the SHA-256 fingerprint above: that catches an identical resubmission,
+        // but the same bill photographed twice yields different bytes, different
+        // OCR text and a different fingerprint, while still hashing close here.
+        let knownHashes = [];
         try {
+            const recentHashDocs = await db.collection('Receipts')
+                .orderBy('created_at', 'desc')
+                .limit(PHASH_LOOKBACK)
+                .get();
+            knownHashes = recentHashDocs.docs
+                .map(doc => (doc.data() || {}).image_phash)
+                .filter(Boolean);
+        } catch (hashErr) {
+            // Comparing against nothing is the old behaviour, not a new failure.
+            console.warn("Could not load recent perceptual hashes:", hashErr.message);
+        }
+
+        try {
+            // The image goes with it. Without it the ML service can only apply
+            // the OCR rule signals — the perceptual-hash duplicate check and the
+            // 448px tamper CNN both need the pixels, and silently score nothing
+            // when they are absent.
             const fraudRes = await axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
-                receipt_id: newReceiptRef.id,
-                metadata: {
-                    total: total,
-                    merchant: receiptData.rawMerchant,
-                    date: receiptData.date
-                }
+                ocr_result: receiptData,
+                image: receiptPayload,
+                mimeType,
+                known_hashes: knownHashes
             });
             if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
                 fraudScore = fraudRes.data.fraud_score;
+                // Which signals actually fired. fraud.py already computes this;
+                // without forwarding it the client can only guess why a score is
+                // what it is, and guessing produced a misleading explanation.
+                fraudSignals = fraudRes.data.signals || {};
+                tamperProbability = fraudRes.data.tamper_probability ?? null;
                 riskLevel = fraudScore > 0.7 ? "High" : (fraudScore > 0.3 ? "Medium" : "Low");
+
+                // Persist this receipt's hash so the NEXT upload has something to
+                // compare against. Written separately because the receipt document
+                // is created before the score exists.
+                if (fraudRes.data.image_phash) {
+                    await newReceiptRef.update({ image_phash: fraudRes.data.image_phash });
+                }
             }
         } catch (mlError) {
             console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
         }
 
-        // Cross-user duplicate → escalate to High regardless of ML score
-        if (crossUserDuplicate) {
-            console.warn(`[FRAUD] Cross-user duplicate detected for fingerprint ${receiptFingerprint}`);
-            fraudScore = Math.max(fraudScore, 0.85);
-            riskLevel = "High";
-        }
+        // No cross-user branch here any more: that case now returns 409
+        // ALREADY_CLAIMED before any of this runs, so escalating the score was
+        // unreachable code describing a path the request can no longer take.
 
         // Items/total mismatch → bump to at least Medium
         if (itemsMismatch) {
             fraudScore = Math.max(fraudScore, 0.5);
             if (riskLevel === "Low") riskLevel = "Medium";
         }
+
+        // 6b. Spending Anomaly - Call ML Microservice (Isolation Forest)
+        //     Flags a transaction amount that is statistically unusual for this user/category.
+        let anomalyScore = 0.05;
+        let anomalyFlag = false;
+        try {
+            const anomalyRes = await axios.post(`${ML_SERVICE_URL}/ml/anomaly`, {
+                user_id: req.userId,
+                amount: total,
+                category: receiptData.category,
+                date: receiptData.date
+            });
+            if (anomalyRes.data && anomalyRes.data.anomaly_score !== undefined) {
+                anomalyScore = anomalyRes.data.anomaly_score;
+                anomalyFlag = anomalyRes.data.is_anomaly === true;
+            }
+        } catch (mlError) {
+            console.warn("ML Service (Anomaly) unreachable, using simulation defaults.");
+        }
+
+        // An anomalous spend is a fraud-adjacent signal → nudge risk to at least Medium.
+        if (anomalyFlag && riskLevel === "Low") riskLevel = "Medium";
 
         const fraudRef = db.collection('Fraud_Scores').doc();
         await fraudRef.set({
@@ -846,16 +1121,39 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             risk_level: riskLevel,
             cross_user_duplicate: crossUserDuplicate,
             items_total_mismatch: itemsMismatch,
+            anomaly_score: anomalyScore,
+            anomaly_flag: anomalyFlag,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 7. Update User Profile in ML Service (Async)
-        axios.post(`${ML_SERVICE_URL}/ml/update-profile`, {
-            user_id: req.userId,
-            category: receiptData.category,
-            amount: total,
-            merchant: receiptData.rawMerchant
-        }).catch(() => console.warn("ML Service (Profile) update failed."));
+        // 7. Update the user's spend-interest vector in the ML service.
+        //    Awaited (not fire-and-forget) so the recommendations below reflect the
+        //    receipt that was just scanned. It is a local JSON write, so the added
+        //    latency is small, and a failure must never fail the upload.
+        try {
+            await axios.post(`${ML_SERVICE_URL}/ml/update-profile`, {
+                user_id: req.userId,
+                category: receiptData.category,
+                amount: total,
+                merchant: receiptData.rawMerchant
+            }, { timeout: 3000 });
+        } catch (mlError) {
+            console.warn("ML Service (Profile) update failed.");
+        }
+
+        // 8. Personalised reward offers, ranked against that interest vector.
+        let recommendedRewards = [];
+        try {
+            const recRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
+                user_id: req.userId,
+                top_n: 5
+            }, { timeout: 3000 });
+            if (recRes.data && Array.isArray(recRes.data.recommendations)) {
+                recommendedRewards = recRes.data.recommendations;
+            }
+        } catch (mlError) {
+            console.warn("ML Service (Recommend) unreachable, frontend will use its default pool.");
+        }
 
         res.json({
             success: true,
@@ -865,7 +1163,19 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 rewardPoints: rewardResult.points,
                 rewardLogic: rewardResult.logicText,
                 fraudScore: fraudScore,
-                riskLevel: riskLevel
+                riskLevel: riskLevel,
+                anomalyScore: anomalyScore,
+                anomalyFlag: anomalyFlag,
+                // Why the risk level is what it is, so the client can explain the
+                // verdict instead of showing an unexplained score.
+                crossUserDuplicate: crossUserDuplicate,
+                itemsTotalMismatch: itemsMismatch,
+                fraudSignals: fraudSignals,
+                // What the tamper CNN itself returned, separate from the blended
+                // score. The client was showing the blended figure labelled as a
+                // tamper score, which is not the same number.
+                tamperProbability: tamperProbability,
+                recommendedRewards: recommendedRewards
             }
         });
 
@@ -874,7 +1184,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         // Handle Google API Rate Limiting Graciously
         if (error.status === 429 || (error.error && error.error.code === 429)) {
-            return res.status(429).json({ error: 'AI processing quota has been exceeded for the free tier. Please wait and try again later.' });
+            return res.status(429).json({ error: 'AI processing quota has been exceeded. Please wait a moment and try again.' });
         }
 
         res.status(500).json({ error: 'Internal server error processing the receipt.' });

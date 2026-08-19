@@ -1,0 +1,7 @@
+Method,Pooled OOF AUC,Source-control AUC
+CNN alone,0.7523,0.7809
+Forensics alone,0.7363,0.7454
+Rank-average fusion,0.7591,0.783
+Learned stacker (upper bound),0.7473,0.7703
+Spearman correlation,0.505,
+N images,194,

@@ -1,0 +1,6 @@
+Model,Best_AUC
+MobileNetV2,0.76
+EffNet-B0 Ultra,0.74
+EfficientNet-B0 (Adv),0.71
+ResNet18,0.67
+EfficientNet-B0,0.49

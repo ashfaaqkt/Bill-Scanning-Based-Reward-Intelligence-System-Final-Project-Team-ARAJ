@@ -1,0 +1,184 @@
+# Model Card — Reward Recommender
+
+| | |
+|:---|:---|
+| **Modules** | `ml-service/recommend.py`, `ml-service/user_profile.py`, `ml-service/offers.py` |
+| **Owners** | Arpan Chatterjee (NB 04 collaborative filter) · Ashfaaq KT (Sprint 3 implementation + wiring) |
+| **Task** | Rank reward offers by relevance to a user's spending |
+| **Learning type** | **Hybrid Model** — Content-based + Collaborative Filtering (SVD) |
+| **Served by** | `/ml/recommend` → `/api/recommendations` and `/api/upload` |
+| **Status** | 🔸 **Wired and trained — but the NDCG target is NOT claimed. See "What the offline numbers are worth".** |
+
+---
+
+## Collaborative Filter SVD Integration
+
+The collaborative filter has been built using a **Singular Value Decomposition (SVD)** model trained via Notebook 04 on the `synthetic_user_interactions.csv` dataset, which contains **772 interactions across 60 users**.
+
+The trained model is stored at `ml-service/models/collab_filter.pkl` and is automatically loaded by the recommendation engine. 
+
+For users with at least 2 receipts, their recommendations blend content-based category affinity and SVD collaborative predicted affinity:
+- **SVD Prediction**: SVD predicts a rating on a 1–5 scale. This score is normalized to a 0–1 scale: `collab_affinity = (pred - 1.0) / 4.0`.
+- **Hybrid Blend**: We blend 50% content-based category affinity (decayed and log-scaled) and 50% SVD collaborative predicted affinity.
+- **Fallbacks**: If no SVD model is loaded, the system falls back to pure content-based recommendation. If the user has fewer than 2 receipts, it falls back to static popularity ranking (cold start).
+
+## How ranking works
+
+**Interest vector** (`user_profile.py`): each receipt adds `log1p(amount)` to its
+category's weight, so one large bill cannot dominate. Existing weights decay by
+**0.98 per update** on new scans, tracking current interest.
+
+**Score** per offer, over a 12-offer catalogue tagged by spend category:
+
+```
+score = 0.75 × hybrid_affinity  +  0.25 × static_popularity
+```
+
+- For a personalised user: `hybrid_affinity = 0.5 × content_affinity + 0.5 × collab_affinity`.
+- Offers tagged `general` get a neutral **⅓** affinity (so popularity acts as a tie-breaker).
+- **Cold start** (fewer than 2 receipts): pure popularity order.
+
+Each offer carries a human-readable `reason`, e.g. *"matches 56% of your recent spend"*.
+
+## Evaluation
+
+Evaluated offline over 50 users from the synthetic set, whose profile caches were
+populated from their transaction history, using Precision@K, Recall@K and NDCG@K
+(curve in `report/assets/fig_ndcg_curve.png`).
+
+| Metric | Value |
+|---|---|
+| Mean Precision@5 | 0.5000 |
+| Mean Recall@5 | 0.8833 |
+| Mean NDCG@5 | 0.7984 |
+| NDCG@1 · @3 · @10 | 0.9705 · 0.8972 · 0.8550 |
+| SVD 5-fold CV RMSE | 0.9157 |
+
+### Against the stated targets
+
+| Metric | Target | Measured | Verdict |
+|---|---|---|---|
+| NDCG@5 | > 0.70 (NB 05 header + sprint plan) | **0.7984** | Clears the bar — **not claimed** |
+| SVD RMSE | **< 0.5** per NB 04's own header; **< 1.0** per the sprint plan | **0.9157** | Misses one, meets the other — **not claimed** |
+
+Two things a reader should not have to dig for.
+
+**The RMSE target was written down twice, differently.** Notebook 04's header
+says < 0.5; the sprint plan and this card's original target say < 1.0. 0.9157
+lands between them, so the same number is a pass or a fail depending on which
+document you hold. Both are recorded here rather than quietly adopting whichever
+one 0.9157 happens to satisfy.
+
+**NDCG clears its target and is still not claimed**, which is the more important
+point. Relevance labels derive from the same rule that generated the ratings the
+model trained on, over three categories — the score measures the generator. A
+target met against a metric that cannot fail is not evidence, and reporting it as
+achieved would be the single easiest thing for a panel to take apart.
+
+Both notebook headers now carry this caveat too, so the notebooks and this card
+cannot be read as disagreeing.
+
+> **Two corrections were applied to the first version of this evaluation.**
+> Recall@5 was originally reported as 1.3167, which is impossible — recall is
+> bounded at 1.0. The numerator counted recommended *offers* (up to five) while
+> the denominator counted relevant *categories* (at most three), so the two were
+> in different units. Recall is now the share of a user's relevant categories
+> that appear anywhere in their top five. Precision@5 was also reported as
+> 0.3560 against a notebook that printed 0.5000; the figures above are the ones
+> the committed notebook produces.
+
+## What the offline numbers are worth
+
+**Nothing about this recommender, and the target is therefore not claimed.**
+
+The relevance labels used to compute NDCG are each user's mean rating per
+category, taken from `synthetic_user_interactions.csv` — the same file the SVD
+was trained on. Those ratings are not observed behaviour. They are generated by
+`build_synthetic_interactions()` in `dataset/prepare_dataset.py`, which assigns
+every synthetic user one preferred category and then writes rating 4 in that
+category and 3 elsewhere, with ±1 noise.
+
+So the evaluation asks whether the ranker can recover a preference the generator
+itself planted, over three categories, scored against labels derived from that
+same planted preference. A high NDCG is the expected outcome of a correct
+implementation on circular data; it is not evidence that real users would be
+better served.
+
+Three further reasons to read the numbers narrowly:
+
+- **The item space is three.** The factorisation is 60 users × 3 categories, yet
+  `n_factors=50`. There are far more latent dimensions than items to describe,
+  so the factors are unidentifiable — the model has room to memorise rather
+  than generalise. On real data this would be reduced sharply.
+- **Precision@5 = 0.5 is close to what the catalogue forces.** With 12 offers
+  across 3 categories, a user who likes two of three categories has a large
+  share of the catalogue counted as relevant before any ranking happens.
+- **NDCG@K rises from 0.766 at K=7 to 0.855 at K=10**, which is the signature of
+  a relevance definition loose enough that more slots keep finding matches.
+
+**What would make the target claimable:** real interaction logs — offers shown,
+offers clicked, offers claimed. The live Firestore export currently holds 19
+transactions across three accounts. Until that exists, the honest statement is
+that the collaborative filter is *implemented, integrated and verified to run*,
+with its offline score reported as a property of the synthetic data.
+
+### How synthetic, precisely
+
+`dataset/processed/synthetic_user_interactions.csv` holds **772 interactions
+across 60 synthetic users**, generated under a fixed seed so it regenerates
+identically.
+
+| Part | Real or invented |
+|---|---|
+| Merchants and amounts | **Real** — sampled from the CORD and SROIE receipts in the corpus |
+| The user | Invented — `synthetic_user_001` … `_060` |
+| The pairing | Invented — one preferred category per user, 6–20 receipts drawn with a 60% bias toward it |
+| The rating | Invented — 4 in the preferred category, 3 elsewhere, ±1 noise, clipped to 1–5 |
+
+Every row carries `is_synthetic=1`.
+
+## Storage
+
+Interest vectors live in `ml-service/models/user_profiles.json` — a **derived
+serving cache**, not a second database. The ml-service holds no Firestore
+credentials by design; Firestore remains the source of truth. Atomic writes,
+bounded to 5,000 users (least-recently-updated evicted), gitignored as user data,
+and a write failure can never fail a receipt scan.
+
+## Limitations
+
+1. **The training and evaluation data are both generated.** This is the binding
+   limitation and the reason no target is claimed — see the section above.
+2. **`n_factors=50` over a 3-item space** is heavily over-parameterised. It was
+   left as trained so the reported figures match the committed notebook, but it
+   is not a defensible setting for real data.
+2. **Only 3 spend categories** flow from the OCR, so the interest vector is coarse. 5 of 12 offers are tagged `general` and rank on popularity alone.
+3. **`popularity` values are hand-set product judgements**, not measured engagement.
+4. **Cold start is not personalised** — a new user sees the same list as everyone else until their second receipt.
+
+## Reproduce
+
+No training step. Behaviour verified via:
+
+```bash
+# 1. train the factorisation and export it (needs scikit-surprise)
+.venv/bin/python -m nbconvert --to notebook --execute --inplace \
+    notebooks/04_collaborative_filter.ipynb
+
+# 2. reproduce the offline evaluation
+.venv/bin/python -m nbconvert --to notebook --execute --inplace \
+    notebooks/05_reward_engine.ipynb
+
+# 3. check live ranking
+ml-service/.venv/bin/python -c "import recommend; print(recommend.rank('user_id', 5))"
+```
+
+**Serving carries no `scikit-surprise` dependency.** Notebook 04 exports the
+fitted factors (`global_mean`, `bu`, `bi`, `pu`, `qi` and the id maps) as plain
+arrays rather than pickling the Surprise estimator, and `recommend.py`
+reconstructs the prediction arithmetically. Pickling the estimator would have
+required Surprise — which builds from Cython — to be installed on every host,
+and an import failure there is silent: the service would have served
+content-based rankings while appearing to have a collaborative model. The
+notebook asserts the exported arithmetic matches Surprise before writing the
+bundle (max deviation 9.25e-08).

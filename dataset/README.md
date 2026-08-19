@@ -1,30 +1,124 @@
 # Dataset
 
-## Sources
+## Sources & Status
 
-| Source | Count | Owner | Status |
-|---|---|---|---|
-| CORD (Clova OCR) | ~1000 | Arpan | Download from github.com/clovaai/cord |
-| SROIE (ICDAR 2019) | ~973 | Arpan | Download from rrc.cvc.uab.es |
-| Indian receipts (English) | 100 target | Jyoti | Photographed locally |
-| Tampered (generated) | 100 target | Ranjeet | generate_tampered.py |
+| Source | Count | Owner | Images stored at | In `receipts_master.csv`? |
+|---|---|---|---|---|
+| CORD (Clova OCR) | 800 annotations | Arpan | `dataset/temp_cord/` (JSON tracked, images external) | ✅ 800 rows |
+| SROIE (ICDAR 2019) | 973 annotations | Arpan | `dataset/temp_sroie/` (entity `.txt` tracked, images external) | ✅ 973 rows |
+| Indian receipts (Jyoti) | 100 | Jyoti | `dataset/indian/` (gitignored) | ✅ Downloaded + flattened; 23 PDFs rasterised to JPG |
+| Tampered (generated) | 100 | Ranjeet | `dataset/tampered/` (gitignored) | ✅ Downloaded + flattened |
+| Test bills | 5 | Ashfaaq | `dataset/test_bills/` | ✅ in repo (OCR smoke testing) |
 
-## processed/receipts_master.csv Schema
+> **Note:** `receipts_master.csv` is **populated (1,973 rows)** from the CORD + SROIE annotations. All 200 receipt **images** (100 tampered + 100 Indian) are now **downloaded locally and pixel-ready** — `fraud_manifest.csv` shows 200/200 present, so the fraud CNN (Notebook 03) is unblocked. NB 02 (category classifier) is **trained** (Random Forest, test macro-F1 0.94).
+
+| Member | Dataset | Drive Link |
+|---|---|---|
+| Jyoti | 100 Indian receipt photos | [Jyoti's Drive](https://drive.google.com/drive/folders/10i_o-jpTaQv2Zk2jJVRCUc3muzCGLB8Z) |
+| Ranjeet | 100 generated tampered images | [Ranjeet's Drive](https://drive.google.com/drive/folders/1yWlgYeTG1kumoUOZEtLv_rRmwwxUnVjF?usp=share_link) |
+| Arpan | CORD + SROIE (~1800 images) | ⚠️ Link not yet shared (annotations already in repo) |
+
+## Folder Structure
 
 ```
-image_path, merchant, date, total, category, items_text, source
+dataset/
+  temp_cord/          ← CORD JSON annotations (tracked); images/ external
+  temp_sroie/         ← SROIE entity .txt annotations (tracked); images/ external
+  indian/             ← Jyoti's Indian receipt photos (gitignored; downloaded locally, 100 incl. rasterised PDFs)
+  tampered/           ← Ranjeet's tampered images (gitignored; downloaded locally, 100)
+  genuine/            ← original source images (gitignored; empty — genuine receipts live in indian/)
+  normalized/         ← every labelled image re-encoded identically (gitignored; generated)
+  test_bills/         ← 5 sample bills for OCR smoke testing (in repo)
+  processed/
+    labels.csv                    ← 200 ground-truth fraud labels (Ranjeet 100 + Jyoti 100)
+    receipts_master.csv           ← 1,973 consolidated rows (CORD + SROIE + 200 labelled)
+    processed_labels_arpan.csv    ← detector output — QUARANTINED (see below), do not use
+    category_dataset.csv          ← cleaned spend-category data for NB 02 (generated)
+    category_{train,val,test}.csv ← stratified 70/15/15 splits (generated)
+    fraud_manifest.csv            ← fraud labels + image availability for NB 03 (generated; 200/200 present)
+    fraud_{train,val}.csv         ← stratified 80/20 genuine/tampered splits (generated)
+    missing_images_report.csv     ← which referenced images exist locally (generated)
+    synthetic_user_interactions.csv ← SYNTHETIC user×category data for NB 04 (generated)
+    indian_category_folders.csv   ← real spend-category labels for Indian receipts (from Drive folder names)
+    firestore_receipts.csv        ← real user receipt history exported from Firestore (GITIGNORED — regenerate)
+    fraud_normalized.csv          ← the 194 binary-task images, pointing at normalized/ (generated)
+  build_receipts_master.py   ← builds receipts_master.csv from CORD + SROIE + labels
+  download_annotations.py    ← fetches CORD/SROIE annotation files
+  prepare_dataset.py         ← cleans/splits data into the train-ready files above (no training)
+  flatten_images.py          ← flattens Drive-downloaded images (nested → flat) so labels.csv paths resolve
+  rasterize_pdfs.py          ← converts the 23 PDF receipts in indian/ to JPG (for the fraud CNN)
+  normalize_images.py        ← re-encodes all labelled images identically (removes the JPEG compression shortcut)
+  repair_master_schema.py    ← adds total_parsed / currency / spend_category / fraud_label to receipts_master.csv
+  generate_tampered.py       ← creates tampered variants (brightness, duplicate_copy, number_overwrite, handwritten)
+  exact_duplicate_check.py   ← flags exact duplicate receipts from CSV
+  perceptual_hash.py         ← pHash image similarity comparison tool
+  fraud_detector.py          ← standalone multi-signal fraud scorer
+  process_labels_arpan.py    ← runs Arpan's detector over labels.csv (needs real images — see below)
 ```
 
-## processed/labels.csv Schema
+> Real user history for the recommender (NB 04) is exported by `backend/export_firestore.js`
+> → `dataset/processed/firestore_receipts.csv` (gitignored; currently sparse ~19 receipts / 3 users).
 
+## Schemas
+
+`processed/receipts_master.csv`
+```
+image_path, merchant, date, total, category, items_text, source,
+total_parsed, currency, spend_category, fraud_label
+```
+The last four are **added** by `repair_master_schema.py`; the original seven are untouched.
+
+- `total_parsed` — numeric amount in the source's own currency (100% recovered, vs 58.9% by naive parsing)
+- `currency` — `IDR` for CORD, `MYR` for SROIE. **Amounts are not converted between currencies.**
+- `spend_category` — `retail` (973) / `restaurant` (800), blank for the 200 fraud-labelled rows
+- `fraud_label` — `tampered` (129) / `genuine` (65) / `multi_bill` (5) / `handwritten` (1), blank otherwise
+
+⚠️ **Do not use the raw `category` column as a training target** — it mixes spend classes with
+fraud labels, giving a meaningless 6-class mixture. Use `spend_category` or `fraud_label`.
+
+⚠️ **Known gaps** (evidenced in `notebooks/01_data_exploration.ipynb`): 50.7% of `date` and
+`merchant` are missing **structurally, not at random** — CORD never recorded them (100% missing)
+while SROIE is complete. Imputing would invent data; both fields are unusable corpus-wide.
+
+`processed/labels.csv`
 ```
 image_path, label, labelled_by, notes
 ```
+Labels: `genuine` / `tampered` / `multi_bill` / `handwritten`
+(current counts: 129 tampered · 65 genuine · 5 multi_bill · 1 handwritten)
 
-Labels: genuine / tampered / blurry / multi-bill / handwritten_edit
+## 🖼️ Image setup (do this after downloading images from Drive)
+
+Images are gitignored, so each member must download the folders from Drive and run these
+two scripts to make them usable (the Drive folders arrive **nested**, but `labels.csv` and
+`fraud_manifest.csv` expect **flat** paths):
+
+```bash
+# 1. download tampered/ and indian/ image folders from Drive (links in the table above)
+python dataset/flatten_images.py    # nested subfolders → flat; fixes messy filenames
+python dataset/rasterize_pdfs.py    # convert the 23 PDF receipts → JPG for the CNN
+```
+
+Both are safe to re-run. After this, all 200 images resolve and NB 03 (fraud CNN) can train.
+
+## Prepared training data
+
+Run `python dataset/prepare_dataset.py` to regenerate the cleaned, split, train-ready
+files (the `category_*`, `fraud_*`, `synthetic_*` outputs above). **This does no model
+training** — it only cleans, splits and documents. Full details, schemas and caveats
+(source leakage, heuristic 3-class labels, missing images, synthetic data) are in
+[`DATA_PREP.md`](DATA_PREP.md).
+
+## ⚠️ processed_labels_arpan.csv is quarantined
+
+`process_labels_arpan.py` was run before the real receipt images were available, so it
+**generated mock images** and **monkey-patched OCR**, then ran the detector on those fakes.
+Every row therefore reads `LIKELY AUTHENTIC` (including all 129 tampered). The output is
+invalid and is **excluded** from all prepared datasets. It becomes valid only after the real
+images are downloaded and the monkey-patches removed. Use `labels.csv` as the fraud ground truth.
 
 ## Note
 
-Raw images are NOT committed to Git (too large).
-Only CSV files are tracked.
-Store images in shared Google Drive —.<https://drive.google.com/drive/folders/10i_o-jpTaQv2Zk2jJVRCUc3muzCGLB8Z?usp=share_link>
+Raw images are NOT committed to Git (too large — gitignored). Only CSV/JSON annotation files
+are version-controlled. The receipt **images** must be downloaded from each member's Drive
+folder before running Notebook 03 (the fraud CNN). Notebooks 01, 02, 04, 05 run on the CSVs alone.

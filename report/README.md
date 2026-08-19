@@ -1,20 +1,51 @@
 # Final Year Project Report
 
-This folder contains the final IEEE-format project report.
+This folder holds the written evaluation record for the project.
 
 ## Structure
 
-- ARAJ_Final_Report.pdf    Final submitted report (add when complete)
-- assets/                  Diagrams, charts, confusion matrices used in report
+> **Scope of this folder.** What lives here is engineering documentation,
+> versioned alongside the code it describes, so a figure quoted in a card
+> can always be traced to the CSV and the script that produced it. The
+> academic submission documents are prepared and submitted separately and
+> are not part of this repository.
 
-## Sections (target)
+| Path | Contents |
+|---|---|
+| `model_cards/` | One card per ML model — algorithm, data, comparison, results, limitations |
+| `fraud_test_report.md` | Full fraud-detection evaluation (Sprint 3) |
+| `sprint3_summary_report.md` | Sprint 3 summary — what changed and why |
+| `assets/` | Figures (`fig_*.png`) and every results CSV behind them |
+| `Team_ARAJ_Progress_Report_v3.pdf` | Progress report for Prof. Uma. v1 and v2 were removed on 19 Aug — v2 carried a transposed fraud-label split (it read genuine 64.5% / tampered 32.5% when it is the reverse) which v3 corrects and states openly |
 
-1. Introduction
-2. Literature Review
-3. System Design & Architecture
-4. Dataset & Methodology
-5. ML Models & Results
-6. Evaluation & Testing
-7. Conclusion & Future Work
+## Results at a glance (Aug 19, 2026)
+
+| Model | Result | Target | Status |
+|---|---|---|---|
+| Category classifier | test macro-F1 **0.942** / acc 0.944 | 0.80 | ✅ Beaten |
+| Anomaly detector | FPR **13.2%**, 100% recall ≥10× | <15% | ✅ Met |
+| Fraud CNN | AUC **0.805** · **0.864** on real receipts | 0.90 | ⚠️ Not met |
+| Recommender (SVD + content) | NDCG@5 **0.7984** *on synthetic interactions* | NDCG@5 0.70 | 🔸 Built & wired; target not claimed |
+
+Every figure regenerates from the commands in `fraud_test_report.md` §7. Model
+detail and limitations: [`model_cards/README.md`](model_cards/README.md).
+
+> **Read `fraud_test_report.md` §6 alongside the fraud number.** The CNN and the
+> perceptual-hash check were both dead in the deployed pipeline until 19 Aug —
+> the upload path never passed the image, and no hash was ever stored. The
+> evaluation here was measured directly against the corpus and is unaffected, but
+> the running system did not produce these scores until those seams were fixed.
+
+## Chapters (as built, against the BITS template)
+
+1. Introduction — problem, objectives O1–O7, scope
+2. Implementation — architecture, stack, modules, algorithms, team workflow
+3. Testing & Results — test register, per-model results, the evaluation faults found
+4. Execution Environment — local run, planned cloud deployment
+5. Project Execution — Git record, weekly progress, supervisor log
+6. Conclusion & Future Work
+
+Plus cover, declaration, abstract, contents, lists of figures/tables/abbreviations,
+20 IEEE references and Appendices A–D.
 
 Owned by: Jyoti (structure + writing) · Ashfaaq (final edit + PDF export)

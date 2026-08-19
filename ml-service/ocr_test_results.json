@@ -3,6 +3,7 @@
         "status": "COMPLETED",
         "total_images": 5,
         "processed_count": 5,
+        "skipped_duplicates": 0,
         "failure_reason": null
     },
     "data": {
@@ -13,51 +14,51 @@
             "category": "General Retail",
             "items": [
                 {
-                    "name": "3/4 CPVC B. FTA",
+                    "name": "3/4 c mc B ATA",
                     "price": 300
                 },
                 {
-                    "name": "3/4 CPVC Socket",
+                    "name": "3/4 cm Sault",
                     "price": 28
                 },
                 {
-                    "name": "3/4 CPVC Tee",
+                    "name": "3/4 cm JBC",
                     "price": 75
                 },
                 {
-                    "name": "3/4 CPVC B. MTA",
+                    "name": "3/4 cm B mota",
                     "price": 90
                 },
                 {
-                    "name": "A/C Paras",
+                    "name": "Blc PORAS",
                     "price": 1350
                 },
                 {
-                    "name": "12\" C-Chrom",
+                    "name": "12' C.C. Rohn",
                     "price": 60
                 },
                 {
-                    "name": "Table Top",
-                    "price": 60
-                },
-                {
-                    "name": "3/4 CPVC Elb",
+                    "name": "Tuph TBL",
                     "price": 120
                 },
                 {
-                    "name": "Sink Mix Paras",
+                    "name": "3/4 c mc L",
+                    "price": 120
+                },
+                {
+                    "name": "SINK MIX RAPID",
                     "price": 2600
                 },
                 {
-                    "name": "5x3 Gi Box",
+                    "name": "5X3 GI BOO",
                     "price": 45
                 },
                 {
-                    "name": "20mm Conduit Pipe",
+                    "name": "20mm Conduit Pvc",
                     "price": 40
                 },
                 {
-                    "name": "Conduit Bush",
+                    "name": "1\" Conduit Buch",
                     "price": 6
                 },
                 {
@@ -65,26 +66,32 @@
                     "price": 10
                 },
                 {
-                    "name": "Saddle",
+                    "name": "Sator lell",
                     "price": 5
                 },
                 {
-                    "name": "3/4 CPVC Clip",
+                    "name": "3/4 c mc clip",
                     "price": 28
                 }
-            ]
+            ],
+            "handwritten_flag": true,
+            "handwritten_details": "Bill number (1842), customer name (MR. Ashok ji), date (13/4/26), all item particulars, quantities, rates, amounts, and the final total (4817) are handwritten on a pre-printed form. There is a handwritten correction where 'Romy Sink mix Rapid' was initially priced at 3000, then struck through, and 'SINK MIX RAPID' is listed at 2600. The sum of the individual item amounts (4877) does not match the handwritten total (4817), indicating a discrepancy of 60.",
+            "receipt_fingerprint": "20c872eda05683ed4c6bba6286172b8104346c8de925add55065ac693aa7095b"
         },
         "test bill 2.jpg": {
-            "rawMerchant": "Nammo Tandoori Chai - WTP",
-            "date": "2024-04-15",
+            "rawMerchant": "Tamo Tandoori Chai - WTP",
+            "date": "2026-04-15",
             "total": 200.0,
             "category": "Food & Beverage",
             "items": [
                 {
-                    "name": "Kulhad Adrak Chai",
-                    "price": 200.0
+                    "name": "Adrak Chai",
+                    "price": 40.0
                 }
-            ]
+            ],
+            "handwritten_flag": false,
+            "handwritten_details": null,
+            "receipt_fingerprint": "e08181efd8e491e0a99dba79fff374943d5a76ebf1a52225cd933997b026a3dd"
         },
         "test bill 3.jpg": {
             "rawMerchant": "VASANSI JAIPUR PVT LTD",
@@ -93,13 +100,16 @@
             "category": "General Retail",
             "items": [
                 {
-                    "name": "TPA-0462",
+                    "name": "TPA-0462 -",
                     "price": 1650.0
                 }
-            ]
+            ],
+            "handwritten_flag": false,
+            "handwritten_details": null,
+            "receipt_fingerprint": "6983bd3d389b6744a73314d49616100650853d52c2530bea7d221783e8cfe059"
         },
         "test bill 4.jpg": {
-            "rawMerchant": "zudio",
+            "rawMerchant": "Zudio",
             "date": "2026-04-15",
             "total": 3008.0,
             "category": "General Retail",
@@ -113,7 +123,7 @@
                     "price": 899.0
                 },
                 {
-                    "name": "Women wear T-Shirt Table",
+                    "name": "Women wear T-Shirt Teble",
                     "price": 299.0
                 },
                 {
@@ -124,16 +134,19 @@
                     "name": "Westside Consumables",
                     "price": 12.0
                 }
-            ]
+            ],
+            "handwritten_flag": false,
+            "handwritten_details": null,
+            "receipt_fingerprint": "3827ece1e4a1f15c80a95e6ca4812118ff5911ddd64ce4fb9b3191a9ed97cac6"
         },
         "test bill 5.png": {
-            "rawMerchant": "FirstCry",
+            "rawMerchant": "FirstCry.com",
             "date": "2026-04-25",
             "total": 575.85,
             "category": "General Retail",
             "items": [
                 {
-                    "name": "Babyhug Advanced Pant Style Diapers Large (L) Size - 64 Pieces",
+                    "name": "Babyhug Advanced Pant Style Diapers Large (L) Size - 64 Pieces, Honeycomb Technology, Cottony Soft Diaper with 3D Leak Guard, Latex & Alcohol Free, Anti-rash & Gentle (minqty:1)",
                     "price": 564.97
                 },
                 {
@@ -144,7 +157,10 @@
                     "name": "COD Charges (Inclusive of all taxes)",
                     "price": 3.92
                 }
-            ]
+            ],
+            "handwritten_flag": false,
+            "handwritten_details": null,
+            "receipt_fingerprint": "21f737b32ab4b5f60b2372897095dc767f5ce3c8dc54afedbab3f8bae92049e1"
         }
     }
 }
