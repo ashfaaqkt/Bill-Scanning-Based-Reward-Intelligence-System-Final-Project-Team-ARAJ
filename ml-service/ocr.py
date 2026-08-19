@@ -10,9 +10,23 @@ import time
 import base64
 import tempfile
 import cv2
+import numpy as np
 from google import genai
 from PIL import Image
 from dotenv import load_dotenv
+
+# HEIC/HEIF is the iPhone camera default, and the backend accepts it — but
+# neither OpenCV nor stock Pillow can decode it, so every iPhone upload failed
+# with "cannot identify image file". Registering the opener teaches Pillow the
+# format; if the package is unavailable the pipeline still runs for JPEG/PNG
+# rather than refusing to start.
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    _HEIF_SUPPORTED = True
+except ImportError:                                   # pragma: no cover
+    _HEIF_SUPPORTED = False
+    print("[WARN] pillow-heif not installed — HEIC/HEIF uploads will be rejected")
 
 # ── ENVIRONMENT SETUP ──────────────────────────────────────────
 # Load .env from ml-service/ so GEMINI_API_KEY is available
@@ -160,7 +174,21 @@ def extract_receipt_data(image_path):
     try:
         img_cv = cv2.imread(image_path)
         if img_cv is None:
-            print("[WARN] OpenCV could not decode image - skipping blur check, deferring to Gemini")
+            # OpenCV has no HEIC codec, but Pillow now does. Decoding through
+            # Pillow keeps the blur gate working for iPhone photos instead of
+            # waving them through and spending an API call on an unreadable one.
+            try:
+                with Image.open(image_path) as pil_img:
+                    img_cv = cv2.cvtColor(np.array(pil_img.convert("RGB")),
+                                          cv2.COLOR_RGB2BGR)
+                print("[INFO] Decoded via Pillow for the blur check "
+                      "(OpenCV lacks this codec)")
+            except Exception as pil_err:
+                print(f"[WARN] Neither OpenCV nor Pillow could decode the image "
+                      f"({pil_err}) — skipping blur check, deferring to Gemini")
+
+        if img_cv is None:
+            pass                      # blur gate skipped; Gemini will decide
         else:
             gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
             # Normalise long edge to keep the blur score resolution-independent

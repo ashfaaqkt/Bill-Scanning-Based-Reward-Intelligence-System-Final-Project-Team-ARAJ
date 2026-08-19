@@ -11,6 +11,9 @@ pandas>=2.2.3
 joblib>=1.4.2
 opencv-python-headless>=4.10.0
 Pillow>=11.0.0
+# HEIC/HEIF decoding — the iPhone camera default, which the backend accepts
+# but stock Pillow and OpenCV cannot read.
+pillow-heif>=0.18.0
 google-genai>=1.0.0
 python-dotenv>=1.0.1
 imagehash>=4.3.1
