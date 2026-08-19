@@ -928,7 +928,8 @@ function openGuestDisclaimer() {
         + 'results are placeholders, not predictions\n'
         + '• Nothing is saved — points, vouchers and claim codes are generated in '
         + 'your browser and disappear on refresh\n\n'
-        + 'Sign up for a free account to run the real pipeline end to end.',
+        + 'Sign up for a free account to run the real pipeline end to end.\n\n'
+        + '— Team ARAJ',
         '🎭'
     );
 }

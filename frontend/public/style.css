@@ -3902,3 +3902,40 @@ button.is-busy:disabled,
     white-space: pre-line;
     text-align: left;
 }
+
+/* ── MODAL SCROLL LOCK ──────────────────────────────────────────
+   syncBodyScrollLock() has always toggled .modal-open on <body>, but nothing
+   ever styled it — so the page behind every modal stayed scrollable and a
+   stray wheel gesture moved the content under the dialog. */
+body.modal-open {
+    overflow: hidden;
+    /* Stops the touch scroll chaining through to the page on mobile once the
+       dialog's own content reaches its end. */
+    overscroll-behavior: contain;
+}
+
+/* ── ERROR / DISCLAIMER MODAL — SMALL SCREENS ───────────────────
+   The guest disclaimer is the longest message this dialog carries, and on a
+   short viewport (a laptop at 100% zoom, or a phone in landscape) it ran past
+   both edges with no way to reach the button. The panel now takes the height
+   it needs up to what the viewport allows, and scrolls inside itself beyond
+   that — so the page never scrolls and the action stays reachable. */
+.error-modal {
+    padding: 1.25rem;             /* never let the panel touch the edges */
+}
+
+.error-modal-panel {
+    max-height: calc(100vh - 2.5rem);
+    max-height: calc(100dvh - 2.5rem);   /* dvh excludes mobile browser chrome */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 480px) {
+    .error-modal { padding: 0.75rem; }
+    .error-modal-panel {
+        width: 100%;
+        max-height: calc(100dvh - 1.5rem);
+    }
+    #error-modal-message { font-size: 0.9rem; }
+}
