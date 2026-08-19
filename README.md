@@ -19,14 +19,18 @@ A production-grade AI + ML system where consumers scan retail receipts, extract 
 | Category classifier | Supervised — TF-IDF + Random Forest | test macro-F1 **0.942** / acc 0.944 | 0.80 ✅ |
 | Anomaly detector | **Unsupervised** — Isolation Forest | FPR **13.2%**, 100% recall ≥10× | <15% ✅ |
 | Fraud tamper CNN | Supervised transfer learning — MobileNetV2 @ 448 | AUC **0.805** · **0.864** on real receipts | 0.90 ⚠️ |
-| Recommender | Hybrid — content affinity + SVD collaborative filter (NB 04) | 5-fold CV RMSE **0.9157** | NDCG@5 🔸 **not claimed** |
-| Reward ranker | Evaluation harness (NB 05), not a trained ranker | P@5 0.50 · R@5 0.8833 · NDCG@5 0.7984 | 🔸 **not claimed** |
+| Recommender | Hybrid — content affinity + SVD collaborative filter (NB 04) | 5-fold CV RMSE **0.9157** | RMSE < 0.5 (notebook) / < 1.0 (plan) 🔸 **not claimed** |
+| Reward ranker | Evaluation harness (NB 05), not a trained ranker | P@5 0.50 · R@5 0.8833 · NDCG@5 **0.7984** | NDCG@5 > 0.70 🔸 **cleared but not claimed** |
 
 All five ML endpoints are wired and backed by real logic, and all five notebooks
 carry outputs. Perceptual-hash duplicate detection is a deterministic algorithm,
 not a learned model.
 
-> **The recommender's NDCG target is deliberately not claimed.** Both the SVD and
+> **Both targets are stated above and neither is claimed. That is deliberate.**
+> NDCG@5 0.7984 *clears* its 0.70 bar; RMSE 0.9157 misses the 0.5 the notebook
+> header set and meets the 1.0 the sprint plan set — the two documents disagreed,
+> which is itself worth knowing.
+> Both the SVD and
 > the evaluation run on `synthetic_user_interactions.csv`, where the relevance
 > labels come from the same rule that generated the ratings — a strong score
 > there measures the generator, not the ranker. NB 05 was also delivered as an

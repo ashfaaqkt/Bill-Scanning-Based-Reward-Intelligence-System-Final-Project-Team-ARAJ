@@ -82,8 +82,8 @@ Receipt Image
 | Category classifier | TF-IDF + Random Forest | macro-F1 **0.942** / acc 0.944 | 0.80 ✅ |
 | Anomaly detector | Isolation Forest (beat OC-SVM, LOF) | FPR **13.2%**, 100% recall ≥10× | <15% ✅ |
 | Fraud tamper CNN | MobileNetV2 @ 448×448 | AUC **0.805** (0.864 real receipts) | 0.90 ⚠️ |
-| Recommender | Hybrid — content affinity + SVD (NB 04) | 5-fold CV RMSE **0.9157** | NDCG 🔸 not claimed |
-| Reward ranker | Evaluation harness (NB 05), not a trained ranker | NDCG@5 0.7984 on synthetic data | 🔸 not claimed |
+| Recommender | Hybrid — content affinity + SVD (NB 04) | 5-fold CV RMSE **0.9157** | RMSE < 0.5 / < 1.0 🔸 not claimed |
+| Reward ranker | Evaluation harness (NB 05), not a trained ranker | NDCG@5 **0.7984** on synthetic data | NDCG@5 > 0.70 🔸 cleared, not claimed |
 
 Full detail per model: [`report/model_cards/`](../report/model_cards/README.md).
 

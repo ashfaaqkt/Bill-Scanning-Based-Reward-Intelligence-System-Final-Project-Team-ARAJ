@@ -54,6 +54,30 @@ populated from their transaction history, using Precision@K, Recall@K and NDCG@K
 | NDCG@1 · @3 · @10 | 0.9705 · 0.8972 · 0.8550 |
 | SVD 5-fold CV RMSE | 0.9157 |
 
+### Against the stated targets
+
+| Metric | Target | Measured | Verdict |
+|---|---|---|---|
+| NDCG@5 | > 0.70 (NB 05 header + sprint plan) | **0.7984** | Clears the bar — **not claimed** |
+| SVD RMSE | **< 0.5** per NB 04's own header; **< 1.0** per the sprint plan | **0.9157** | Misses one, meets the other — **not claimed** |
+
+Two things a reader should not have to dig for.
+
+**The RMSE target was written down twice, differently.** Notebook 04's header
+says < 0.5; the sprint plan and this card's original target say < 1.0. 0.9157
+lands between them, so the same number is a pass or a fail depending on which
+document you hold. Both are recorded here rather than quietly adopting whichever
+one 0.9157 happens to satisfy.
+
+**NDCG clears its target and is still not claimed**, which is the more important
+point. Relevance labels derive from the same rule that generated the ratings the
+model trained on, over three categories — the score measures the generator. A
+target met against a metric that cannot fail is not evidence, and reporting it as
+achieved would be the single easiest thing for a panel to take apart.
+
+Both notebook headers now carry this caveat too, so the notebooks and this card
+cannot be read as disagreeing.
+
 > **Two corrections were applied to the first version of this evaluation.**
 > Recall@5 was originally reported as 1.3167, which is impossible — recall is
 > bounded at 1.0. The numerator counted recommended *offers* (up to five) while
