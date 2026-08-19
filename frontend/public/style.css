@@ -3944,18 +3944,33 @@ body.modal-open {
    competing with the rewards, so it is small and muted but not so faint that
    it reads as decoration. */
 .vault-disclaimer {
-    max-width: 70ch;
-    margin: 1.75rem auto 0;
-    padding-top: 1rem;
-    border-top: var(--border-refined);
-    font-size: 0.78rem;
-    line-height: 1.55;
-    color: var(--color-smoke);
+    /* Full width of the grid, not a narrow measure — at 70ch this wrapped to
+       four short lines that read as a paragraph competing with the cards. Run
+       across the panel it settles into two, which scans as a footnote. */
+    margin: 1.75rem 0 0;
+    padding: 0.85rem 1.15rem;
+    border: 1px solid rgba(184, 134, 11, 0.22);
+    border-radius: var(--radius-sm);
+    /* Warm parchment tint rather than the card white, so the block reads as a
+       different kind of content from the rewards above it. */
+    background: linear-gradient(180deg,
+                rgba(184, 134, 11, 0.07) 0%,
+                rgba(184, 134, 11, 0.04) 100%);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--color-charcoal);
     text-align: center;
+    text-wrap: balance;          /* even line lengths where supported */
 }
 
-.vault-disclaimer strong { color: var(--color-charcoal); }
+.vault-disclaimer strong { color: var(--color-gold); }
 
-@media (max-width: 480px) {
-    .vault-disclaimer { font-size: 0.74rem; text-align: left; }
+/* Narrow screens cannot fit two lines at any readable size, so stop pretending:
+   left-align and let it wrap naturally. */
+@media (max-width: 700px) {
+    .vault-disclaimer {
+        text-align: left;
+        text-wrap: initial;
+        font-size: 0.74rem;
+    }
 }
