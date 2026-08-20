@@ -16,7 +16,18 @@ from pathlib import Path
 # digit survives as only ~6 pixels. See report/fraud_test_report.md.
 MODEL_PATH = Path(__file__).resolve().parent / "models" / "tamper_cnn_cv_normalized_448.pt"
 IMG_SIZE = 448
-PHASH_DISTANCE_THRESHOLD = 10
+# Perceptual-hash distance under which two images are considered the same photo.
+#
+# Receipts are a pathological case for pHash. They are all pale paper with a dark
+# text block in the middle at a similar aspect, so at the low frequencies pHash
+# keeps they look alike. Measured over all 4,950 pairs of the 100 real Indian
+# receipts — every pair a DIFFERENT bill — the minimum distance is 0 and the 1st
+# percentile is 18. Four pairs of genuinely different receipts collide exactly.
+#
+# So no threshold makes this safe on its own: at 10, 0.36% of pairs match, which
+# over a 300-receipt lookback is a 66% chance of a false block on every upload.
+# That is why a match now needs corroboration — see is_duplicate_hash().
+PHASH_DISTANCE_THRESHOLD = 6
 
 # Probability above which the CNN's verdict counts as a tamper signal.
 #
@@ -110,7 +121,8 @@ def score(image_path, ocr_result, known_hashes=None):
         # caller are the same number, and phash() decodes the whole image.
         image_phash = compute_phash(image_path)
 
-        if is_duplicate_hash(image_phash, known_hashes or []):
+        if is_duplicate_hash(image_phash, known_hashes or [],
+                             (ocr_result or {}).get("total")):
             fraud_score += 0.40
             signals["duplicate"] = True
 
@@ -149,14 +161,27 @@ def compute_phash(image_path):
         return None
 
 
-def is_duplicate_hash(current_hash, known_hashes):
+def is_duplicate_hash(current_hash, known_hashes, current_total=None):
     """
-    True when `current_hash` is within PHASH_DISTANCE_THRESHOLD of any known one.
+    True when `current_hash` matches a known one AND the receipt totals agree.
 
     This is a NEAR-duplicate test, which is the point: the SHA-256 fingerprint in
     the backend catches byte-identical resubmissions, but a receipt photographed
     a second time, cropped or re-compressed produces different bytes and different
     OCR text. Those still hash close together perceptually.
+
+    The total is required as corroboration because the image evidence alone is
+    not strong enough to refuse someone. Two different bills can and do produce
+    identical hashes here (four such pairs exist in our own 100 receipts), and a
+    lone hash match blocked a real upload of a different receipt during demo
+    recording. Two DIFFERENT receipts sharing both a near-identical hash and the
+    same total is a far smaller coincidence, and the leak this check exists to
+    close still trips it: the same photograph read twice by the OCR gave
+    `yousta.` and `YOUSTA` for the merchant, but ₹299 both times.
+
+    `known_hashes` entries may be a bare hash string (older callers, treated as
+    having no total to compare and therefore never blocking) or a mapping with
+    `hash` and `total`.
     """
     if not current_hash or not known_hashes:
         return False
@@ -171,12 +196,32 @@ def is_duplicate_hash(current_hash, known_hashes):
     except Exception:
         return False
 
-    for raw_hash in known_hashes:
+    def _amount(value):
+        try:
+            return round(float(value), 2)
+        except (TypeError, ValueError):
+            return None
+
+    this_total = _amount(current_total)
+
+    for entry in known_hashes:
+        if isinstance(entry, dict):
+            raw_hash, other_total = entry.get("hash"), _amount(entry.get("total"))
+        else:
+            raw_hash, other_total = entry, None
+        if not raw_hash:
+            continue
         try:
             known = imagehash.hex_to_hash(str(raw_hash))
         except Exception:
             continue                      # skip a malformed stored hash
-        if current - known <= PHASH_DISTANCE_THRESHOLD:
+        if current - known > PHASH_DISTANCE_THRESHOLD:
+            continue
+        # Corroboration. Without both totals we cannot confirm it, and an
+        # unconfirmed image match must not refuse a user.
+        if this_total is None or other_total is None:
+            continue
+        if abs(this_total - other_total) <= 0.01:
             return True
 
     return False
