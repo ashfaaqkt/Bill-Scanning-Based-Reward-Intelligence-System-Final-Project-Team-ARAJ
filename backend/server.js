@@ -730,8 +730,13 @@ function generateReceiptFingerprint(merchant, date, total) {
 //  3. Sanitise currency + validate required fields
 //  4. Per-user and cross-user duplicate fingerprint check
 //  5. Calculate reward points (category × tier × streak multipliers)
-//  6. Write to Firestore: Receipts, Receipt_Items, Merchants, Consent_Logs, Fraud_Scores
-//  7. Call ML microservice for fraud scoring (async fallback if unreachable)
+//  6. Fraud scoring via the ML microservice (async fallback if unreachable)
+//  7. Write to Firestore: Receipts, Receipt_Items, Merchants, Consent_Logs, Fraud_Scores
+//
+// 6 runs BEFORE 7 deliberately. Two checks can refuse an upload — the content
+// fingerprint at step 4, and the perceptual-hash match inside step 6 — and a
+// refusal must leave nothing behind. Fraud scoring used to sit after the writes,
+// which was safe only while its verdict was advisory.
 app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
         if (!req.body || !req.body.receipt) {
@@ -970,63 +975,18 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         let merchantId = receiptData.rawMerchant.replace(/[^a-zA-Z0-9]/g, '_');
         if (!merchantId) merchantId = "Unknown";
 
-        // 1. Merchants Upsert
-        const merchantRef = db.collection('Merchants').doc(merchantId);
-        await merchantRef.set({
-            name: receiptData.rawMerchant,
-            normalized_category: receiptData.category,
-            last_seen: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        // 2. Receipts
-        const newReceiptRef = db.collection('Receipts').doc();
-        await newReceiptRef.set({
-            user_id: req.userId,
-            merchant: rawMerchant,
-            merchant_normalized: normalizedMerchant,
-            merchant_id: merchantRef.id,
-            date: receiptDate,
-            total: total,
-            category: receiptData.category,
-            points_earned: rewardResult.points,
-            receipt_fingerprint: receiptFingerprint,
-            created_at: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        // 3. Receipt Items Batching
-        if (receiptData.items.length > 0) {
-            const batch = db.batch();
-            receiptData.items.forEach(item => {
-                const itemRef = db.collection('Receipt_Items').doc();
-                batch.set(itemRef, {
-                    receipt_id: newReceiptRef.id,
-                    name: item.name,
-                    price: item.price
-                });
-            });
-            await batch.commit();
-        }
-
-        // 4. Update overall point sum safely
-        await userRef.update({
-            total_points: admin.firestore.FieldValue.increment(rewardResult.points)
-        });
-
-        // 5. Consent Logs (Section 5.4 Privacy Rules)
-        const consentRef = db.collection('Consent_Logs').doc();
-        await consentRef.set({
-            user_id: req.userId,
-            action: "receipt_scan",
-            status: "granted",
-            data_points: ["merchant", "total", "category"],
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        // 6. Fraud System - Call ML Microservice
+        // 1. Fraud scoring — BEFORE anything is written.
+        //
+        // This used to run at step 6, after the receipt, its line items, the
+        // points and the consent log had all been committed. That was fine
+        // while the score was advisory, but a perceptual-hash match now
+        // REJECTS the upload, and rejecting after five writes would mean
+        // unpicking them. Nothing here needs the receipt to exist first.
         let fraudScore = 0.05;
         let riskLevel = "Low";
         let fraudSignals = {};
         let tamperProbability = null;
+        let imagePhash = null;
         // Perceptual hashes of recent receipts. fraud.py can only compare against
         // hashes it is handed, and nothing here ever stored or sent one — so the
         // duplicate signal was implemented, documented as live, and returned false
@@ -1070,12 +1030,11 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 tamperProbability = fraudRes.data.tamper_probability ?? null;
                 riskLevel = fraudScore > 0.7 ? "High" : (fraudScore > 0.3 ? "Medium" : "Low");
 
-                // Persist this receipt's hash so the NEXT upload has something to
-                // compare against. Written separately because the receipt document
-                // is created before the score exists.
-                if (fraudRes.data.image_phash) {
-                    await newReceiptRef.update({ image_phash: fraudRes.data.image_phash });
-                }
+                // Carried into the receipt's initial write below, so the NEXT
+                // upload has something to compare against. This used to be a
+                // second update() after the receipt existed; now the receipt is
+                // written after scoring, so one write does it.
+                imagePhash = fraudRes.data.image_phash || null;
             }
         } catch (mlError) {
             console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
@@ -1090,6 +1049,94 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             fraudScore = Math.max(fraudScore, 0.5);
             if (riskLevel === "Low") riskLevel = "Medium";
         }
+
+
+        // A near-duplicate image is refused outright.
+        //
+        // The SHA-256 fingerprint above catches a byte-identical resubmission.
+        // This catches the same bill photographed a second time, cropped or
+        // re-compressed — different bytes, often different OCR text, but the
+        // same picture. One physical receipt earns a reward once.
+        //
+        // Deliberately NOT applied to the tamper CNN. At AUC 0.805 it is a
+        // review signal, not a verdict, and auto-rejecting on it would refuse
+        // genuine receipts. The model card says it is not a rejection gate; this
+        // keeps that true.
+        if (fraudSignals.duplicate) {
+            console.warn(`[FRAUD] Near-duplicate image blocked (phash ${imagePhash}) for user ${req.userId}`);
+            try {
+                await db.collection('Fraud_Scores').doc().set({
+                    receipt_id: null,
+                    user_id: req.userId,
+                    score: fraudScore,
+                    risk_level: riskLevel,
+                    blocked: true,
+                    blocked_reason: 'perceptual_duplicate',
+                    image_phash: imagePhash,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (auditErr) {
+                console.error('[FRAUD] Could not log blocked near-duplicate:', auditErr.message);
+            }
+            return res.status(409).json({
+                code: 'DUPLICATE_IMAGE',
+                error: "This photo matches a receipt already in the system. Each receipt can be rewarded only once — if you believe this is a mistake, please contact support."
+            });
+        }
+
+
+        // 2. Merchants Upsert
+        const merchantRef = db.collection('Merchants').doc(merchantId);
+        await merchantRef.set({
+            name: receiptData.rawMerchant,
+            normalized_category: receiptData.category,
+            last_seen: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // 3. Receipts
+        const newReceiptRef = db.collection('Receipts').doc();
+        await newReceiptRef.set({
+            user_id: req.userId,
+            merchant: rawMerchant,
+            merchant_normalized: normalizedMerchant,
+            merchant_id: merchantRef.id,
+            date: receiptDate,
+            total: total,
+            category: receiptData.category,
+            points_earned: rewardResult.points,
+            receipt_fingerprint: receiptFingerprint,
+            image_phash: imagePhash,
+            created_at: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 4. Receipt Items Batching
+        if (receiptData.items.length > 0) {
+            const batch = db.batch();
+            receiptData.items.forEach(item => {
+                const itemRef = db.collection('Receipt_Items').doc();
+                batch.set(itemRef, {
+                    receipt_id: newReceiptRef.id,
+                    name: item.name,
+                    price: item.price
+                });
+            });
+            await batch.commit();
+        }
+
+        // 5. Update overall point sum safely
+        await userRef.update({
+            total_points: admin.firestore.FieldValue.increment(rewardResult.points)
+        });
+
+        // 6. Consent Logs (Section 5.4 Privacy Rules)
+        const consentRef = db.collection('Consent_Logs').doc();
+        await consentRef.set({
+            user_id: req.userId,
+            action: "receipt_scan",
+            status: "granted",
+            data_points: ["merchant", "total", "category"],
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
 
         // 6b. Spending Anomaly - Call ML Microservice (Isolation Forest)
         //     Flags a transaction amount that is statistically unusual for this user/category.

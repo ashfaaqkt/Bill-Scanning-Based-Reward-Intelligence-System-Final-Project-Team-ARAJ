@@ -1823,6 +1823,13 @@ async function handleUpload() {
                 // about. Re-uploading your own receipt stays a plain warning.
                 if (result.code === 'ALREADY_CLAIMED') {
                     openErrorModal('Already Claimed', result.error, '🧾');
+                } else if (result.code === 'DUPLICATE_IMAGE') {
+                    // The perceptual-hash match: the same bill photographed a
+                    // second time. Different bytes, so the fingerprint check
+                    // above let it through. Same picture, so no second reward.
+                    // Kept as calm as ALREADY_CLAIMED — it is usually the same
+                    // person re-uploading, not an attempt to cheat.
+                    openErrorModal('Receipt Already Submitted', result.error, '🧾');
                 } else {
                     openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
                 }
@@ -2026,6 +2033,35 @@ function processReceiptData(receiptData) {
 
     // Verification verdict from the fraud and anomaly models
     renderVerification(receiptData);
+
+    // Tampering gets a popup, but NOT a rejection.
+    //
+    // The verdict panel already lists "the image shows signs of editing", and
+    // that was easy to miss on a page the user is scrolling past. A modal makes
+    // it unmissable.
+    //
+    // It deliberately does not block the receipt. The CNN scores AUC 0.805, so
+    // it produces false positives on genuine bills — photographed at an angle,
+    // under bad light, or re-compressed by a phone. fraud_cnn.md states it is
+    // not an automatic rejection gate; auto-refusing on it would turn every one
+    // of those into a rejected honest user. It is a review signal, and this
+    // tells the user it fired. Only the duplicate check rejects, because a
+    // hash match is a fact about the image rather than a prediction about it.
+    if ((receiptData.fraudSignals || {}).tamper) {
+        const pct = Number(receiptData.tamperProbability);
+        const confidence = Number.isFinite(pct)
+            ? ` Our image check rates it ${Math.round(pct * 100)}% likely to have been edited.`
+            : '';
+        setTimeout(() => {
+            openErrorModal(
+                'Possible Image Tampering',
+                `This image shows signs of editing.${confidence} Your receipt has still been `
+                + `processed and your points awarded, but it has been flagged for review. `
+                + `If this is an unedited photo of a real receipt, no action is needed.`,
+                '🔍'
+            );
+        }, 900);
+    }
     latestProcessedBillData = {
         merchant: receiptData.rawMerchant || 'Unknown Merchant',
         date: receiptData.date || '-',
