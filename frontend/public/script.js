@@ -2048,34 +2048,23 @@ function processReceiptData(receiptData) {
     // Verification verdict from the fraud and anomaly models
     renderVerification(receiptData);
 
-    // Tampering gets a popup, but NOT a rejection.
+    // No tamper popup here, deliberately.
     //
-    // The verdict panel already lists "the image shows signs of editing", and
-    // that was easy to miss on a page the user is scrolling past. A modal makes
-    // it unmissable.
+    // There was one, and it fired on ordinary receipts. The signal behind it is
+    // the CNN clearing 0.50, and at that threshold fraud_cnn.md measures 27.7%
+    // false positives on genuine bills out-of-fold — nearer 48% lower down the
+    // curve. A modal interrupting one honest user in three to say their photo
+    // looks edited is not a fraud control, it is noise, and it trains people to
+    // dismiss the warning that matters.
     //
-    // It deliberately does not block the receipt. The CNN scores AUC 0.805, so
-    // it produces false positives on genuine bills — photographed at an angle,
-    // under bad light, or re-compressed by a phone. fraud_cnn.md states it is
-    // not an automatic rejection gate; auto-refusing on it would turn every one
-    // of those into a rejected honest user. It is a review signal, and this
-    // tells the user it fired. Only the duplicate check rejects, because a
-    // hash match is a fact about the image rather than a prediction about it.
-    if ((receiptData.fraudSignals || {}).tamper) {
-        const pct = Number(receiptData.tamperProbability);
-        const confidence = Number.isFinite(pct)
-            ? ` Our image check rates it ${Math.round(pct * 100)}% likely to have been edited.`
-            : '';
-        setTimeout(() => {
-            openErrorModal(
-                'Possible Image Tampering',
-                `This image shows signs of editing.${confidence} Your receipt has still been `
-                + `processed and your points awarded, but it has been flagged for review. `
-                + `If this is an unedited photo of a real receipt, no action is needed.`,
-                '🔍'
-            );
-        }, 900);
-    }
+    // The signal is not lost: renderVerification() already lists "the image
+    // shows signs of editing" among the reasons, next to the score that earned
+    // it. That is the right register for a review signal the model card
+    // explicitly says is not a verdict — visible to anyone reading the result,
+    // without accusing them mid-flow.
+    //
+    // If this comes back, it needs a much higher bar than the scoring threshold
+    // (0.82 buys 9.2% false positives for 50% recall) — not the same 0.50.
     latestProcessedBillData = {
         merchant: receiptData.rawMerchant || 'Unknown Merchant',
         date: receiptData.date || '-',
