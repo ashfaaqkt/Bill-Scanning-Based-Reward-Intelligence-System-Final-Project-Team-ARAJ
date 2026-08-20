@@ -724,14 +724,67 @@ function generateReceiptFingerprint(merchant, date, total) {
     return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+// Turns an OCR rejection into something the user can act on.
+//
+// All of these used to come back as "Scan Failed: Please ensure the receipt is
+// clear." — shown inside a modal already titled "Scan Failed", so the phrase
+// appeared twice and told the user nothing either time. The causes are not the
+// same and do not have the same remedy: a blurred photo needs a steadier
+// retake, whereas an image the model could not parse is usually cropped, in
+// shadow, or not a receipt at all. Retaking the same shot fixes the first and
+// wastes the user's time on the second.
+//
+// Returns a code as well, so the client can title the dialog properly instead
+// of labelling every failure "Scan Failed".
+function describeOcrFailure(payload) {
+    const body = payload || {};
+
+    if (body.error === 'multi_bill_detected') {
+        return {
+            code: 'MULTI_BILL',
+            error: 'There is more than one receipt in this photo. Please scan them one at a time.'
+        };
+    }
+
+    // Set by the blur gate in ocr.py, which rejects before spending an API call.
+    if (body.reason === 'image_too_blurry') {
+        return {
+            code: 'IMAGE_TOO_BLURRY',
+            error: 'This photo is too blurry to read. Hold the camera steady, make sure the bill '
+                 + 'is well lit and fills most of the frame, then take another picture.'
+        };
+    }
+
+    // Gemini looked at it and could not find a receipt. Different advice: the
+    // usual causes are a cropped bill, glare or shadow, or a photo of something
+    // that is not a receipt — none of which a steadier hand fixes.
+    return {
+        code: 'UNREADABLE',
+        error: "We couldn't read the details from this image. Check that the whole bill is in "
+             + 'frame, in focus and free of glare or shadow — and that the photo is of a receipt.'
+    };
+}
+
 // POST /api/upload — the core receipt pipeline:
 //  1. Validate base64 image + MIME type
 //  2. Forward image to ML service /ml/ocr (ocr.py) → rate-limit gate + Gemini extraction
 //  3. Sanitise currency + validate required fields
 //  4. Per-user and cross-user duplicate fingerprint check
 //  5. Calculate reward points (category × tier × streak multipliers)
-//  6. Write to Firestore: Receipts, Receipt_Items, Merchants, Consent_Logs, Fraud_Scores
-//  7. Call ML microservice for fraud scoring (async fallback if unreachable)
+//  6. Fraud + anomaly scoring via the ML microservice (defaults if unreachable)
+//  7. Write to Firestore: Receipts, Receipt_Items, Merchants, Consent_Logs, Fraud_Scores
+//
+// 6 runs BEFORE 7 deliberately. Two checks can refuse an upload — the content
+// fingerprint at step 4, and the perceptual-hash match inside step 6 — and a
+// refusal must leave nothing behind. Fraud scoring used to sit after the writes,
+// which was safe only while its verdict was advisory.
+//
+// Latency note: every Firestore call from outside its region costs ~1s, so this
+// endpoint is dominated by round trips rather than by work. The four reads at
+// step 4 go out together, the two model calls at step 6 go out together, and
+// every write at step 7 lands in a single batch — three waits instead of about
+// eleven. Anything added here should join one of those groups, not become a
+// fourth. ml-service is fast enough that it is not the thing to optimise.
 app.post('/api/upload', authenticateToken, async (req, res) => {
     try {
         if (!req.body || !req.body.receipt) {
@@ -770,10 +823,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             const status = ocrErr.response && ocrErr.response.status;
             const body = (ocrErr.response && ocrErr.response.data) || {};
             if (status === 422) {
-                const reason = body.error === 'multi_bill_detected'
-                    ? 'Multiple receipts detected. Please scan one receipt at a time.'
-                    : 'Scan Failed: Please ensure the receipt is clear.';
-                return res.status(422).json({ error: reason });
+                if (body.reason === 'image_too_blurry') {
+                    console.log(`[INFO] Upload refused pre-OCR: blur score ${body.blur_score}`);
+                }
+                return res.status(422).json(describeOcrFailure(body));
             }
             // The ML service returns 429 when every API key has hit its
             // per-minute quota. That is a wait-and-retry condition, not a fault
@@ -795,11 +848,8 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         // Surface OCR-level error payloads (returned with HTTP 200 by the ML service)
         if (receiptData.error) {
-            if (receiptData.error === 'unreadable') {
-                return res.status(422).json({ error: 'Scan Failed: Please ensure the receipt is clear.' });
-            }
-            if (receiptData.error === 'multi_bill_detected') {
-                return res.status(422).json({ error: 'Multiple receipts detected. Please scan one receipt at a time.' });
+            if (receiptData.error === 'unreadable' || receiptData.error === 'multi_bill_detected') {
+                return res.status(422).json(describeOcrFailure(receiptData));
             }
             if (receiptData.error === 'GEMINI_API_KEY_MISSING') {
                 return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the ML service.' });
@@ -875,24 +925,50 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             }
         }
 
-        // Per-user exact duplicate check via SHA-256 fingerprint (merchant|date|total)
-        const userDuplicateCheck = await db.collection('Receipts')
-            .where('user_id', '==', req.userId)
-            .where('receipt_fingerprint', '==', receiptFingerprint)
-            .limit(1)
-            .get();
+        // ── The four reads this upload needs, issued together ──────────────
+        //
+        // Each Firestore round trip costs roughly a second from here, and these
+        // four ran one after another — about 5s of the ~13s an upload took, all
+        // of it spent waiting rather than computing. None of them depends on
+        // another's result, so they go out together and cost one round trip.
+        //
+        // The checks below still apply IN THE SAME ORDER, so which error a bad
+        // upload gets back is unchanged. The only difference is that all four
+        // queries always run, where before a per-user duplicate would have
+        // short-circuited the rest — that costs nothing extra, because they
+        // are already in flight by the time the first result is examined.
+        const [userDuplicateCheck, fuzzyCandidates, crossUserDuplicateCheck, recentHashDocs] =
+            await Promise.all([
+                db.collection('Receipts')
+                    .where('user_id', '==', req.userId)
+                    .where('receipt_fingerprint', '==', receiptFingerprint)
+                    .limit(1).get(),
+                db.collection('Receipts')
+                    .where('user_id', '==', req.userId)
+                    .where('date', '==', receiptDate)
+                    .limit(80).get(),
+                db.collection('Receipts')
+                    .where('receipt_fingerprint', '==', receiptFingerprint)
+                    .limit(1).get(),
+                // Perceptual hashes for the near-duplicate check further down.
+                // Resolved to null rather than thrown: comparing against nothing
+                // is the old behaviour, not a reason to fail the upload — and in
+                // a Promise.all one rejection would take the other three with it.
+                db.collection('Receipts')
+                    .orderBy('created_at', 'desc')
+                    .limit(PHASH_LOOKBACK).get()
+                    .catch(hashErr => {
+                        console.warn("Could not load recent perceptual hashes:", hashErr.message);
+                        return null;
+                    })
+            ]);
 
+        // Per-user exact duplicate check via SHA-256 fingerprint (merchant|date|total)
         if (!userDuplicateCheck.empty) {
             return res.status(409).json({ error: "Duplicate receipt detected. This receipt has already been processed." });
         }
 
         // Fuzzy duplicate check: catches merchant name typos and ±₹2 total variance on same date
-        const fuzzyCandidates = await db.collection('Receipts')
-            .where('user_id', '==', req.userId)
-            .where('date', '==', receiptDate)
-            .limit(80)
-            .get();
-
         const fuzzyDuplicate = fuzzyCandidates.docs.find(doc => {
             const data = doc.data() || {};
             if (Math.abs((parseFloat(data.total) || 0) - total) > 2.0) return false;
@@ -904,11 +980,6 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         }
 
         // Cross-user duplicate check: same physical receipt submitted by a different account
-        const crossUserDuplicateCheck = await db.collection('Receipts')
-            .where('receipt_fingerprint', '==', receiptFingerprint)
-            .limit(1)
-            .get();
-
         const crossUserDuplicate = !crossUserDuplicateCheck.empty;
 
         // One physical receipt earns a reward once. A fingerprint match across
@@ -967,66 +1038,37 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         // ---- Phase 2 Schema Database Synchronization ----
 
-        let merchantId = receiptData.rawMerchant.replace(/[^a-zA-Z0-9]/g, '_');
-        if (!merchantId) merchantId = "Unknown";
-
-        // 1. Merchants Upsert
-        const merchantRef = db.collection('Merchants').doc(merchantId);
-        await merchantRef.set({
-            name: receiptData.rawMerchant,
-            normalized_category: receiptData.category,
-            last_seen: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        // 2. Receipts
-        const newReceiptRef = db.collection('Receipts').doc();
-        await newReceiptRef.set({
-            user_id: req.userId,
-            merchant: rawMerchant,
-            merchant_normalized: normalizedMerchant,
-            merchant_id: merchantRef.id,
-            date: receiptDate,
-            total: total,
-            category: receiptData.category,
-            points_earned: rewardResult.points,
-            receipt_fingerprint: receiptFingerprint,
-            created_at: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        // 3. Receipt Items Batching
-        if (receiptData.items.length > 0) {
-            const batch = db.batch();
-            receiptData.items.forEach(item => {
-                const itemRef = db.collection('Receipt_Items').doc();
-                batch.set(itemRef, {
-                    receipt_id: newReceiptRef.id,
-                    name: item.name,
-                    price: item.price
-                });
-            });
-            await batch.commit();
+        // Merchant document id.
+        //
+        // Stripping everything outside [a-zA-Z0-9] assumes a Latin-script name.
+        // A Hindi bill ("श्रीराम वस्त्रालय") sanitises to "_________________",
+        // which is non-empty — so the old `if (!merchantId)` guard passed it
+        // through — and Firestore reserves every id matching __.*__, so the
+        // whole upload died with a 500 at the Merchants write. The same is true
+        // of Tamil, Arabic, Chinese, or any shop whose name is punctuation.
+        //
+        // Fall back to a hash of the normalised name: valid in any script, and
+        // stable, so one shop keeps one merchant record across uploads. Latin
+        // names keep their existing readable ids, so nothing already stored
+        // needs migrating.
+        let merchantId = receiptData.rawMerchant.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 100);
+        if (!/[a-zA-Z0-9]/.test(merchantId) || /^__.*__$/.test(merchantId)) {
+            const basis = normalizedMerchant || rawMerchant || 'unknown';
+            merchantId = 'm_' + crypto.createHash('sha256').update(basis).digest('hex').slice(0, 16);
         }
 
-        // 4. Update overall point sum safely
-        await userRef.update({
-            total_points: admin.firestore.FieldValue.increment(rewardResult.points)
-        });
-
-        // 5. Consent Logs (Section 5.4 Privacy Rules)
-        const consentRef = db.collection('Consent_Logs').doc();
-        await consentRef.set({
-            user_id: req.userId,
-            action: "receipt_scan",
-            status: "granted",
-            data_points: ["merchant", "total", "category"],
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        // 6. Fraud System - Call ML Microservice
+        // ── Fraud + anomaly scoring, BEFORE anything is written ────────────
+        //
+        // This used to run at step 6, after the receipt, its line items, the
+        // points and the consent log had all been committed. That was fine
+        // while the score was advisory, but a perceptual-hash match now
+        // REJECTS the upload, and rejecting after five writes would mean
+        // unpicking them. Nothing here needs the receipt to exist first.
         let fraudScore = 0.05;
         let riskLevel = "Low";
         let fraudSignals = {};
         let tamperProbability = null;
+        let imagePhash = null;
         // Perceptual hashes of recent receipts. fraud.py can only compare against
         // hashes it is handed, and nothing here ever stored or sent one — so the
         // duplicate signal was implemented, documented as live, and returned false
@@ -1036,32 +1078,56 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         // the SHA-256 fingerprint above: that catches an identical resubmission,
         // but the same bill photographed twice yields different bytes, different
         // OCR text and a different fingerprint, while still hashing close here.
-        let knownHashes = [];
-        try {
-            const recentHashDocs = await db.collection('Receipts')
-                .orderBy('created_at', 'desc')
-                .limit(PHASH_LOOKBACK)
-                .get();
-            knownHashes = recentHashDocs.docs
-                .map(doc => (doc.data() || {}).image_phash)
-                .filter(Boolean);
-        } catch (hashErr) {
-            // Comparing against nothing is the old behaviour, not a new failure.
-            console.warn("Could not load recent perceptual hashes:", hashErr.message);
-        }
+        //
+        // Fetched with the duplicate queries above, not here — it is a read like
+        // the others and there is no reason to pay a second round trip for it.
+        const knownHashes = recentHashDocs
+            ? recentHashDocs.docs.map(doc => (doc.data() || {}).image_phash).filter(Boolean)
+            : [];
 
-        try {
+        // Spending anomaly (Isolation Forest) — flags an amount that is unusual
+        // for this user and category.
+        let anomalyScore = 0.05;
+        let anomalyFlag = false;
+
+        // Both models are asked at once. They share no inputs and neither reads
+        // the other's answer, so running them back to back only added their
+        // latencies together. Each call keeps its own catch, so an unreachable
+        // ML service still degrades to the documented defaults rather than
+        // failing the upload — and one model being down cannot take the other
+        // with it.
+        const [fraudRes, anomalyRes] = await Promise.all([
             // The image goes with it. Without it the ML service can only apply
             // the OCR rule signals — the perceptual-hash duplicate check and the
             // 448px tamper CNN both need the pixels, and silently score nothing
             // when they are absent.
-            const fraudRes = await axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
+            axios.post(`${ML_SERVICE_URL}/ml/fraud-score`, {
                 ocr_result: receiptData,
                 image: receiptPayload,
                 mimeType,
                 known_hashes: knownHashes
-            });
-            if (fraudRes.data && fraudRes.data.fraud_score !== undefined) {
+            }).catch(() => {
+                console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
+                return null;
+            }),
+            axios.post(`${ML_SERVICE_URL}/ml/anomaly`, {
+                user_id: req.userId,
+                amount: total,
+                category: receiptData.category,
+                date: receiptData.date
+            }).catch(() => {
+                console.warn("ML Service (Anomaly) unreachable, using simulation defaults.");
+                return null;
+            })
+        ]);
+
+        if (anomalyRes && anomalyRes.data && anomalyRes.data.anomaly_score !== undefined) {
+            anomalyScore = anomalyRes.data.anomaly_score;
+            anomalyFlag = anomalyRes.data.is_anomaly === true;
+        }
+
+        {
+            if (fraudRes && fraudRes.data && fraudRes.data.fraud_score !== undefined) {
                 fraudScore = fraudRes.data.fraud_score;
                 // Which signals actually fired. fraud.py already computes this;
                 // without forwarding it the client can only guess why a score is
@@ -1070,15 +1136,12 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 tamperProbability = fraudRes.data.tamper_probability ?? null;
                 riskLevel = fraudScore > 0.7 ? "High" : (fraudScore > 0.3 ? "Medium" : "Low");
 
-                // Persist this receipt's hash so the NEXT upload has something to
-                // compare against. Written separately because the receipt document
-                // is created before the score exists.
-                if (fraudRes.data.image_phash) {
-                    await newReceiptRef.update({ image_phash: fraudRes.data.image_phash });
-                }
+                // Carried into the receipt's initial write below, so the NEXT
+                // upload has something to compare against. This used to be a
+                // second update() after the receipt existed; now the receipt is
+                // written after scoring, so one write does it.
+                imagePhash = fraudRes.data.image_phash || null;
             }
-        } catch (mlError) {
-            console.warn("ML Service (Fraud) unreachable, using simulation defaults.");
         }
 
         // No cross-user branch here any more: that case now returns 409
@@ -1091,30 +1154,99 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             if (riskLevel === "Low") riskLevel = "Medium";
         }
 
-        // 6b. Spending Anomaly - Call ML Microservice (Isolation Forest)
-        //     Flags a transaction amount that is statistically unusual for this user/category.
-        let anomalyScore = 0.05;
-        let anomalyFlag = false;
-        try {
-            const anomalyRes = await axios.post(`${ML_SERVICE_URL}/ml/anomaly`, {
-                user_id: req.userId,
-                amount: total,
-                category: receiptData.category,
-                date: receiptData.date
-            });
-            if (anomalyRes.data && anomalyRes.data.anomaly_score !== undefined) {
-                anomalyScore = anomalyRes.data.anomaly_score;
-                anomalyFlag = anomalyRes.data.is_anomaly === true;
+
+        // A near-duplicate image is refused outright.
+        //
+        // The SHA-256 fingerprint above catches a byte-identical resubmission.
+        // This catches the same bill photographed a second time, cropped or
+        // re-compressed — different bytes, often different OCR text, but the
+        // same picture. One physical receipt earns a reward once.
+        //
+        // Deliberately NOT applied to the tamper CNN. At AUC 0.805 it is a
+        // review signal, not a verdict, and auto-rejecting on it would refuse
+        // genuine receipts. The model card says it is not a rejection gate; this
+        // keeps that true.
+        if (fraudSignals.duplicate) {
+            console.warn(`[FRAUD] Near-duplicate image blocked (phash ${imagePhash}) for user ${req.userId}`);
+            try {
+                await db.collection('Fraud_Scores').doc().set({
+                    receipt_id: null,
+                    user_id: req.userId,
+                    score: fraudScore,
+                    risk_level: riskLevel,
+                    blocked: true,
+                    blocked_reason: 'perceptual_duplicate',
+                    image_phash: imagePhash,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (auditErr) {
+                console.error('[FRAUD] Could not log blocked near-duplicate:', auditErr.message);
             }
-        } catch (mlError) {
-            console.warn("ML Service (Anomaly) unreachable, using simulation defaults.");
+            return res.status(409).json({
+                code: 'DUPLICATE_IMAGE',
+                error: "This photo matches a receipt already in the system. Each receipt can be rewarded only once — if you believe this is a mistake, please contact support."
+            });
         }
+
 
         // An anomalous spend is a fraud-adjacent signal → nudge risk to at least Medium.
         if (anomalyFlag && riskLevel === "Low") riskLevel = "Medium";
 
-        const fraudRef = db.collection('Fraud_Scores').doc();
-        await fraudRef.set({
+        // ── Every write this upload makes, committed once ──────────────────
+        //
+        // These were six separate awaits — merchant, receipt, items, points,
+        // consent log, fraud score — and each one paid a full round trip, about
+        // 6s of the ~13s an upload took. A Firestore batch of five writes costs
+        // roughly what a single write costs, so they now go together.
+        //
+        // The batch is also atomic, which the sequence was not. That matters
+        // here: a failure halfway through used to leave a receipt with no points
+        // or points with no fraud record, and this endpoint already refuses
+        // uploads part-way (duplicate, near-duplicate) on the promise that a
+        // refusal writes nothing.
+        const merchantRef = db.collection('Merchants').doc(merchantId);
+        const newReceiptRef = db.collection('Receipts').doc();
+        const writes = db.batch();
+
+        // Merchants upsert
+        writes.set(merchantRef, {
+            name: receiptData.rawMerchant,
+            normalized_category: receiptData.category,
+            last_seen: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Receipt
+        writes.set(newReceiptRef, {
+            user_id: req.userId,
+            merchant: rawMerchant,
+            merchant_normalized: normalizedMerchant,
+            merchant_id: merchantRef.id,
+            date: receiptDate,
+            total: total,
+            category: receiptData.category,
+            points_earned: rewardResult.points,
+            receipt_fingerprint: receiptFingerprint,
+            image_phash: imagePhash,
+            created_at: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Running point total. increment() is atomic server-side, so batching it
+        // is as safe as the standalone update it replaces.
+        writes.update(userRef, {
+            total_points: admin.firestore.FieldValue.increment(rewardResult.points)
+        });
+
+        // Consent log (Section 5.4 Privacy Rules)
+        writes.set(db.collection('Consent_Logs').doc(), {
+            user_id: req.userId,
+            action: "receipt_scan",
+            status: "granted",
+            data_points: ["merchant", "total", "category"],
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Fraud + anomaly verdict
+        writes.set(db.collection('Fraud_Scores').doc(), {
             receipt_id: newReceiptRef.id,
             user_id: req.userId,
             score: fraudScore,
@@ -1126,7 +1258,36 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 7. Update the user's spend-interest vector in the ML service.
+        // Line items. A batch caps at 500 operations and five are already used,
+        // so a freak receipt with hundreds of lines spills into follow-up
+        // batches rather than throwing.
+        const items = Array.isArray(receiptData.items) ? receiptData.items : [];
+        const INLINE_ITEM_LIMIT = 450;
+        items.slice(0, INLINE_ITEM_LIMIT).forEach(item => {
+            writes.set(db.collection('Receipt_Items').doc(), {
+                receipt_id: newReceiptRef.id,
+                name: item.name,
+                price: item.price
+            });
+        });
+
+        const overflow = [];
+        for (let i = INLINE_ITEM_LIMIT; i < items.length; i += INLINE_ITEM_LIMIT) {
+            const extra = db.batch();
+            items.slice(i, i + INLINE_ITEM_LIMIT).forEach(item => {
+                extra.set(db.collection('Receipt_Items').doc(), {
+                    receipt_id: newReceiptRef.id,
+                    name: item.name,
+                    price: item.price
+                });
+            });
+            overflow.push(extra.commit());
+        }
+
+        await Promise.all([writes.commit(), ...overflow]);
+
+        // ── Interest vector, then the offers ranked against it ─────────────
+        // Update the user's spend-interest vector in the ML service.
         //    Awaited (not fire-and-forget) so the recommendations below reflect the
         //    receipt that was just scanned. It is a local JSON write, so the added
         //    latency is small, and a failure must never fail the upload.
@@ -1141,7 +1302,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             console.warn("ML Service (Profile) update failed.");
         }
 
-        // 8. Personalised reward offers, ranked against that interest vector.
+        // Personalised reward offers, ranked against that interest vector.
         let recommendedRewards = [];
         try {
             const recRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {

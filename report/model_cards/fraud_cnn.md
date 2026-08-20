@@ -17,12 +17,32 @@
 
 Predicts the probability that a receipt image has been digitally altered. It is
 **one signal among several** in `fraud.py`, contributing +0.40 to the fraud score
-above a 0.50 threshold, alongside perceptual-hash duplicate detection and
+above a **0.82** threshold, alongside perceptual-hash duplicate detection and
 OCR-derived flags (blur, multi-bill, handwriting).
 
 It is **not** an automatic rejection gate, and the system does not use it as one.
-The only hard block in the pipeline is the cross-user fingerprint check, which
-rejects a receipt already claimed on another account before any model runs.
+The only hard blocks in the pipeline are the cross-user fingerprint check and the
+perceptual-hash near-duplicate check, both of which refuse a receipt already
+claimed before any model verdict is applied.
+
+> **Operating point moved 0.50 → 0.82 (20 Aug 2026).** 0.50 was the obvious
+> midpoint, not a measured choice, and at AUC 0.805 it cost about 28% false
+> positives on genuine receipts — roughly one honest bill in three carrying a
+> tamper signal, which is frequent enough that the signal stops meaning
+> anything. 0.82 is taken from the operating-point table below: 50.4% recall for
+> 9.2% false positives. **Recall is halved, deliberately.** A signal nobody can
+> act on is worth less than a narrower one that is usually right. Re-running the
+> shipped model over the labelled corpus shows the same direction (29% → 3%
+> false positives, 81% → 51% recall), though those images are its own training
+> data and the out-of-fold figures above are the honest ones.
+
+> **`handwritten_flag` no longer sets the tamper signal (20 Aug 2026).** It did,
+> which conflated two independent findings: any handwritten receipt — the norm
+> on small Indian bills — reported as though the CNN had fired, and the client
+> printed the one finding twice, as "shows signs of editing" and as "handwriting
+> detected". Handwriting keeps its own signal and its own +0.30. `tamper` now
+> means only that the CNN cleared its threshold. Any measurement of tamper-signal
+> frequency taken before this date is inflated by the handwriting cases.
 
 > **Wiring note (19 Aug 2026).** This signal did not reach production until that
 > date: the upload path called `/ml/fraud-score` without the image, and `torch`
@@ -63,10 +83,15 @@ low-noise, which is the practical meaning of AUC 0.805:
 
 | Threshold | Recall on tampered | False positives on genuine |
 |---:|---:|---:|
-| 0.82 | 50.4% | 9.2% |
+| **0.82 — in use** | **50.4%** | **9.2%** |
 | 0.74 | 57.4% | 20.0% |
 | 0.60 | 65.1% | 27.7% |
 | 0.20 | 89.9% | 47.7% |
+
+Read down the right-hand column before quoting the left. There is no row here
+that is both useful and quiet, and that — not the headline AUC — is the practical
+limitation of this model. 0.82 was chosen because a signal that fires on a third
+of honest receipts cannot be acted on, so its extra recall is not real recall.
 
 ## Comparison
 

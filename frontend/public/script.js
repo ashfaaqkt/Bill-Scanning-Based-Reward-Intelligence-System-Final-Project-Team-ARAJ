@@ -1823,13 +1823,34 @@ async function handleUpload() {
                 // about. Re-uploading your own receipt stays a plain warning.
                 if (result.code === 'ALREADY_CLAIMED') {
                     openErrorModal('Already Claimed', result.error, '🧾');
+                } else if (result.code === 'DUPLICATE_IMAGE') {
+                    // The perceptual-hash match: the same bill photographed a
+                    // second time. Different bytes, so the fingerprint check
+                    // above let it through. Same picture, so no second reward.
+                    // Kept as calm as ALREADY_CLAIMED — it is usually the same
+                    // person re-uploading, not an attempt to cheat.
+                    openErrorModal('Receipt Already Submitted', result.error, '🧾');
                 } else {
                     openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
                 }
                 resetUI();
             } else if (status === 422) {
                 stopOcrProgress();
-                openErrorModal('Scan Failed', result.error || 'The receipt image is blurry or unreadable. Please try again with a clearer photo.', '📷');
+                // Title the dialog after the actual problem. Every rejection used
+                // to open as "Scan Failed" above the words "Scan Failed: Please
+                // ensure the receipt is clear." — the phrase twice, and no idea
+                // what to do differently. The backend now says which case it is.
+                const OCR_FAILURES = {
+                    IMAGE_TOO_BLURRY: { title: 'Photo Too Blurry', icon: '📷' },
+                    MULTI_BILL:       { title: 'More Than One Receipt', icon: '🧾' },
+                    UNREADABLE:       { title: "Couldn't Read This Receipt", icon: '🔍' }
+                };
+                const failure = OCR_FAILURES[result.code] || OCR_FAILURES.UNREADABLE;
+                openErrorModal(
+                    failure.title,
+                    result.error || 'We could not read this image. Please try another photo of the bill.',
+                    failure.icon
+                );
                 resetUI();
             } else if (status === 429) {
                 stopOcrProgress();
@@ -2026,6 +2047,24 @@ function processReceiptData(receiptData) {
 
     // Verification verdict from the fraud and anomaly models
     renderVerification(receiptData);
+
+    // No tamper popup here, deliberately.
+    //
+    // There was one, and it fired on ordinary receipts. The signal behind it is
+    // the CNN clearing 0.50, and at that threshold fraud_cnn.md measures 27.7%
+    // false positives on genuine bills out-of-fold — nearer 48% lower down the
+    // curve. A modal interrupting one honest user in three to say their photo
+    // looks edited is not a fraud control, it is noise, and it trains people to
+    // dismiss the warning that matters.
+    //
+    // The signal is not lost: renderVerification() already lists "the image
+    // shows signs of editing" among the reasons, next to the score that earned
+    // it. That is the right register for a review signal the model card
+    // explicitly says is not a verdict — visible to anyone reading the result,
+    // without accusing them mid-flow.
+    //
+    // If this comes back, it needs a much higher bar than the scoring threshold
+    // (0.82 buys 9.2% false positives for 50% recall) — not the same 0.50.
     latestProcessedBillData = {
         merchant: receiptData.rawMerchant || 'Unknown Merchant',
         date: receiptData.date || '-',
