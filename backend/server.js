@@ -724,6 +724,47 @@ function generateReceiptFingerprint(merchant, date, total) {
     return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+// Turns an OCR rejection into something the user can act on.
+//
+// All of these used to come back as "Scan Failed: Please ensure the receipt is
+// clear." — shown inside a modal already titled "Scan Failed", so the phrase
+// appeared twice and told the user nothing either time. The causes are not the
+// same and do not have the same remedy: a blurred photo needs a steadier
+// retake, whereas an image the model could not parse is usually cropped, in
+// shadow, or not a receipt at all. Retaking the same shot fixes the first and
+// wastes the user's time on the second.
+//
+// Returns a code as well, so the client can title the dialog properly instead
+// of labelling every failure "Scan Failed".
+function describeOcrFailure(payload) {
+    const body = payload || {};
+
+    if (body.error === 'multi_bill_detected') {
+        return {
+            code: 'MULTI_BILL',
+            error: 'There is more than one receipt in this photo. Please scan them one at a time.'
+        };
+    }
+
+    // Set by the blur gate in ocr.py, which rejects before spending an API call.
+    if (body.reason === 'image_too_blurry') {
+        return {
+            code: 'IMAGE_TOO_BLURRY',
+            error: 'This photo is too blurry to read. Hold the camera steady, make sure the bill '
+                 + 'is well lit and fills most of the frame, then take another picture.'
+        };
+    }
+
+    // Gemini looked at it and could not find a receipt. Different advice: the
+    // usual causes are a cropped bill, glare or shadow, or a photo of something
+    // that is not a receipt — none of which a steadier hand fixes.
+    return {
+        code: 'UNREADABLE',
+        error: "We couldn't read the details from this image. Check that the whole bill is in "
+             + 'frame, in focus and free of glare or shadow — and that the photo is of a receipt.'
+    };
+}
+
 // POST /api/upload — the core receipt pipeline:
 //  1. Validate base64 image + MIME type
 //  2. Forward image to ML service /ml/ocr (ocr.py) → rate-limit gate + Gemini extraction
@@ -782,10 +823,10 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             const status = ocrErr.response && ocrErr.response.status;
             const body = (ocrErr.response && ocrErr.response.data) || {};
             if (status === 422) {
-                const reason = body.error === 'multi_bill_detected'
-                    ? 'Multiple receipts detected. Please scan one receipt at a time.'
-                    : 'Scan Failed: Please ensure the receipt is clear.';
-                return res.status(422).json({ error: reason });
+                if (body.reason === 'image_too_blurry') {
+                    console.log(`[INFO] Upload refused pre-OCR: blur score ${body.blur_score}`);
+                }
+                return res.status(422).json(describeOcrFailure(body));
             }
             // The ML service returns 429 when every API key has hit its
             // per-minute quota. That is a wait-and-retry condition, not a fault
@@ -807,11 +848,8 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         // Surface OCR-level error payloads (returned with HTTP 200 by the ML service)
         if (receiptData.error) {
-            if (receiptData.error === 'unreadable') {
-                return res.status(422).json({ error: 'Scan Failed: Please ensure the receipt is clear.' });
-            }
-            if (receiptData.error === 'multi_bill_detected') {
-                return res.status(422).json({ error: 'Multiple receipts detected. Please scan one receipt at a time.' });
+            if (receiptData.error === 'unreadable' || receiptData.error === 'multi_bill_detected') {
+                return res.status(422).json(describeOcrFailure(receiptData));
             }
             if (receiptData.error === 'GEMINI_API_KEY_MISSING') {
                 return res.status(503).json({ error: 'GEMINI_API_KEY is not configured on the ML service.' });

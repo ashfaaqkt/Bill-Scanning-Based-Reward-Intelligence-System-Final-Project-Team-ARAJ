@@ -1836,7 +1836,21 @@ async function handleUpload() {
                 resetUI();
             } else if (status === 422) {
                 stopOcrProgress();
-                openErrorModal('Scan Failed', result.error || 'The receipt image is blurry or unreadable. Please try again with a clearer photo.', '📷');
+                // Title the dialog after the actual problem. Every rejection used
+                // to open as "Scan Failed" above the words "Scan Failed: Please
+                // ensure the receipt is clear." — the phrase twice, and no idea
+                // what to do differently. The backend now says which case it is.
+                const OCR_FAILURES = {
+                    IMAGE_TOO_BLURRY: { title: 'Photo Too Blurry', icon: '📷' },
+                    MULTI_BILL:       { title: 'More Than One Receipt', icon: '🧾' },
+                    UNREADABLE:       { title: "Couldn't Read This Receipt", icon: '🔍' }
+                };
+                const failure = OCR_FAILURES[result.code] || OCR_FAILURES.UNREADABLE;
+                openErrorModal(
+                    failure.title,
+                    result.error || 'We could not read this image. Please try another photo of the bill.',
+                    failure.icon
+                );
                 resetUI();
             } else if (status === 429) {
                 stopOcrProgress();
