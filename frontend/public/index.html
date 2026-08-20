@@ -109,7 +109,7 @@
                     <div class="landing-feature">
                         <div class="landing-feature-icon">🛡️</div>
                         <h4 data-i18n="feat2t">Fraud Detection</h4>
-                        <p data-i18n="feat2d">Duplicate scan validation built-in</p>
+                        <p data-i18n="feat2d">Duplicate, tamper and anomaly checks on every scan</p>
                     </div>
                     <div class="landing-feature">
                         <div class="landing-feature-icon">🎯</div>
@@ -174,8 +174,8 @@
                             <strong data-i18n="scopeTitle">Scope &amp; current status:</strong>
                             <ul>
                                 <li data-i18n="scope1">OCR is live (Google Gemini 2.5 Flash).</li>
-                                <li data-i18n="scope2">Category classifier trained &amp; integrated; fraud, anomaly &amp; recommender
-                                    models in progress.</li>
+                                <li data-i18n="scope2">All five ML models trained, integrated and verified end to end &mdash;
+                                    category, fraud, tamper, anomaly and recommender.</li>
                                 <li data-i18n="scope3">Reward, claim &amp; analytics logic functional on a live backend + Firestore.</li>
                                 <li data-i18n="scope4">Built for demonstration and study — not production-hardened.</li>
                             </ul>
@@ -218,9 +218,9 @@
                                 <div class="hiw-stage-body">
                                     <h4 data-i18n="s2t">🔍 Extract — OCR</h4>
                                     <p data-i18n="s2d">The backend forwards the image to the ML microservice, where a 5-layer OCR
-                                        pipeline runs: a blur check (OpenCV Laplacian), a rate-limit gate, Google
-                                        Gemini 2.5 Flash extraction, a model fallback, and a pixel-density scan that
-                                        flags handwritten edits.</p>
+                                        pipeline runs: a sharpness check that refuses unreadable photos before any
+                                        AI spend, a rate-limit gate, Google Gemini 2.5 Flash extraction, a model
+                                        fallback, and a pixel-density scan that flags handwritten edits.</p>
                                     <span class="hiw-tag">ml-service · /ml/ocr · Gemini 2.5 Flash</span>
                                 </div>
                             </li>
@@ -229,8 +229,9 @@
                                 <div class="hiw-stage-body">
                                     <h4 data-i18n="s3t">🧠 Classify &amp; Detect</h4>
                                     <p data-i18n="s3d">The extracted fields flow through the ML models — a TF-IDF + Random Forest
-                                        category classifier, a fraud scorer (OCR signals + duplicate perceptual
-                                        hashing), and an Isolation-Forest spending-anomaly check.</p>
+                                        category classifier, a fraud scorer combining OCR signals, perceptual-hash
+                                        duplicate matching and a MobileNetV2 tamper network, and an
+                                        Isolation-Forest spending-anomaly check.</p>
                                     <span class="hiw-tag">/ml/classify · /ml/fraud-score · /ml/anomaly</span>
                                 </div>
                             </li>
@@ -238,9 +239,10 @@
                                 <span class="hiw-stage-badge">4</span>
                                 <div class="hiw-stage-body">
                                     <h4 data-i18n="s4t">🎁 Reward &amp; Recommend</h4>
-                                    <p data-i18n="s4d">The points engine computes ₹100 = 1 point, scaled by spend category, user tier
-                                        and streak. Points, fraud scores and personalised offers are written to
-                                        Firestore and returned to your screen.</p>
+                                    <p data-i18n="s4d">A receipt already claimed — by you or by anyone else — is refused here and
+                                        earns nothing. Otherwise the points engine computes ₹100 = 1 point, scaled
+                                        by spend category, user tier and streak, and the points, fraud verdict and
+                                        personalised offers are written to Firestore and returned to your screen.</p>
                                     <span class="hiw-tag">Points Engine · /ml/recommend · Firestore</span>
                                 </div>
                             </li>
@@ -271,7 +273,7 @@
                                     <h5 data-i18n="c3t">ML Microservice</h5>
                                     <p data-i18n-html="c3d">Isolated Python service hosting OCR + every ML model behind <code>/ml/*</code>
                                         endpoints.</p>
-                                    <span class="hiw-arch-tech">Python · Flask · scikit-learn</span>
+                                    <span class="hiw-arch-tech">Python · Flask · scikit-learn · PyTorch</span>
                                 </div>
                                 <div class="hiw-arch-card">
                                     <div class="hiw-arch-icon">🗄️</div>
