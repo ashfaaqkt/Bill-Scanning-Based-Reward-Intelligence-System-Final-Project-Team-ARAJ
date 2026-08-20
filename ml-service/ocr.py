@@ -137,15 +137,44 @@ RATE_LIMIT_INTERVAL = 23      # free tier: 22s gap + 1s safety buffer
 PAID_RATE_LIMIT_INTERVAL = 1  # billed tier: high enough limits that spacing is
                               # only a courtesy, not a constraint
 
-# ── BLUR DETECTION THRESHOLD ───────────────────────────────────
-# Laplacian variance below this value → image too blurry to extract reliably
-BLUR_THRESHOLD = 100
+# ── BLUR DETECTION ─────────────────────────────────────────────
+# This gate exists to avoid spending an API call on an image the OCR cannot use.
+# It is a cheap pre-filter, NOT the arbiter of readability — Gemini returns its
+# own {"error": "unreadable"} and is the real judge.
+#
+# It used to be the plain Laplacian variance of the whole frame, thresholded at
+# 100. That is an edge-energy DENSITY, not a focus measure, and it collapses for
+# three reasons that have nothing to do with focus:
+#   * sparse content — half a page of blank paper contributes near-zero values
+#     that swamp the text (a real receipt scored 17.9 whole-frame, 26.3 over its
+#     text band alone)
+#   * low contrast — blue ballpoint on pink paper spans ~66 grey levels where a
+#     printed thermal receipt spans ~174, and variance goes with the square
+#   * handwriting — thin pen strokes carry far less energy than printed glyphs
+# It rejected 12 of Jyoti's 100 real receipts before Gemini ever saw them.
+#
+# The measure below normalises contrast first, then scores only the strongest 5%
+# of edge pixels — where the ink actually is. Blank paper no longer votes.
+BLUR_NORMALIZE_MAX_DIM = 1280   # long edge, so the score is resolution-independent
+BLUR_EDGE_PERCENTILE = 95       # keep the top 5% of edge pixels = the ink
+BLUR_CONTRAST_PCT = (2, 98)     # percentile stretch, robust to specks and glare
 
-# Laplacian variance is not resolution-invariant: a sharp receipt shot at high
-# resolution sits in a large smooth background that dilutes the whole-image
-# variance below the threshold (false "unreadable"). Normalise the long edge to
-# this size before scoring so the threshold means the same thing at any resolution.
-BLUR_NORMALIZE_MAX_DIM = 1280
+# Calibrated against Gemini itself: 100 real receipts plus Gaussian-blurred
+# copies at sigma 1.8-6.0, scored and then actually sent for extraction
+# (ml-service/calibrate_blur_gate.py regenerates every number).
+#
+# The two classes overlap heavily — Receipt 10 at sigma 2.5 (score 80.7) came
+# back unreadable while the BLURRIER sigma 3.0 copy (score 49.5) extracted fine.
+# Gemini's verdict is not deterministic near the boundary, so no threshold can
+# separate readable from unreadable, and any attempt to place one in the overlap
+# band refuses receipts that would have worked.
+#
+# So the threshold sits below the lowest score that ever produced a successful
+# extraction (49.5), catching only the unambiguously hopeless. The asymmetry
+# justifies it: a false reject blocks a user from claiming a valid bill, while a
+# false admit costs one API call and roughly two seconds before Gemini says the
+# same thing. All 100 real receipts now pass.
+BLUR_THRESHOLD = 40
 
 # ── GEMINI EXTRACTION PROMPT ───────────────────────────────────
 # Instructs Gemini to detect multi-bill, blur, handwriting, and extract structured JSON
@@ -165,6 +194,36 @@ RECEIPT_PROMPT = (
     "\"handwritten_details\": \"string or null\""
     "}"
 )
+
+# ── BLUR SCORE ─────────────────────────────────────────────────
+def _blur_score(gray):
+    """How sharp the ink is, independent of how much ink there is.
+
+    Returns mean squared Laplacian over the ink pixels of a contrast-normalised
+    image. Higher is sharper. See the BLUR_* constants for why it is measured
+    this way and how the threshold was calibrated.
+    """
+    h, w = gray.shape
+    longest = max(h, w)
+    if longest > BLUR_NORMALIZE_MAX_DIM:
+        scale = BLUR_NORMALIZE_MAX_DIM / longest
+        gray = cv2.resize(gray, (int(w * scale), int(h * scale)))
+
+    # Stretch contrast so pale ink on tinted paper is judged on sharpness rather
+    # than on how dark it happens to be. Percentiles rather than min/max, so one
+    # glare speck or dust mote cannot set the scale.
+    g = gray.astype(np.float64)
+    lo, hi = np.percentile(g, BLUR_CONTRAST_PCT[0]), np.percentile(g, BLUR_CONTRAST_PCT[1])
+    if hi - lo < 1:
+        return 0.0                      # blank or uniform frame: nothing to read
+    g = np.clip((g - lo) * 255.0 / (hi - lo), 0, 255)
+
+    # Score only where there is ink. Averaging over the whole frame lets blank
+    # paper outvote the text, which is what broke the old measure.
+    lap = np.abs(cv2.Laplacian(g, cv2.CV_64F))
+    ink = lap[lap >= np.percentile(lap, BLUR_EDGE_PERCENTILE)]
+    return float((ink ** 2).mean()) if ink.size else 0.0
+
 
 # ── HANDWRITING DENSITY ANOMALY DETECTOR ──────────────────────
 # Printed receipts have roughly uniform text density across horizontal bands.
@@ -243,14 +302,10 @@ def extract_receipt_data(image_path):
             pass                      # blur gate skipped; Gemini will decide
         else:
             gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-            # Normalise long edge to keep the blur score resolution-independent
-            h, w = gray.shape
-            longest = max(h, w)
-            if longest > BLUR_NORMALIZE_MAX_DIM:
-                scale = BLUR_NORMALIZE_MAX_DIM / longest
-                gray = cv2.resize(gray, (int(w * scale), int(h * scale)))
-            blur_score = cv2.Laplacian(gray, cv2.CV_64F).var()
+            blur_score = _blur_score(gray)
             if blur_score < BLUR_THRESHOLD:
+                print(f"[INFO] Rejected before OCR: blur score {blur_score:.1f} "
+                      f"< {BLUR_THRESHOLD}")
                 return {"error": "unreadable", "reason": "image_too_blurry", "blur_score": round(blur_score, 2)}
     except Exception as e:
         print(f"[WARN] Blur check failed: {e} - proceeding anyway")

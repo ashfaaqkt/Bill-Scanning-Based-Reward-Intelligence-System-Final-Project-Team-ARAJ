@@ -972,8 +972,24 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
 
         // ---- Phase 2 Schema Database Synchronization ----
 
-        let merchantId = receiptData.rawMerchant.replace(/[^a-zA-Z0-9]/g, '_');
-        if (!merchantId) merchantId = "Unknown";
+        // Merchant document id.
+        //
+        // Stripping everything outside [a-zA-Z0-9] assumes a Latin-script name.
+        // A Hindi bill ("श्रीराम वस्त्रालय") sanitises to "_________________",
+        // which is non-empty — so the old `if (!merchantId)` guard passed it
+        // through — and Firestore reserves every id matching __.*__, so the
+        // whole upload died with a 500 at the Merchants write. The same is true
+        // of Tamil, Arabic, Chinese, or any shop whose name is punctuation.
+        //
+        // Fall back to a hash of the normalised name: valid in any script, and
+        // stable, so one shop keeps one merchant record across uploads. Latin
+        // names keep their existing readable ids, so nothing already stored
+        // needs migrating.
+        let merchantId = receiptData.rawMerchant.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 100);
+        if (!/[a-zA-Z0-9]/.test(merchantId) || /^__.*__$/.test(merchantId)) {
+            const basis = normalizedMerchant || rawMerchant || 'unknown';
+            merchantId = 'm_' + crypto.createHash('sha256').update(basis).digest('hex').slice(0, 16);
+        }
 
         // 1. Fraud scoring — BEFORE anything is written.
         //
