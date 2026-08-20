@@ -1228,6 +1228,8 @@ function checkAuth() {
         closeAuthModal();
         claimAvailablePoints.innerText = totalPoints;
         if (token) fetchTotalPoints();
+        // The scanner is now on screen, so the consent gate is due.
+        openConsentGateIfDue();
     } else {
         sectionAuth.classList.remove('hidden');
         appContent.classList.add('hidden');
@@ -1248,10 +1250,12 @@ function checkAuth() {
 // ── INITIALISATION ─────────────────────────────────────────────
 // On page load: check auth state and start hero typing animation
 document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
-    startHeroTyping();
+    // initConsentGate() first: it wires Accept/Decline, and checkAuth() can open
+    // the gate immediately for an already-signed-in user.
     initConsentGate();
     initTermsAgreement();
+    checkAuth();
+    startHeroTyping();
     initCarousels();
 });
 
@@ -1318,6 +1322,24 @@ function hasDataConsent() {
     return localStorage.getItem(CONSENT_KEY) === 'true';
 }
 
+// Opens the first-visit gate, but only once there is a scanner to gate.
+//
+// The modal used to sit inside #app-content, which is hidden until login — so
+// although this ran on DOMContentLoaded, nothing appeared until the user signed
+// in and that wrapper was revealed. Moving the modal to body level (so the
+// sign-up and footer links can reach it) removed that accidental timing, and
+// without this check a logged-out visitor would be met by a consent wall whose
+// only exits are Accept or a scolding. Called again from checkAuth() when the
+// app is revealed, which is when the original behaviour actually kicked in.
+function openConsentGateIfDue() {
+    const modal = document.getElementById('consent-modal');
+    if (!modal || hasDataConsent()) return;
+    if (!appContent || appContent.classList.contains('hidden')) return;
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+}
+
 function initConsentGate() {
     const modal = document.getElementById('consent-modal');
     if (!modal) return;
@@ -1364,7 +1386,7 @@ function initConsentGate() {
         });
     }
 
-    openModal();
+    openConsentGateIfDue();
 }
 
 // Re-open the terms for READING — from the footer link, or the sign-up checkbox.
@@ -1569,6 +1591,9 @@ if (btnGuest) {
         btnTry.classList.add('hidden');
         btnGuest.classList.add('hidden');
         closeAuthModal();
+        // Reveals the scanner without going through checkAuth(), so the gate
+        // has to be prompted here too.
+        openConsentGateIfDue();
 
         // Give guest some points to explore the reward UI
         totalPoints = 500;
