@@ -315,48 +315,6 @@
                 </div>
             </div>
 
-            <!-- Data Consent / Terms & Conditions Modal (shown on first visit) -->
-            <div class="consent-modal hidden" id="consent-modal" aria-hidden="true" role="dialog"
-                aria-labelledby="consent-title">
-                <div class="consent-modal-backdrop"></div>
-                <div class="consent-modal-panel">
-                    <div class="consent-icon">🔒</div>
-                    <h3 id="consent-title">Data Consent &amp; Terms of Use</h3>
-                    <p class="consent-lead">Before you scan any bills, please review how your data is handled.</p>
-                    <div class="consent-terms" id="consent-terms" tabindex="0">
-                        <p><strong>What we collect</strong></p>
-                        <ul>
-                            <li>Receipt images you upload.</li>
-                            <li>Data extracted from them: merchant, date, total, line items and spend category.</li>
-                            <li>Basic account info (email) and your reward-point balance.</li>
-                        </ul>
-                        <p><strong>How we use it</strong></p>
-                        <ul>
-                            <li>Read receipts via OCR to award reward points.</li>
-                            <li>Run fraud / anomaly checks to keep rewards fair.</li>
-                            <li>Analyse spending to personalise reward recommendations.</li>
-                        </ul>
-                        <p><strong>Storage &amp; your rights</strong></p>
-                        <ul>
-                            <li>Data is stored securely and used only inside this application.</li>
-                            <li>It is never sold or shared with third parties.</li>
-                            <li>You may withdraw consent at any time by contacting the team.</li>
-                        </ul>
-                        <p class="consent-note">This is an academic project (BITS Pilani — Team ARAJ) built for
-                            educational purposes. No real payment or personal financial data is processed.</p>
-                    </div>
-                    <label class="consent-check">
-                        <input type="checkbox" id="consent-checkbox">
-                        <span>I have read and agree to the Data Consent &amp; Terms of Use.</span>
-                    </label>
-                    <div class="consent-actions">
-                        <button class="btn btn-secondary" id="consent-decline">Decline</button>
-                        <button class="btn btn-primary" id="consent-accept" disabled>Accept &amp; Continue</button>
-                    </div>
-                    <p class="consent-declined-msg hidden" id="consent-declined-msg">You must accept the terms to use
-                        the receipt scanner.</p>
-                </div>
-            </div>
 
             <!-- Dashboard Section -->
             <section class="dashboard card">
@@ -577,6 +535,52 @@
         <div class="welcome-intro-card">
             <p class="welcome-intro-kicker" id="welcome-intro-kicker">Access Granted</p>
             <h2 id="welcome-intro-text">Welcome User !</h2>
+        </div>
+    </div>
+
+    <!-- Data Consent / Terms & Conditions Modal (shown on first visit) -->
+    <!-- Lives at body level, NOT inside #app-content: that wrapper is hidden until
+         login, so anything nested in it cannot be shown to a logged-out visitor —
+         which is exactly what broke the sign-up and footer links. -->
+    <div class="consent-modal hidden" id="consent-modal" aria-hidden="true" role="dialog"
+        aria-labelledby="consent-title">
+        <div class="consent-modal-backdrop"></div>
+        <div class="consent-modal-panel">
+            <div class="consent-icon">🔒</div>
+            <h3 id="consent-title">Data Consent &amp; Terms of Use</h3>
+            <p class="consent-lead">Before you scan any bills, please review how your data is handled.</p>
+            <div class="consent-terms" id="consent-terms" tabindex="0">
+                <p><strong>What we collect</strong></p>
+                <ul>
+                    <li>Receipt images you upload.</li>
+                    <li>Data extracted from them: merchant, date, total, line items and spend category.</li>
+                    <li>Basic account info (email) and your reward-point balance.</li>
+                </ul>
+                <p><strong>How we use it</strong></p>
+                <ul>
+                    <li>Read receipts via OCR to award reward points.</li>
+                    <li>Run fraud / anomaly checks to keep rewards fair.</li>
+                    <li>Analyse spending to personalise reward recommendations.</li>
+                </ul>
+                <p><strong>Storage &amp; your rights</strong></p>
+                <ul>
+                    <li>Data is stored securely and used only inside this application.</li>
+                    <li>It is never sold or shared with third parties.</li>
+                    <li>You may withdraw consent at any time by contacting the team.</li>
+                </ul>
+                <p class="consent-note">This is an academic project (BITS Pilani — Team ARAJ) built for
+                    educational purposes. No real payment or personal financial data is processed.</p>
+            </div>
+            <label class="consent-check">
+                <input type="checkbox" id="consent-checkbox">
+                <span>I have read and agree to the Data Consent &amp; Terms of Use.</span>
+            </label>
+            <div class="consent-actions">
+                <button class="btn btn-secondary" id="consent-decline">Decline</button>
+                <button class="btn btn-primary" id="consent-accept" disabled>Accept &amp; Continue</button>
+            </div>
+            <p class="consent-declined-msg hidden" id="consent-declined-msg">You must accept the terms to use
+                the receipt scanner.</p>
         </div>
     </div>
 
