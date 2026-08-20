@@ -1251,6 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     startHeroTyping();
     initConsentGate();
+    initTermsAgreement();
     initCarousels();
 });
 
@@ -1366,14 +1367,80 @@ function initConsentGate() {
     openModal();
 }
 
-// Expose a way to re-open the terms later (e.g. from a footer link)
+// Re-open the terms for READING — from the footer link, or the sign-up checkbox.
+//
+// Distinct from the first-visit gate above. That one demands a decision and has no
+// way out but Accept; this is someone who wants to re-read what they agreed to, so
+// it swaps the Accept/Decline pair for a plain Close. Without that swap a visitor
+// who had already consented could open the terms and be trapped — Accept is
+// disabled until the checkbox is ticked, and Decline only scolds them.
 function showConsentTerms() {
     const modal = document.getElementById('consent-modal');
     if (!modal) return;
+
+    const actions = modal.querySelector('.consent-actions');
+    const check = modal.querySelector('.consent-check');
+    const declined = document.getElementById('consent-declined-msg');
+
+    const close = () => {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        if (actions) actions.innerHTML = actionsHtml;
+        if (check) check.classList.remove('hidden');
+        document.removeEventListener('keydown', onKey);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+
+    // Reading mode: the tick-to-accept row is irrelevant, and one button is enough.
+    const actionsHtml = actions ? actions.innerHTML : '';
+    if (check) check.classList.add('hidden');
+    if (declined) declined.classList.add('hidden');
+    if (actions) {
+        actions.innerHTML = '<button class="btn btn-primary" type="button">Close</button>';
+        actions.querySelector('button').addEventListener('click', close);
+    }
+    modal.querySelectorAll('.consent-modal-backdrop').forEach(b => b.addEventListener('click', close));
+    document.addEventListener('keydown', onKey);
+
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    const scroller = document.getElementById('consent-terms');
+    if (scroller) { scroller.scrollTop = 0; scroller.focus(); }
 }
 window.showConsentTerms = showConsentTerms;
+
+// ── SIGN-UP TERMS AGREEMENT ────────────────────────────────────
+// The scanner already gates on consent, but that gate fires on first visit and is
+// tied to the browser, not the account. Agreeing at sign-up records the decision
+// where the account is actually created, which is what the report's privacy
+// section describes. Sign-up only — asking an existing user to re-agree on every
+// login would be noise.
+function initTermsAgreement() {
+    const box = document.getElementById('auth-terms-checkbox');
+    const formLink = document.getElementById('auth-terms-link');
+    const footLink = document.getElementById('footer-terms-link');
+
+    [formLink, footLink].forEach(link => {
+        if (!link) return;
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Don't let a click on the link toggle the checkbox it sits inside.
+            e.stopPropagation();
+            showConsentTerms();
+        });
+    });
+
+    // Ticking it clears any "you must agree" error still on screen.
+    if (box) {
+        box.addEventListener('change', () => {
+            if (box.checked && authError && authError.innerText === TERMS_REQUIRED_MSG) {
+                authError.classList.add('hidden');
+            }
+        });
+    }
+}
 
 function startHeroTyping() {
     if (!heroTypingTitle) return;
@@ -1412,8 +1479,12 @@ function startHeroTyping() {
 // ── AUTH MODAL & FORM ──────────────────────────────────────────
 // Handles login/signup form toggle, form submit, and JWT storage
 
+const TERMS_REQUIRED_MSG = 'Please agree to the Terms & Data Policy to create an account.';
+
 function setAuthMode(loginMode) {
     isLoginMode = loginMode;
+    const termsGroup = document.getElementById('auth-terms-group');
+    const termsBox = document.getElementById('auth-terms-checkbox');
     if (isLoginMode) {
         authTitle.innerText = "Login to Account";
         authSubtitle.innerText = "Access your reward dashboard";
@@ -1431,6 +1502,10 @@ function setAuthMode(loginMode) {
         authSwitchLink.innerText = "Sign in";
         authName.required = true;
     }
+    // Agreement belongs to account creation, not to signing in again. Reset on
+    // every switch so a tick left over from an abandoned sign-up cannot carry.
+    if (termsGroup) termsGroup.classList.toggle('hidden', isLoginMode);
+    if (termsBox) termsBox.checked = false;
     authError.classList.add('hidden');
 }
 
@@ -1582,6 +1657,19 @@ authSwitchLink.addEventListener('click', (e) => {
 authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     authError.classList.add('hidden');
+
+    // Checked before the button is disabled, so a refusal leaves the form usable.
+    // Not `required` on the input: the native bubble is easy to miss on a dark
+    // panel, and this reuses the error line the rest of the form already speaks
+    // through.
+    const termsBox = document.getElementById('auth-terms-checkbox');
+    if (!isLoginMode && termsBox && !termsBox.checked) {
+        authError.innerText = TERMS_REQUIRED_MSG;
+        authError.classList.remove('hidden');
+        termsBox.focus();
+        return;
+    }
+
     authSubmitBtn.disabled = true;
     authSubmitBtn.innerText = "Processing...";
 
