@@ -1081,8 +1081,18 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         //
         // Fetched with the duplicate queries above, not here — it is a read like
         // the others and there is no reason to pay a second round trip for it.
+        // Hash AND total. The hash alone is not enough to refuse an upload:
+        // different receipts collide perceptually (they are all pale paper with
+        // a dark text block), and a bare-hash match wrongly blocked a genuine
+        // receipt during demo recording. fraud.py requires the totals to agree
+        // before it will call it a duplicate.
         const knownHashes = recentHashDocs
-            ? recentHashDocs.docs.map(doc => (doc.data() || {}).image_phash).filter(Boolean)
+            ? recentHashDocs.docs
+                .map(doc => {
+                    const d = doc.data() || {};
+                    return d.image_phash ? { hash: d.image_phash, total: d.total } : null;
+                })
+                .filter(Boolean)
             : [];
 
         // Spending anomaly (Isolation Forest) — flags an amount that is unusual
