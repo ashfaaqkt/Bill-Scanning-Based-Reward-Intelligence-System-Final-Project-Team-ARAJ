@@ -1,0 +1,86 @@
+# Render blueprint — Team ARAJ
+#
+# Two services, because the ML work is Python and the API is Node. The backend
+# calls the ML service over HTTP, so the ML service has to come up first; Render
+# resolves that automatically from the fromService reference below.
+#
+# Deploy: Render dashboard -> New -> Blueprint -> point at this repository.
+#
+# THREE THINGS ARE NOT IN THIS FILE AND WILL FAIL THE DEPLOY IF FORGOTTEN.
+# All three are marked sync:false below, meaning Render prompts for them rather
+# than reading them from here — secrets must never be committed.
+#
+#   1. GEMINI_API_KEY_1        — OCR returns GEMINI_API_KEY_MISSING without it
+#   2. serviceAccountKey.json  — upload as a Render Secret File on the backend,
+#                                then set GOOGLE_APPLICATION_CREDENTIALS to its
+#                                path. FIREBASE_CONFIG is NOT a substitute: it
+#                                supplies project config, not credentials
+#   3. The v1.0-fyp release must carry the four model binaries — they are
+#      gitignored, so a fresh clone has none. fetch_models.py pulls them at
+#      build time from the release named in MODEL_BASE_URL and exits non-zero
+#      if a required one is missing, which fails the build loudly rather than
+#      deploying a service that silently returns the 0.05 fraud baseline.
+
+services:
+  # ── ML service — OCR, classifier, fraud, anomaly, recommender ─────────────
+  - type: web
+    name: araj-ml-service
+    runtime: python
+    plan: free
+    region: singapore          # closest region to the users and to Firestore
+    rootDir: ml-service
+    buildCommand: "pip install -r requirements.txt && python fetch_models.py"
+    # Flask's built-in server is single-threaded and not for production; app.py
+    # only runs it under __main__ for local development. Two workers fit the
+    # free tier's memory once torch is loaded; the 448px CNN and a Gemini call
+    # can both take tens of seconds, hence the long timeout.
+    startCommand: "gunicorn --workers 2 --threads 4 --timeout 180 --bind 0.0.0.0:$PORT app:app"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.0"
+      - key: MODEL_BASE_URL
+        value: "https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-Final-Project-Team-ARAJ/releases/download/v1.0-fyp"
+      # At least one Gemini key is required. Keys 2 and 3 are optional and only
+      # widen the free-tier ceiling — each project has its own 5 RPM quota.
+      - key: GEMINI_API_KEY_1
+        sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false
+      - key: GEMINI_API_KEY_3
+        sync: false
+      # Names the keys on a billed plan, so they are tried first and skip the
+      # 23-second free-tier spacing. Leave unset if every key is free.
+      - key: GEMINI_PAID_KEYS
+        sync: false
+
+  # ── Backend API — also serves the frontend ────────────────────────────────
+  - type: web
+    name: araj-backend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: "npm ci --omit=dev"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Render injects PORT; server.js already reads it.
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: araj-ml-service
+          property: hostport      # resolves to the internal host:port
+      - key: JWT_SECRET
+        generateValue: true       # Render generates and stores a strong secret
+      # Upload serviceAccountKey.json as a Secret File on this service, then set
+      # this to the path Render mounts it at.
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+
+# ── A note on the free tier, for demo day ────────────────────────────────────
+# Free Render services sleep after 15 minutes idle and take ~50s to wake. Both
+# services sleep independently, so the first upload after a quiet spell can pay
+# that twice. Open both URLs a few minutes before demonstrating, or keep the
+# recorded demo ready — which is why it exists.
