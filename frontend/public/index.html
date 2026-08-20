@@ -565,6 +565,11 @@
                 </div>
             </div>
         </div>
+        <!-- Centred on its own row beneath the two columns, so it stays centred on the
+             page rather than within either one. Opens the same consent modal. -->
+        <div class="footer-legal">
+            <a href="#" id="footer-terms-link">Terms &amp; Data Policy</a>
+        </div>
     </footer>
 
     <div id="welcome-intro" class="welcome-intro hidden" role="status" aria-live="polite">
@@ -596,6 +601,16 @@
                     <div class="form-group">
                         <label>Password</label>
                         <input type="password" id="auth-password" required placeholder="••••••••">
+                    </div>
+                    <!-- Sign-up only: hidden in login mode by setAuthMode(). The link opens
+                         the same consent modal the scanner gates on, so the terms exist in
+                         exactly one place. -->
+                    <div class="form-group auth-terms-group" id="auth-terms-group">
+                        <label class="auth-terms">
+                            <input type="checkbox" id="auth-terms-checkbox">
+                            <span>I agree to the <a href="#" id="auth-terms-link">Terms &amp; Data
+                                Policy</a>.</span>
+                        </label>
                     </div>
                     <button type="submit" class="btn btn-primary auth-submit" id="auth-submit">Sign Up</button>
                 </form>

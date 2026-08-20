@@ -4053,3 +4053,65 @@ body.modal-open {
 @media (prefers-reduced-motion: reduce) {
     .an-donut circle { transition: none; }
 }
+
+/* ——— Sign-up terms agreement + footer legal link ——— */
+/* Colours are inherited rather than declared: the auth panel is glass over a
+   backdrop that differs between the landing and app views, so a hard-coded
+   value would be right in one and unreadable in the other. */
+.auth-terms-group {
+    margin-bottom: 1.25rem;
+}
+
+.auth-terms {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    text-align: left;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: inherit;
+    cursor: pointer;
+}
+
+.auth-terms input {
+    margin-top: 0.15rem;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: var(--color-gold-light, #d4af37);
+}
+
+.auth-terms a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 600;
+}
+
+.auth-terms a:hover,
+.auth-terms a:focus-visible {
+    opacity: 0.75;
+}
+
+/* Its own row under the two footer columns, so it centres on the page rather
+   than inside either column. */
+.footer-legal {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.footer-legal a {
+    color: inherit;
+    opacity: 0.75;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.footer-legal a:hover,
+.footer-legal a:focus-visible {
+    opacity: 1;
+}
