@@ -18,6 +18,23 @@ MODEL_PATH = Path(__file__).resolve().parent / "models" / "tamper_cnn_cv_normali
 IMG_SIZE = 448
 PHASH_DISTANCE_THRESHOLD = 10
 
+# Probability above which the CNN's verdict counts as a tamper signal.
+#
+# This was 0.50, chosen as the obvious midpoint rather than measured. At AUC
+# 0.805 that midpoint is expensive: report/model_cards/fraud_cnn.md puts it at
+# roughly 28% false positives on genuine receipts out-of-fold, so about one
+# honest bill in three was carrying a tamper signal — enough that the signal
+# stopped meaning anything.
+#
+# 0.82 is the operating point from the model card's table: 50.4% recall on
+# tampered images for 9.2% false positives. Recall drops, and that is the
+# deliberate half of the trade — a signal that fires on a third of genuine
+# receipts is not worth the extra recall, because nobody can act on it.
+#
+# Changing this changes a documented result. Update the model card's operating
+# point alongside it, or the report and the code will disagree.
+TAMPER_THRESHOLD = 0.82
+
 _tamper_model = None
 _tamper_model_load_attempted = False
 
@@ -52,11 +69,22 @@ def calculate_fraud_score(ocr_result):
         base_score += 0.10
         signals["blur"] = True
 
-    # Gemini detected handwritten annotations on a printed receipt
+    # Gemini detected handwritten annotations on a printed receipt.
+    #
+    # This used to set signals["tamper"] as well. That was wrong twice over.
+    # The client renders "tamper" as "the image shows signs of editing" and
+    # "handwritten" as "handwriting detected on a printed bill", so one finding
+    # was reported as two, and a real tampered bill came back reading as though
+    # both the CNN and Gemini had fired when only Gemini had. It also meant
+    # every handwritten receipt — the norm on small Indian bills — carried a
+    # tamper signal the CNN never raised, which is what made the tamper warning
+    # feel like it fired on everything.
+    #
+    # Handwriting has its own signal and its own weight. "tamper" now means
+    # exactly one thing: the CNN cleared its threshold.
     if ocr_result.get("handwritten_flag"):
         base_score += 0.30
         signals["handwritten"] = True
-        signals["tamper"] = True
 
     return min(1.0, base_score), signals  # Cap final score at 1.0
 
@@ -87,7 +115,7 @@ def score(image_path, ocr_result, known_hashes=None):
             signals["duplicate"] = True
 
         tamper_probability = check_tamper_cnn(image_path)
-        if tamper_probability >= 0.50:
+        if tamper_probability >= TAMPER_THRESHOLD:
             fraud_score += 0.40
             signals["tamper"] = True
 

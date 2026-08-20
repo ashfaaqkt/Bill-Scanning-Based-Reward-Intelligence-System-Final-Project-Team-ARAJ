@@ -33,7 +33,11 @@ def test_fraud_scoring():
     print(f"Handwritten: score={res4}, signals={signals4}")
     assert round(res4, 2) == 0.35
     assert signals4["handwritten"] is True
-    assert signals4["tamper"] is True
+    # Handwriting must NOT raise the tamper signal. It used to, so one finding
+    # was reported as two and every handwritten bill looked like the CNN had
+    # flagged it. "tamper" belongs to the CNN alone — and the CNN does not run
+    # in calculate_fraud_score(), which scores OCR flags only.
+    assert signals4["tamper"] is False
 
     # Case 5: Combined flags (multi-bill + handwritten) → capped at 0.85
     res5, signals5 = fraud.calculate_fraud_score({
