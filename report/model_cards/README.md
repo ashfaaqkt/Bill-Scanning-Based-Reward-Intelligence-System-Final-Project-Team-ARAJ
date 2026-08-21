@@ -37,7 +37,7 @@ are the questions a viva panel will ask:
 For completeness, since the pipeline mixes them: **perceptual-hash duplicate
 detection** (`fraud.py:is_duplicate_hash`) is a deterministic algorithm, not a
 learned model, and the **OCR pipeline** is a prompted Gemini call plus classical
-CV checks (Laplacian blur, density anomaly).
+CV checks (contrast-normalised sharpness gate, density anomaly).
 
 4. **Two integration seams were dead while every component test passed.** The
    tamper CNN was never given the image on an upload, and no perceptual hash was

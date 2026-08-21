@@ -151,6 +151,29 @@ const STEP_SEQUENCE = [stepUpload, stepExtract, stepProcess, stepReward];
 
 // ── REWARD CATALOG DATA ────────────────────────────────────────
 // Static pool of vouchers and scratch cards shown in the claim modal
+// Titles of vouchers this account has already claimed. Refreshed from
+// /api/claimed-rewards whenever the vault opens, so a claim survives closing the
+// window — the vault used to rebuild its cards from scratch with no memory of
+// what had been taken, and a claimed voucher came back looking available.
+// The backend refuses the re-claim regardless; this is so the user can see it
+// before clicking rather than after.
+let CLAIMED_VOUCHER_TITLES = new Set();
+
+async function refreshClaimedVoucherTitles() {
+    if (currentUserName === 'Guest Explorer') { CLAIMED_VOUCHER_TITLES = new Set(); return; }
+    try {
+        const res = await fetch('/api/claimed-rewards', { headers: getAuthHeaders() });
+        if (!res.ok) return;                       // keep the previous set on failure
+        const data = await res.json();
+        const rows = Array.isArray(data) ? data : (data.claims || data.rewards || []);
+        CLAIMED_VOUCHER_TITLES = new Set(
+            rows.filter(r => (r.type || '') === 'voucher').map(r => r.title)
+        );
+    } catch (err) {
+        console.warn('Could not load claimed vouchers:', err.message);
+    }
+}
+
 const VOUCHER_POOL = [
     { icon: '🛒', title: 'BigBasket Voucher', offer: 'Flat ₹150 OFF on groceries' },
     { icon: '🍕', title: 'Domino\'s Voucher', offer: 'Get ₹200 OFF on orders above ₹499' },
@@ -163,7 +186,17 @@ const VOUCHER_POOL = [
     { icon: '🎧', title: 'Spotify Premium', offer: '2 months premium access' },
     { icon: '🧾', title: 'Paytm Cashback', offer: '₹100 instant cashback' },
     { icon: '🏨', title: 'OYO Voucher', offer: '₹400 OFF hotel booking' },
-    { icon: '💻', title: 'Croma Gift Card', offer: '₹350 OFF electronics' }
+    { icon: '💻', title: 'Croma Gift Card', offer: '₹350 OFF electronics' },
+    { icon: '🏬', title: 'DMart Voucher', offer: '₹200 OFF on a ₹1,500 shop' },
+    { icon: '⚡', title: 'Blinkit Credits', offer: '₹120 OFF instant grocery delivery' },
+    { icon: '🥬', title: 'Reliance Fresh', offer: '₹100 OFF on fruits & vegetables' },
+    { icon: '🛵', title: 'Swiggy Voucher', offer: '₹150 OFF on orders above ₹349' },
+    { icon: '🍵', title: 'Chaayos Coupon', offer: 'Buy 1 Get 1 on all chai' },
+    { icon: '🍬', title: 'Haldiram\'s Treat', offer: '₹100 OFF on sweets & snacks' },
+    { icon: '👗', title: 'AJIO Voucher', offer: 'Flat ₹400 OFF on fashion' },
+    { icon: '🏸', title: 'Decathlon Card', offer: '₹250 OFF on sportswear' },
+    { icon: '💊', title: 'Apollo Pharmacy', offer: '₹150 OFF on medicines above ₹800' },
+    { icon: '🚆', title: 'IRCTC Travel Credit', offer: '₹300 OFF on train bookings' }
 ];
 
 const SCRATCH_REWARD_POOL = [
@@ -172,7 +205,11 @@ const SCRATCH_REWARD_POOL = [
     'Win Free Coffee Combo',
     'Win ₹300 Gift Voucher',
     'Win ₹250 Grocery Pass',
-    'Win Surprise Meal Coupon'
+    'Win Surprise Meal Coupon',
+    'Win ₹150 Fuel Voucher',
+    'Win 500 Bonus Points',
+    'Win Free Dessert Coupon',
+    'Win ₹200 Pharmacy Credit'
 ];
 
 // ── SHARED HELPERS ─────────────────────────────────────────────
@@ -312,7 +349,7 @@ function buildScratchReward(index) {
     };
 }
 
-// Combines 9 vouchers + 3 scratch cards into the claim catalog. Vouchers come
+// Combines up to 14 vouchers + 5 scratch cards into the claim catalog. Vouchers come
 // from the ML ranking when available — in rank order, best match first — and from
 // the shuffled static pool otherwise.
 function generateClaimCatalog() {
@@ -328,7 +365,7 @@ function generateClaimCatalog() {
     const source = usingRanked ? RECOMMENDED_OFFERS : shuffleArray(VOUCHER_POOL);
 
     const vouchers = [];
-    const count = Math.min(9, source.length);
+    const count = Math.min(14, source.length);
     for (let i = 0; i < count; i += 1) {
         const voucher = source[i];
         vouchers.push({
@@ -351,7 +388,7 @@ function generateClaimCatalog() {
     }
 
     const scratches = [];
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 5; i += 1) {
         const s = buildScratchReward(i);
         scratches.push({
             type: 'scratch',
@@ -415,11 +452,13 @@ function renderClaimCards() {
             `;
         }
 
+        const alreadyTaken = CLAIMED_VOUCHER_TITLES.has(reward.title);
         return `
-            <article class="claim-card claim-card--voucher ${canClaim ? '' : 'claim-card--locked'}"
+            <article class="claim-card claim-card--voucher ${alreadyTaken ? 'claim-card--claimed' : (canClaim ? '' : 'claim-card--locked')}"
                 data-type="voucher"
                 data-title="${reward.title}"
                 data-offer="${reward.offer}"
+                data-claimed="${alreadyTaken}"
                 data-required-points="${reward.requiredPoints}">
                 <div class="claim-card-head">
                     <span class="claim-icon">${reward.icon}</span>
@@ -429,8 +468,9 @@ function renderClaimCards() {
                 <p class="claim-offer">${reward.offer}</p>
                 ${reward.reason ? `<p class="claim-reason">🎯 ${reward.reason}</p>` : ''}
                 <p class="claim-required">Required: <strong>${reward.requiredPoints} points</strong></p>
-                <button class="btn btn-primary" data-voucher-btn ${canClaim ? '' : 'disabled'}>
-                    ${canClaim ? 'Claim Voucher' : `Need ${reward.requiredPoints} pts`}
+                <button class="btn btn-primary" data-voucher-btn ${alreadyTaken || !canClaim ? 'disabled' : ''}>
+                    ${alreadyTaken ? '✓ Already Claimed'
+                                   : (canClaim ? 'Claim Voucher' : `Need ${reward.requiredPoints} pts`)}
                 </button>
             </article>
         `;
@@ -659,7 +699,11 @@ async function openClaimModal() {
             // Without a ceiling the indicator would spin for the rest of the
             // session. The cards are already on screen either way.
             await withTimeout(
-                (async () => { await fetchTotalPoints(); await loadRecommendations(); })(),
+                (async () => {
+                    await fetchTotalPoints();
+                    await loadRecommendations();
+                    await refreshClaimedVoucherTitles();
+                })(),
                 VAULT_REFRESH_TIMEOUT
             );
         } catch (err) {
@@ -680,7 +724,8 @@ async function openClaimModal() {
 /** Point balance + ranked offer ids — cheap way to tell if a re-render is warranted. */
 function claimStateSignature() {
     const ids = (RECOMMENDED_OFFERS || []).map(o => o && o.id).join(',');
-    return `${Number(totalPoints) || 0}|${USER_RECEIPTS_SEEN}|${ids}`;
+    const claimed = [...CLAIMED_VOUCHER_TITLES].sort().join(',');
+    return `${Number(totalPoints) || 0}|${USER_RECEIPTS_SEEN}|${ids}|${claimed}`;
 }
 
 /** Render the vault from whatever is currently in memory. */
@@ -1177,6 +1222,16 @@ async function claimRewardFromCard(card, buttonEl) {
             data = await response.json();
             if (!response.ok || !data.success) {
                 restoreButton();
+                // The backend refuses a second claim of the same voucher. That is
+                // reachable even with the card disabled — a stale tab, or two tabs
+                // open — so it gets its own message, and the card is corrected
+                // rather than left looking claimable.
+                if (data.code === 'REWARD_ALREADY_CLAIMED') {
+                    CLAIMED_VOUCHER_TITLES.add(payload.title);
+                    showClaimCards();
+                    openErrorModal('Already Claimed', data.error, '🎟️');
+                    return;
+                }
                 alert(data.error || 'Unable to claim reward right now.');
                 return;
             }
@@ -1192,6 +1247,10 @@ async function claimRewardFromCard(card, buttonEl) {
         buttonEl.classList.remove('is-busy');
         buttonEl.innerText = 'Claimed';
         buttonEl.disabled = true;
+
+        // Remember it immediately, so re-opening the vault shows it as taken
+        // without waiting for the next /api/claimed-rewards round trip.
+        if (payload.type === 'voucher') CLAIMED_VOUCHER_TITLES.add(payload.title);
 
         // For guest, add to mock history array locally if we wanted to be perfectly persistent for the session. For simplicity and since fetch overrides, let's just show success
 

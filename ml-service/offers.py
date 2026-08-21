@@ -43,6 +43,29 @@ CATALOGUE = [
      "offer": "₹400 OFF hotel booking", "category": GENERAL, "popularity": 0.50},
     {"id": "croma", "icon": "💻", "title": "Croma Gift Card",
      "offer": "₹350 OFF electronics", "category": RETAIL, "popularity": 0.62},
+    # Added 21 Aug to widen the vault. Weighted towards grocery and food, which
+    # were thin: only two grocery offers served the category carrying the ×1.2
+    # reward multiplier, so a grocery-heavy user saw the same voucher every time.
+    {"id": "dmart", "icon": "🏬", "title": "DMart Voucher",
+     "offer": "₹200 OFF on a ₹1,500 shop", "category": GROCERY, "popularity": 0.83},
+    {"id": "blinkit", "icon": "⚡", "title": "Blinkit Credits",
+     "offer": "₹120 OFF instant grocery delivery", "category": GROCERY, "popularity": 0.78},
+    {"id": "reliance_fresh", "icon": "🥬", "title": "Reliance Fresh",
+     "offer": "₹100 OFF on fruits & vegetables", "category": GROCERY, "popularity": 0.68},
+    {"id": "swiggy", "icon": "🛵", "title": "Swiggy Voucher",
+     "offer": "₹150 OFF on orders above ₹349", "category": FOOD, "popularity": 0.87},
+    {"id": "chaayos", "icon": "🍵", "title": "Chaayos Coupon",
+     "offer": "Buy 1 Get 1 on all chai", "category": FOOD, "popularity": 0.64},
+    {"id": "haldirams", "icon": "🍬", "title": "Haldiram's Treat",
+     "offer": "₹100 OFF on sweets & snacks", "category": FOOD, "popularity": 0.61},
+    {"id": "ajio", "icon": "👗", "title": "AJIO Voucher",
+     "offer": "Flat ₹400 OFF on fashion", "category": RETAIL, "popularity": 0.73},
+    {"id": "decathlon", "icon": "🏸", "title": "Decathlon Card",
+     "offer": "₹250 OFF on sportswear", "category": RETAIL, "popularity": 0.58},
+    {"id": "apollo", "icon": "💊", "title": "Apollo Pharmacy",
+     "offer": "₹150 OFF on medicines above ₹800", "category": GENERAL, "popularity": 0.66},
+    {"id": "irctc", "icon": "🚆", "title": "IRCTC Travel Credit",
+     "offer": "₹300 OFF on train bookings", "category": GENERAL, "popularity": 0.54},
 ]
 
 
