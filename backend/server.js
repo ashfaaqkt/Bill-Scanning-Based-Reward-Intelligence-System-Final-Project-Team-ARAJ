@@ -681,8 +681,28 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
         const claimRef = db.collection('Claimed_Rewards').doc();
         const nowIso = new Date().toISOString();
 
+        // A voucher is a specific offer, so it can be claimed once per account.
+        // Nothing enforced that: the vault rebuilt its cards from scratch on every
+        // open with no notion of what had already been taken, and this route only
+        // ever checked the points balance — so the same voucher could be claimed
+        // repeatedly, deducting points and writing a duplicate row each time.
+        //
+        // Scratch cards are deliberately exempt. They are lottery tickets rather
+        // than a named offer, and taking another is the normal thing to do.
+        const alreadyClaimed = db.collection('Claimed_Rewards')
+            .where('user_id', '==', req.userId)
+            .where('type', '==', 'voucher')
+            .where('title', '==', claimTitle)
+            .limit(1);
+
         const result = await db.runTransaction(async tx => {
+            // Every read must happen before any write inside a transaction.
             const userDoc = await tx.get(userRef);
+            if (claimType === 'voucher') {
+                const prior = await tx.get(alreadyClaimed);
+                if (!prior.empty) throw new Error('ALREADY_CLAIMED');
+            }
+
             const currentPoints = Number.parseInt(userDoc.data()?.total_points || 0, 10);
             if (currentPoints < required) {
                 throw new Error('INSUFFICIENT_POINTS');
@@ -727,6 +747,12 @@ app.post('/api/claim-reward', authenticateToken, async (req, res) => {
     } catch (e) {
         if (e.message === 'INSUFFICIENT_POINTS') {
             return res.status(409).json({ error: 'Not enough points to claim this reward.' });
+        }
+        if (e.message === 'ALREADY_CLAIMED') {
+            return res.status(409).json({
+                code: 'REWARD_ALREADY_CLAIMED',
+                error: 'You have already claimed this voucher. Find it under Claimed Vouchers.'
+            });
         }
         return res.status(500).json({ error: e.message });
     }

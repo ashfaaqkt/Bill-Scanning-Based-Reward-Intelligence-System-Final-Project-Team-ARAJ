@@ -4115,3 +4115,31 @@ body.modal-open {
 .footer-legal a:focus-visible {
     opacity: 1;
 }
+
+/* ——— Voucher already claimed by this account ——— */
+/* Distinct from --locked, which means "you cannot afford this yet". This one is
+   permanent, so it reads as done rather than as blocked: no red, no warning, and
+   the tick carries the meaning alongside the dimming so it is not colour-alone. */
+.claim-card--claimed {
+    opacity: 0.55;
+    filter: grayscale(0.35);
+}
+
+.claim-card--claimed .claim-card-head::after {
+    content: "✓ Claimed";
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #15803d;
+    background: rgba(21, 128, 61, 0.12);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+}
+
+.claim-card--claimed .btn:disabled {
+    background: rgba(21, 128, 61, 0.15);
+    color: #15803d;
+    border-color: transparent;
+    cursor: not-allowed;
+}
