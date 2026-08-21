@@ -639,7 +639,9 @@ app.get('/api/claimed-rewards', authenticateToken, async (req, res) => {
 // list (not an error) when the ML service is down, so the frontend falls back to
 // its own static pool rather than showing nothing.
 app.get('/api/recommendations', authenticateToken, async (req, res) => {
-    const topN = Math.max(1, Math.min(parseInt(req.query.top_n, 10) || 6, 12));
+    // Ceiling is the catalogue size: it was 12 while the catalogue held 22 and
+    // the vault asked for 14, so the clamp silently truncated the request.
+    const topN = Math.max(1, Math.min(parseInt(req.query.top_n, 10) || 6, 22));
     try {
         const mlRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
             user_id: req.userId,

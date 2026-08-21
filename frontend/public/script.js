@@ -273,7 +273,11 @@ async function loadRecommendations() {
         return;
     }
     try {
-        const res = await fetch('/api/recommendations?top_n=9', { headers: getAuthHeaders() });
+        // 14 to match the vault's voucher cap. It asked for 9 while the vault had
+        // room for 14, so a signed-in user saw nine ranked offers and the rest of
+        // the catalogue never surfaced — the guest path, which reads the local
+        // pool, was showing more than the personalised one.
+        const res = await fetch('/api/recommendations?top_n=14', { headers: getAuthHeaders() });
         if (!res.ok) return;
         const data = await res.json();
         RECOMMENDED_OFFERS = Array.isArray(data.recommendations) ? data.recommendations : [];
