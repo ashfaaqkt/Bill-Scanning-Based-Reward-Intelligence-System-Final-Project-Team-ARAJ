@@ -67,7 +67,16 @@ profile → recommend — with the extracted fields, points, scores and persiste
 documents all checked afterwards. That run is what exposed the two dead seams
 noted above.
 
-**What is still open** is not this row: TC-26 asks for the four demo scenarios
-(clean / blurry / tampered / duplicate) driven through the *browser* in one
-session with screenshots and a recording. The pipeline is verified; the
-demonstration artefact is not yet captured.
+**TC-26 closed 21 Aug.** Six receipts were driven through the *browser* in one
+session against live Firestore and the live extraction model — three genuine
+across three spend categories, one tampered, one blurred, one containing two
+bills. Every case behaved as specified, including both refusals. Screenshots and
+a recorded walkthrough were captured in the same session.
+
+Across five such whole-stack runs between 17 and 21 August, **twenty-three
+integration defects** were found. None was found by a component test, and the
+component tests passed throughout. Two of them meant a model these very cards
+described as live had never executed on a real upload. That is why "tested
+end-to-end through the live stack" is a separate row in the table above and not
+folded into "wired into the pipeline": the first five criteria can all be
+satisfied by a model that never runs.

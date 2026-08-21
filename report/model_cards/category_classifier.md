@@ -7,7 +7,7 @@
 | **Task** | Multi-class text classification — which spend category is this receipt? |
 | **Learning type** | **Supervised** |
 | **Algorithm** | TF-IDF + Random Forest |
-| **Artifacts** | `ml-service/models/classifier.pkl` (8.8 MB), `ml-service/models/tfidf.pkl` (44 KB) |
+| **Artifacts** | `ml-service/models/classifier.pkl` (8.4 MB), `ml-service/models/tfidf.pkl` (44 KB) |
 | **Served by** | `ml-service/classifier.py` → `/ml/classify` |
 | **Status** | ✅ **In production, target beaten** |
 

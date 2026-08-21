@@ -37,15 +37,16 @@ User (Browser)
 
 1. Frontend sends the receipt as base64 to `POST /api/upload`
 2. Backend validates the image (MIME + base64 + byte sniff) in memory — no `uploads/` folder
-3. Backend calls `POST /ml/ocr` — **ocr.py** runs the 5-layer pipeline (blur → rate-limit → Gemini 2.5 Flash → multi-bill / handwriting / density anomaly) and returns structured JSON
+3. Backend calls `POST /ml/ocr` — **ocr.py** runs the 5-layer pipeline (sharpness gate → rate-limit → Gemini 2.5 Flash → multi-bill / handwriting / density anomaly). The sharpness gate refuses an unreadable photo **before any API call is spent**, returning `IMAGE_TOO_BLURRY`
 4. Backend calls `POST /ml/classify` — **classifier.py** (trained Notebook 02) sets the category when confident (confidence ≥ 0.65); otherwise the Gemini category is kept
-5. Backend does dedup and computes reward points. Three checks run in order: a per-user SHA-256 fingerprint, a fuzzy merchant match (Levenshtein + Jaccard, 0.84), and a **cross-user** fingerprint check. The third **rejects the upload with 409 `ALREADY_CLAIMED`** — one physical receipt earns a reward once, so a bill already claimed on another account is not scored, not stored and not paid; the attempt is written to `Fraud_Scores` with `blocked: true`
-6. Backend writes receipt + line items + logs to Firestore
-7. Backend calls `POST /ml/fraud-score` — passes the OCR result (incl. `handwritten_flag`), **the image**, and the perceptual hashes of the last 300 receipts. All three matter: without the image the tamper CNN and the pHash check score nothing, and without the hashes the duplicate check has nothing to compare against. The service returns the fraud probability (banded `Low` / `Medium` / `High`), the CNN's own `tamper_probability`, and this image's `image_phash`, which the backend stores on the receipt so the next upload can be compared against it
-8. Backend calls `POST /ml/anomaly` — Isolation Forest over the amount → `anomalyScore` + `anomalyFlag`. An items/total mismatch or an anomaly flag raises `Low` to `Medium`
-9. Backend calls `POST /ml/update-profile` — **awaited, not fire-and-forget**, so the recommendations in step 10 reflect the receipt just scanned
-10. Backend calls `POST /ml/recommend` → offers ranked against that interest vector
-11. Response sent back to frontend with the extracted data, the reward result (`category` + `gemini_category`), the verification verdict (`fraudScore`, `riskLevel`, `anomalyScore`, `anomalyFlag`, `crossUserDuplicate`, `itemsTotalMismatch`) and `recommendedRewards`
+5. **Four Firestore reads issue together** — per-user fingerprint, fuzzy merchant candidates, cross-user fingerprint, and the perceptual hashes of the last 300 receipts. None depends on another, so they cost one round trip rather than four
+6. Dedup applies in order: per-user fingerprint → fuzzy merchant match (Levenshtein + Jaccard, 0.84) → **cross-user** fingerprint. The third refuses the upload with 409 `ALREADY_CLAIMED`
+7. **Fraud and anomaly scoring run together, and BEFORE anything is written.** `/ml/fraud-score` receives the OCR result (incl. `handwritten_flag`), **the image**, and the hash+total pairs from step 5; `/ml/anomaly` runs an Isolation Forest over the amount. Both inputs matter: without the image the tamper CNN and the pHash check score nothing, and without the pairs the duplicate check has nothing to compare against
+8. If the perceptual hash matches a stored receipt **and the totals agree**, the upload is refused with 409 `DUPLICATE_IMAGE`. Scoring precedes the writes precisely so that a refusal leaves nothing behind
+9. **All six writes commit in one atomic batch** — merchant, receipt, line items, points, consent log, fraud score. These were six sequential round trips; batching is both faster and all-or-nothing, so a mid-sequence failure can no longer leave a receipt with no points
+10. Backend calls `POST /ml/update-profile` — **awaited, not fire-and-forget**, so the recommendations below reflect the receipt just scanned
+11. Backend calls `POST /ml/recommend` → up to 14 offers ranked against that interest vector
+12. Response sent back to frontend with the extracted data, the reward result (`category` + `gemini_category`), the verification verdict (`fraudScore`, `riskLevel`, `anomalyScore`, `anomalyFlag`, `crossUserDuplicate`, `itemsTotalMismatch`) and `recommendedRewards`
 
 > The web client renders the verification verdict in the results panel — risk badge, the composite fraud score, anomaly state and a one-line reason naming every signal that fired. Full response schema: [`API.md`](API.md).
 

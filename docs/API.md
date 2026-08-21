@@ -60,12 +60,35 @@ Escalation order, applied after the model score: an items/total mismatch raises
 of showing an unexplained number — the web client renders every signal that fired
 in the verification block of the results panel.
 
-**409 responses carry a `code`.** `ALREADY_CLAIMED` means the same physical
-receipt has already been claimed on a different account: it is rejected before
-scoring, no points are awarded and no receipt is written, and the attempt is
-logged to `Fraud_Scores` with `blocked: true`, the fingerprint, and which claim
-won. A 409 without that code is an ordinary duplicate of the caller's own
-receipt (exact fingerprint or fuzzy merchant match).
+**409 responses carry a `code`.**
+
+| `code` | Meaning |
+|---|---|
+| `ALREADY_CLAIMED` | The same physical receipt has already been claimed on a **different** account. Matched on the content fingerprint (`merchant\|date\|total`). |
+| `DUPLICATE_IMAGE` | A **second photograph** of a receipt already in the system. Perceptual hash within 6 **and** the totals agree. |
+| *(no code)* | An ordinary duplicate of the caller's own receipt — exact fingerprint or fuzzy merchant match. |
+
+Both coded cases are refused **before anything is written**: no points, no
+receipt, no line items, no consent log. The attempt is logged to `Fraud_Scores`
+with `blocked: true`, the reason, and — for a cross-user block — which claim won.
+
+`DUPLICATE_IMAGE` requires the totals to agree because the image evidence alone
+is not strong enough to refuse a user. Receipts collide perceptually: across all
+4,950 pairs of the project's 100 real Indian receipts, the minimum distance
+between two *different* bills is 0, and four pairs collide exactly. Requiring
+corroboration took false blocks from 18 to 0 over those pairs while still
+catching a re-saved copy of the same receipt 25 times out of 25.
+
+**422 responses also carry a `code`** — `IMAGE_TOO_BLURRY` (refused at the
+sharpness gate, before any API call), `MULTI_BILL` (more than one receipt in the
+photograph), or `UNREADABLE` (the extraction model could not find receipt
+details). Each carries its own message, because the remedies differ: a blurred
+photo needs a steadier retake, while an unreadable one is usually cropped, in
+shadow, or not a receipt at all.
+
+**`POST /api/claim-reward` returns 409 `REWARD_ALREADY_CLAIMED`** when a voucher
+has already been claimed by that account. A voucher is claimable once; scratch
+cards are deliberately exempt, being lottery tickets rather than a named offer.
 
 ---
 

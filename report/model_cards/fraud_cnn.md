@@ -7,7 +7,7 @@
 | **Task** | Binary image classification — has this receipt been tampered with? |
 | **Learning type** | **Supervised transfer learning** (ImageNet-pretrained, fine-tuned) |
 | **Algorithm** | MobileNetV2 @ **448 × 448** |
-| **Artifact** | `ml-service/models/tamper_cnn_cv_normalized_448.pt` (9.2 MB, full `nn.Module`) |
+| **Artifact** | `ml-service/models/tamper_cnn_cv_normalized_448.pt` (8.8 MB, full `nn.Module`) |
 | **Served by** | `ml-service/fraud.py` → `check_tamper_cnn()` → `/ml/fraud-score` |
 | **Status** | ⚠️ **In production as one signal — below the 0.90 target** |
 
@@ -24,6 +24,18 @@ It is **not** an automatic rejection gate, and the system does not use it as one
 The only hard blocks in the pipeline are the cross-user fingerprint check and the
 perceptual-hash near-duplicate check, both of which refuse a receipt already
 claimed before any model verdict is applied.
+
+> **The near-duplicate check needs corroboration (21 Aug 2026).** A perceptual
+> hash alone is not sufficient evidence to refuse an upload. Receipts are a
+> pathological case for pHash — pale paper, a dark text block, similar aspect —
+> and across all 4,950 pairs of the 100 real Indian receipts the minimum
+> distance between two *different* bills is **0**; four pairs collide exactly.
+> At the original threshold of 10, 0.36% of pairs matched, which over a
+> 300-receipt lookback is a 66% chance of falsely blocking any given upload, and
+> one such refusal was observed against a genuinely different receipt. A match
+> now requires the hash to be within 6 **and** the receipt totals to agree.
+> Measured over the same 4,950 pairs: false blocks 18 → 0, while a re-saved copy
+> of the same receipt at the same total is still caught 25 times out of 25.
 
 > **Operating point moved 0.50 → 0.82 (20 Aug 2026).** 0.50 was the obvious
 > midpoint, not a measured choice, and at AUC 0.805 it cost about 28% false
