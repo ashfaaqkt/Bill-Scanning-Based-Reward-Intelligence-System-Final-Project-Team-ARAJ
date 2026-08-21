@@ -45,7 +45,7 @@ and `"Low"` rather than omitting them.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `fraudScore` | 0–1 | **Composite** score: OCR signals + perceptual-hash duplicate (+0.40) + 448px CNN when it clears 0.50 (+0.40) |
+| `fraudScore` | 0–1 | **Composite** score: OCR signals + perceptual-hash duplicate (+0.40, requires the totals to match too) + 448px CNN when it clears **0.82** (+0.40) |
 | `tamperProbability` | 0–1 \| null | What the CNN alone returned. Distinct from `fraudScore`; null when no image reached the scorer |
 | `riskLevel` | `Low` \| `Medium` \| `High` | Banded from `fraudScore` (>0.7 High, >0.3 Medium), then escalated by the rules below |
 | `anomalyScore` | 0–1 | Isolation Forest score for the amount |

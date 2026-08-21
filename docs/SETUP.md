@@ -174,7 +174,10 @@ Each team member owns specific modules. Here's what each person should implement
 **ML Service - OCR Pipeline (Gemini Integration):**
 - `ml-service/app.py` — Flask microservice skeleton with `/ml/classify` and `/ml/fraud-score` endpoints
 - **Base OCR Script** — Accept receipt image input, call Gemini API, return JSON with extracted data
-- **Blur Detection** — OpenCV Laplacian variance check (< 100 returns 422 Unprocessable error)
+- **Sharpness gate** — contrast-normalised sharpness measured over the ink only, below 40 returns 422
+  (`IMAGE_TOO_BLURRY`). Replaced a whole-frame Laplacian variance < 100 on 20 Aug, which was an
+  edge-energy *density* rather than a focus measure and refused 12 of 100 real receipts.
+  Re-check with `ml-service/calibrate_blur_gate.py --scan` (no API calls)
 - **Multi-Bill Detection** — Text region count + layout analysis (returns 422 Multi-bill error if detected)
 - **Handwritten Modification Detection** — Check Gemini confidence score + text region density anomaly
 - **Integration with Fraud Detection** — Call fraud_detector.py from `/api/upload` route, replace hardcoded scores with real fraud_score

@@ -207,7 +207,9 @@ different tools, so no single generator's fingerprint can be learned.
 ## 6. Production recommendation
 
 The CNN is wired into `ml-service/fraud.py` (`check_tamper_cnn()`) as **one signal
-among several**, contributing +0.40 to the fraud score above a 0.50 threshold,
+among several**, contributing +0.40 to the fraud score above a **0.82** threshold
+(raised from 0.50 on 20 Aug — at the midpoint it flagged ~28% of genuine receipts;
+0.82 trades recall 81%→51% for false alarms 29%→3%, see `model_cards/fraud_cnn.md`),
 alongside perceptual-hash duplicate detection and OCR-derived flags. It degrades
 gracefully to a 0.05 baseline when the model file is absent.
 
