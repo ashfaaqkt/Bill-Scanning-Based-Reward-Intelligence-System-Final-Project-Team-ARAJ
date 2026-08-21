@@ -65,7 +65,7 @@ Receipt Image
       ├── fraud.py        → OCR signals + pHash + tamper CNN @448    [LIVE, AUC 0.805]
       │                     returns image_phash so the backend can store it
       │
-      ├── forensics.py    → 31 hand-designed forensic features       [built, not served]
+      ├── forensics.py    → 31 hand-designed forensic features       [BASELINE ONLY — never called, see note]
       │
       ├── classifier.py   → TF-IDF + Random Forest → category label   [LIVE, macro-F1 0.942]
       │
@@ -87,6 +87,19 @@ Receipt Image
 | Reward ranker | Evaluation harness (NB 05), not a trained ranker | NDCG@5 **0.7984** on synthetic data | NDCG@5 > 0.70 🔸 cleared, not claimed |
 
 Full detail per model: [`report/model_cards/`](../report/model_cards/README.md).
+
+**`forensics.py` is built but deliberately not served.** It computes 31
+hand-designed tamper features — Error Level Analysis, noise-residual
+consistency, JPEG block alignment, copy-move similarity, local brightness,
+local sharpness and saturation — with no learning involved, so a small corpus
+barely hurts it. It exists to answer one question: is the CNN's ceiling a
+property of the method or of the data? It reaches AUC 0.736 on its own, and
+rank-average fusion with the CNN **lowers** the result from 0.805 to 0.790
+(0.864 → 0.833 on real receipts); a learned stacker was worse still at 0.758.
+The two signals correlate at Spearman ρ = 0.638, so the features add redundancy
+plus their own noise. The code stays because the negative result is evidence
+that the corpus, not the architecture, is the limit — but nothing in the request
+path calls it, because calling it would make the served system worse.
 
 **Training the fraud CNN at 448×448 rather than the usual 224 is the single
 largest modelling decision.** Receipts are ~1200×1600, so 224 is a 7.1× downscale
