@@ -84,7 +84,7 @@ receipt (exact fingerprint or fuzzy merchant match).
 | POST | /ml/ocr | Ashfaaq | Extract structured data from receipt image (Gemini, ocr.py) | ✅ yes |
 | POST | /ml/fraud-score | Ranjeet | Return fraud probability score from OCR signals | ✅ yes |
 | POST | /ml/update-profile | Arpan | Update user spend interest vector | ✅ yes (awaited, so recommendations see the new receipt) |
-| POST | /ml/classify | Arpan | Classify receipt spend category | ✅ yes (trained; used when confidence ≥ 0.45, else Gemini category) |
+| POST | /ml/classify | Arpan | Classify receipt spend category | ✅ yes (trained; used when confidence ≥ 0.65, else Gemini category) |
 | POST | /ml/anomaly | Ranjeet | Detect unusual spending amounts | ✅ yes — trained Isolation Forest (FPR 13.2%); returns `anomaly_score`, `is_anomaly`, `reference_basis` |
 | POST | /ml/recommend | Arpan | Return ranked personalised reward recommendations | ✅ yes — content-based ranking; also exposed as `GET /api/recommendations` |
 
@@ -122,7 +122,7 @@ Response:
 
 Powered by the trained Notebook 02 model (`classifier.pkl` + `tfidf.pkl`, Random Forest). If the
 model files are absent, it returns `{ "model_ready": false }` and the backend keeps Gemini's category.
-`/api/upload` uses the classifier's category only when `model_ready` **and** `confidence ≥ 0.45`;
+`/api/upload` uses the classifier's category only when `model_ready` **and** `confidence ≥ 0.65`;
 otherwise it falls back to the OCR/Gemini category. The upload response includes both the final
 `category` and `gemini_category` (plus `ml_confidence` when the classifier was used).
 
