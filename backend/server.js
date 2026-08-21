@@ -18,7 +18,25 @@ const admin = require('firebase-admin');            // Firestore database access
 
 // ── CONSTANTS ──────────────────────────────────────────────────
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';  // Python Flask ML service
-const CLASSIFIER_MIN_CONFIDENCE = 0.45;  // below this, keep Gemini's category instead of the classifier's
+// Below this the classifier's answer is discarded and Gemini's reading stands.
+//
+// Was 0.45, which was assumed rather than measured. On the 216-row test set the
+// classifier is 94.4% accurate overall, but that average hides the low end:
+//
+//   0.45-0.55   n=4     50.0%   <- a coin flip on three classes
+//   0.55-0.65   n=12    66.7%
+//   0.65-0.75   n=22    90.9%
+//   0.75+       n=176   ~99%
+//
+// A D'Mart bill (Receipt 96) came back General Retail at 0.5219 and overrode
+// Gemini, which had correctly read Supermarket / Grocery from the merchant name
+// and the image. Letting a coin flip beat the model that can see the receipt is
+// the wrong way round, and the gate exists precisely to prevent it.
+//
+// At 0.65 the classifier keeps 198 of 216 predictions at 98.0% accuracy, and the
+// 18 it gives up were right only 61% of the time. Re-measure with
+// ml-service/train_classifier.py's test split if the model is ever retrained.
+const CLASSIFIER_MIN_CONFIDENCE = 0.65;
 // How many recent receipts to compare a new upload against perceptually. Every
 // hash is sent to the ML service on each scan, so this trades duplicate recall
 // against payload size; at this project's data volume it covers the whole corpus.

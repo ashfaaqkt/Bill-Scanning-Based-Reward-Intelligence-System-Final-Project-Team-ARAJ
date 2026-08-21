@@ -19,7 +19,7 @@ Predicts one of three spend categories from the text extracted off a receipt:
 **Food & Beverage**, **General Retail**, **Supermarket / Grocery**. The result
 drives the category multiplier in the points engine.
 
-`server.js` uses the prediction when confidence ≥ 0.45 and falls back to Gemini's
+`server.js` uses the prediction when confidence ≥ 0.65 and falls back to Gemini's
 own category otherwise, so a low-confidence prediction never silently degrades
 the reward calculation.
 
