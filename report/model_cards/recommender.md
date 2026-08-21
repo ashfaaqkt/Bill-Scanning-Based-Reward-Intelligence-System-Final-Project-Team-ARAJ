@@ -110,9 +110,13 @@ Three further reasons to read the numbers narrowly:
   `n_factors=50`. There are far more latent dimensions than items to describe,
   so the factors are unidentifiable — the model has room to memorise rather
   than generalise. On real data this would be reduced sharply.
-- **Precision@5 = 0.5 is close to what the catalogue forces.** With 12 offers
-  across 3 categories, a user who likes two of three categories has a large
-  share of the catalogue counted as relevant before any ranking happens.
+- **Precision@5 = 0.5 is close to what the catalogue forces.** The evaluation
+  ran against a 12-offer catalogue across 3 categories, where a user who likes
+  two of three categories has a large share of the catalogue counted as relevant
+  before any ranking happens. *(The served catalogue was widened to 22 offers on
+  21 Aug 2026 to give the vault more to draw on. The figures in this card belong
+  to the 12-offer catalogue they were measured against and were not re-run;
+  a wider catalogue would be expected to lower Precision@5, not raise it.)*
 - **NDCG@K rises from 0.766 at K=7 to 0.855 at K=10**, which is the signature of
   a relevance definition loose enough that more slots keep finding matches.
 

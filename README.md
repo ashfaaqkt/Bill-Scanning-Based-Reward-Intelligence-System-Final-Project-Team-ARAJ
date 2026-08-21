@@ -12,7 +12,7 @@ A production-grade AI + ML system where consumers scan retail receipts, extract 
 
 **PoC Reference →** [Phase 3 PoC Repo](https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-study-project-bits-poc-phase-3-Team-ARAJ) (for read only)
 
-### ML results (as of Aug 19, 2026)
+### ML results (as of 21 Aug 2026)
 
 | Model | Type | Result | Target |
 |---|---|---|---|
@@ -46,6 +46,48 @@ Fraud evaluation in full → [`report/fraud_test_report.md`](report/fraud_test_r
 > Sprint 3 — unopenable PDFs, source-receipt leakage, and a JPEG compression shortcut
 > worth AUC 0.690 on its own — were corrected, which *lowered* the reported number
 > before better input resolution raised it again.
+
+---
+
+## Project status — 21 Aug 2026
+
+**Released as [`v1.0-fyp`](https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-Final-Project-Team-ARAJ/releases/tag/v1.0-fyp).**
+The release carries the four model binaries, which are gitignored by design — a
+fresh clone has none of them, and `ml-service/fetch_models.py` pulls them by
+exact filename.
+
+**TC-26 passed on 21 Aug 2026.** Six receipts driven through the browser in one
+session against live Firestore and the live extraction model: three genuine
+across three spend categories, one tampered, one blurred, one containing two
+bills. Every case behaved as specified, including both refusals.
+[Recorded walkthrough](https://www.youtube.com/watch?v=k3eFlxkNR2g).
+
+**The system runs locally** against live cloud Firestore and the live extraction
+model. Cloud hosting was scoped, prepared and then deliberately deferred — it is
+not required to demonstrate or assess the system, and every reported result was
+measured against the same cloud dependencies a hosted instance would use. The
+preparation (`render.yaml`, `frontend/vercel.json`, `fetch_models.py`, pinned
+CPU-only torch) is retained, so hosting stays a configuration exercise.
+
+### Live thresholds
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `BLUR_THRESHOLD` | 40 | Contrast-normalised sharpness over the ink only — **not** whole-frame Laplacian variance |
+| `TAMPER_THRESHOLD` | 0.82 | The CNN contributes above this. 50.4% recall for 9.2% false positives |
+| `PHASH_DISTANCE_THRESHOLD` | 6 | And the receipt totals must agree — an image match alone cannot refuse a user |
+| `CLASSIFIER_MIN_CONFIDENCE` | 0.65 | Below this, the extraction model's category stands |
+
+Each was set by measurement, not by assumption; the reasoning is in the model
+cards and beside each constant in the code.
+
+### What whole-stack testing found
+
+**Twenty-three integration defects** across five sessions, 17–21 Aug. None was
+found by a component test, and the component tests passed throughout. Two meant
+a model this repository described as live had never executed on a real upload —
+the tamper CNN was called without the image, and the perceptual-hash check was
+never given hashes to compare against. **A component test cannot see a seam.**
 
 ---
 
@@ -101,7 +143,7 @@ Every member works on their own feature branch. `main` and `dev` are shared
 branches, not anyone's workspace — Ashfaaq administers both in addition to
 developing on `ashfaaq/ml-integration`.
 
-### Where each member's work stands (19 Aug 2026)
+### Where each member's work stands (21 Aug 2026)
 
 | Member | Delivered | Open |
 |---|---|---|

@@ -7,7 +7,7 @@
 | **Task** | Flag transactions whose amount is unusual |
 | **Learning type** | **Unsupervised** — there are no anomaly labels anywhere in the project |
 | **Algorithm** | Isolation Forest (200 trees, contamination 0.12) |
-| **Artifact** | `ml-service/models/spending_anomaly.joblib` (2.5 MB) |
+| **Artifact** | `ml-service/models/spending_anomaly.joblib` (2.4 MB) |
 | **Served by** | `ml-service/anomaly.py` → `/ml/anomaly` |
 | **Status** | ✅ **In production, target met** |
 
