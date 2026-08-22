@@ -17,7 +17,17 @@ const bcrypt = require('bcrypt');        // Password hashing (salt rounds = 10)
 const admin = require('firebase-admin');            // Firestore database access
 
 // ── CONSTANTS ──────────────────────────────────────────────────
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';  // Python Flask ML service
+// Python Flask ML service. Render's blueprint resolves this through
+// `fromService: property: hostport`, which yields a bare "host:port" with NO
+// scheme -- e.g. "araj-ml-service:10000". Axios reads the leading token before
+// the colon as a protocol and rejects the request with ERR_BAD_REQUEST, so
+// every ML call would fail in the deployed stack while working locally, where
+// the default below carries its own scheme. Normalise instead of assuming.
+const ML_SERVICE_URL = (() => {
+    const raw = (process.env.ML_SERVICE_URL || 'http://localhost:5001').trim();
+    const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+    return withScheme.replace(/\/+$/, '');       // trailing slash would double up
+})();
 // Below this the classifier's answer is discarded and Gemini's reading stands.
 //
 // Was 0.45, which was assumed rather than measured. On the 216-row test set the
