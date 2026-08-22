@@ -41,8 +41,12 @@ RUN python fetch_models.py
 
 EXPOSE 7860
 
-# Two workers is safe here in a way it never was on Render: each loads its own
-# copy of torch, which is fine against 16 GB. Long timeout because a cold
-# Gemini call measured 31 s and the 448px CNN pass sits on top of it.
-CMD ["gunicorn", "--workers", "2", "--threads", "4", "--timeout", "180", \
-     "--bind", "0.0.0.0:7860", "app:app"]
+# Shell form, not exec form, so ${PORT} is expanded at runtime. Cloud Run
+# injects PORT (8080) and requires the container to honour it; Hugging Face
+# Spaces expects 7860. One image satisfies both.
+#
+# Two workers is safe wherever memory is not 512 MB: each loads its own copy of
+# torch, which is fine against the 2 GB this is deployed with. Long timeout
+# because a cold Gemini call measured 31 s and the 448px CNN pass sits on top.
+CMD exec gunicorn --workers 2 --threads 4 --timeout 180 \
+    --bind 0.0.0.0:${PORT:-7860} app:app
