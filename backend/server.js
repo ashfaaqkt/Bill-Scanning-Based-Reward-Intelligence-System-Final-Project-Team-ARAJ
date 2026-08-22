@@ -1200,6 +1200,33 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             })
         ]);
 
+        // Verification is not optional, so its absence cannot be silent.
+        //
+        // Until now a failed fraud call fell through to the defaults below and
+        // the receipt was stored as "Low risk" with points awarded, no signals
+        // and no perceptual hash — indistinguishable in Firestore from a
+        // receipt that had genuinely been checked. On 22 Aug the ML service was
+        // OOM-killed the first time it loaded the CNN and that is exactly what
+        // happened: a clean-looking verdict the system never computed.
+        //
+        // This system's whole claim is that a receipt is verified BEFORE the
+        // reward is granted. Granting anyway when the verifier is down inverts
+        // that. Refuse instead, before anything is written: nothing is
+        // persisted at this point, so the user simply retries.
+        //
+        // The anomaly call keeps degrading gracefully below. It is a secondary
+        // signal about spending patterns, not the gate on whether this receipt
+        // is real, and losing it does not let an unchecked receipt through.
+        if (!fraudRes || !fraudRes.data || fraudRes.data.fraud_score === undefined) {
+            console.error('Refusing upload: fraud verification unavailable, nothing written.');
+            return res.status(503).json({
+                error: 'Verification is temporarily unavailable, so this receipt '
+                     + 'was not saved and no points were awarded. Please try again '
+                     + 'in a moment.',
+                code: 'VERIFICATION_UNAVAILABLE'
+            });
+        }
+
         if (anomalyRes && anomalyRes.data && anomalyRes.data.anomaly_score !== undefined) {
             anomalyScore = anomalyRes.data.anomaly_score;
             anomalyFlag = anomalyRes.data.is_anomaly === true;
@@ -1330,6 +1357,15 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             user_id: req.userId,
             score: fraudScore,
             risk_level: riskLevel,
+            // The model's own output, kept rather than discarded. Both of these
+            // were computed on every upload and shown to the user, then thrown
+            // away, so afterwards the audit trail held a verdict with no
+            // evidence behind it — Firestore could say a receipt was Low risk
+            // but not what the tamper network actually scored it, nor which of
+            // the rule signals fired. For a system that asks a panel to trust
+            // its fraud decisions, the reasoning has to outlive the request.
+            tamper_probability: tamperProbability,
+            signals: fraudSignals,
             cross_user_duplicate: crossUserDuplicate,
             items_total_mismatch: itemsMismatch,
             anomaly_score: anomalyScore,
