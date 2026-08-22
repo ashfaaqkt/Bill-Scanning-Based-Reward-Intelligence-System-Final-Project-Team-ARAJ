@@ -23,6 +23,19 @@ const admin = require('firebase-admin');            // Firestore database access
 // the colon as a protocol and rejects the request with ERR_BAD_REQUEST, so
 // every ML call would fail in the deployed stack while working locally, where
 // the default below carries its own scheme. Normalise instead of assuming.
+// Timeouts for the non-OCR ML calls. These were 3000 ms, which is generous for
+// a service on localhost and far too short for one across the public internet
+// on a 0.1-CPU instance. Every one of these calls degrades silently on failure
+// -- the upload still succeeds, recommendations fall back to a static pool --
+// so a timeout that is too low does not error, it quietly turns personalisation
+// off and leaves the documentation claiming a recommender that never runs.
+//
+// UPLOAD: reached after OCR has already woken the service, so it only needs to
+// cover slow inference. STANDALONE: /api/recommendations can be the first call
+// after a sleep, and a cold start measured 62 s on 22 Aug.
+const ML_TIMEOUT_UPLOAD_MS = 20000;
+const ML_TIMEOUT_STANDALONE_MS = 75000;
+
 const ML_SERVICE_URL = (() => {
     const raw = (process.env.ML_SERVICE_URL || 'http://localhost:5001').trim();
     const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
@@ -656,7 +669,7 @@ app.get('/api/recommendations', authenticateToken, async (req, res) => {
         const mlRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
             user_id: req.userId,
             top_n: topN
-        }, { timeout: 3000 });
+        }, { timeout: ML_TIMEOUT_STANDALONE_MS });
 
         res.json({
             recommendations: mlRes.data?.recommendations || [],
@@ -1363,7 +1376,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
                 category: receiptData.category,
                 amount: total,
                 merchant: receiptData.rawMerchant
-            }, { timeout: 3000 });
+            }, { timeout: ML_TIMEOUT_UPLOAD_MS });
         } catch (mlError) {
             console.warn("ML Service (Profile) update failed.");
         }
@@ -1374,7 +1387,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             const recRes = await axios.post(`${ML_SERVICE_URL}/ml/recommend`, {
                 user_id: req.userId,
                 top_n: 5
-            }, { timeout: 3000 });
+            }, { timeout: ML_TIMEOUT_UPLOAD_MS });
             if (recRes.data && Array.isArray(recRes.data.recommendations)) {
                 recommendedRewards = recRes.data.recommendations;
             }
