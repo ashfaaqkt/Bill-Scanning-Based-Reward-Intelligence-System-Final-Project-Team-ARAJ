@@ -77,14 +77,26 @@ services:
         value: "20"
       # Render injects PORT; server.js already reads it.
       #
-      # The public URL, not `fromService: hostport`. That resolved correctly to
-      # "araj-ml-service:10000", but the name does not resolve in DNS between
-      # two free-tier web services -- the deployed backend failed every upload
-      # with "getaddrinfo ENOTFOUND araj-ml-service". Render's private network
-      # is not available here, so the two services talk over the public
-      # internet like any other client. Slightly slower, and it works.
+      # The ML service runs on Cloud Run, not on Render.
+      #
+      # It was here, and it could not stay. Free Render web services are capped
+      # at 512 MB; torch is ~250 MB resident before the checkpoint loads, and
+      # OpenCV, pandas and scikit-learn sit on top. The instance was killed the
+      # first time /ml/fraud-score imported torch -- Render's event timeline
+      # recorded "Instance failed" at 20:11 on 22 Aug, the same minute the
+      # backend logged the fraud, profile and recommend calls as unreachable.
+      #
+      # The failure was silent: all three calls degrade rather than error, so
+      # the upload still succeeded and the receipt was stored as Low risk with
+      # the 0.05 baseline, no signals and no perceptual hash. A receipt that had
+      # never been checked was indistinguishable from one that passed.
+      #
+      # Cloud Run gives 2 GB, and the tamper CNN returns real probabilities
+      # there. Also note this is not `fromService` -- Render's private network
+      # is unavailable between free web services, and the earlier internal
+      # address failed with "getaddrinfo ENOTFOUND araj-ml-service".
       - key: ML_SERVICE_URL
-        value: "https://araj-ml-service.onrender.com"
+        value: "https://araj-ml-service-1012478382071.asia-southeast1.run.app"
       - key: JWT_SECRET
         generateValue: true       # Render generates and stores a strong secret
       # Upload serviceAccountKey.json as a Secret File on this service, then set
