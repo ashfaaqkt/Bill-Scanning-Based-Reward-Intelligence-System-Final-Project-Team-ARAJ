@@ -31,10 +31,19 @@ services:
     rootDir: ml-service
     buildCommand: "pip install -r requirements.txt && python fetch_models.py"
     # Flask's built-in server is single-threaded and not for production; app.py
-    # only runs it under __main__ for local development. Two workers fit the
-    # free tier's memory once torch is loaded; the 448px CNN and a Gemini call
-    # can both take tens of seconds, hence the long timeout.
-    startCommand: "gunicorn --workers 2 --threads 4 --timeout 180 --bind 0.0.0.0:$PORT app:app"
+    # only runs it under __main__ for local development.
+    #
+    # ONE worker, deliberately. Gunicorn workers are separate processes, so each
+    # loads its own copy of torch — ~200-250 MB resident before the checkpoint,
+    # plus scikit-learn, pandas and OpenCV. Two workers overshoot the free
+    # tier's 512 MB and the service is OOM-killed on boot. One lands near
+    # 350-400 MB. Concurrency comes from threads instead, which share the
+    # interpreter and therefore the loaded model; the work is waiting on Gemini
+    # anyway, not competing for CPU.
+    #
+    # The 448px CNN and a cold Gemini call can each take tens of seconds, hence
+    # the long timeout — gunicorn's 30 s default would kill real requests.
+    startCommand: "gunicorn --workers 1 --threads 4 --timeout 180 --bind 0.0.0.0:$PORT app:app"
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
