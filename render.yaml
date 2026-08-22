@@ -76,11 +76,15 @@ services:
       - key: NODE_VERSION
         value: "20"
       # Render injects PORT; server.js already reads it.
+      #
+      # The public URL, not `fromService: hostport`. That resolved correctly to
+      # "araj-ml-service:10000", but the name does not resolve in DNS between
+      # two free-tier web services -- the deployed backend failed every upload
+      # with "getaddrinfo ENOTFOUND araj-ml-service". Render's private network
+      # is not available here, so the two services talk over the public
+      # internet like any other client. Slightly slower, and it works.
       - key: ML_SERVICE_URL
-        fromService:
-          type: web
-          name: araj-ml-service
-          property: hostport      # resolves to the internal host:port
+        value: "https://araj-ml-service.onrender.com"
       - key: JWT_SECRET
         generateValue: true       # Render generates and stores a strong secret
       # Upload serviceAccountKey.json as a Secret File on this service, then set
