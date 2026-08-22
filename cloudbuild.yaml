@@ -1,0 +1,66 @@
+# Cloud Build — build, push and deploy the ML service to Cloud Run.
+#
+# Written as a file rather than configured in the console because the console's
+# Dockerfile trigger could not express this build. It puts the whole path into a
+# "Dockerfile directory" field that is also used as the build context, so a
+# service living in a subdirectory either loses its context or its filename; and
+# a Dockerfile-type trigger builds and pushes but never deploys, which produced
+# a green build sitting behind a placeholder image.
+#
+# The three steps below are explicit about all of it, and the file is reviewed
+# in version control like everything else.
+
+substitutions:
+  _SERVICE: araj-ml-service
+  _REGION: asia-southeast1
+  _AR_REPO: cloud-run-source-deploy      # created by Cloud Run's first setup
+
+steps:
+  # ── 1. Build ────────────────────────────────────────────────
+  # -f names the Dockerfile, the trailing "ml-service" is the build context.
+  # Keeping them separate is the whole point: COPY requirements.txt resolves
+  # against ml-service/, while the repository root stays out of the image.
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - ml-service/Dockerfile
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$COMMIT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:latest
+      - ml-service
+
+  # ── 2. Push ─────────────────────────────────────────────────
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}
+
+  # ── 3. Deploy ───────────────────────────────────────────────
+  # The step the console trigger was missing. Deployed by digest-pinned tag so a
+  # revision always names the commit it came from.
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --quiet
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$COMMIT_SHA
+
+# The torch wheel is ~200 MB and the model binaries are fetched during the
+# build, so the 10-minute default is too tight on a cold cache.
+timeout: 1800s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
