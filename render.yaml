@@ -22,46 +22,12 @@
 #      deploying a service that silently returns the 0.05 fraud baseline.
 
 services:
-  # ── ML service — OCR, classifier, fraud, anomaly, recommender ─────────────
-  - type: web
-    name: araj-ml-service
-    runtime: python
-    plan: free
-    region: singapore          # closest region to the users and to Firestore
-    rootDir: ml-service
-    buildCommand: "pip install -r requirements.txt && python fetch_models.py"
-    # Flask's built-in server is single-threaded and not for production; app.py
-    # only runs it under __main__ for local development.
-    #
-    # ONE worker, deliberately. Gunicorn workers are separate processes, so each
-    # loads its own copy of torch — ~200-250 MB resident before the checkpoint,
-    # plus scikit-learn, pandas and OpenCV. Two workers overshoot the free
-    # tier's 512 MB and the service is OOM-killed on boot. One lands near
-    # 350-400 MB. Concurrency comes from threads instead, which share the
-    # interpreter and therefore the loaded model; the work is waiting on Gemini
-    # anyway, not competing for CPU.
-    #
-    # The 448px CNN and a cold Gemini call can each take tens of seconds, hence
-    # the long timeout — gunicorn's 30 s default would kill real requests.
-    startCommand: "gunicorn --workers 1 --threads 4 --timeout 180 --bind 0.0.0.0:$PORT app:app"
-    healthCheckPath: /health
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.13.0"
-      - key: MODEL_BASE_URL
-        value: "https://github.com/ashfaaqkt/Bill-Scanning-Based-Reward-Intelligence-System-Final-Project-Team-ARAJ/releases/download/v1.0-fyp"
-      # At least one Gemini key is required. Keys 2 and 3 are optional and only
-      # widen the free-tier ceiling — each project has its own 5 RPM quota.
-      - key: GEMINI_API_KEY_1
-        sync: false
-      - key: GEMINI_API_KEY_2
-        sync: false
-      - key: GEMINI_API_KEY_3
-        sync: false
-      # Names the keys on a billed plan, so they are tried first and skip the
-      # 23-second free-tier spacing. Leave unset if every key is free.
-      - key: GEMINI_PAID_KEYS
-        sync: false
+  # The ML service is NOT here. It ran on Render until 22 Aug and could not
+  # stay: the free tier caps a service at 512 MB, and torch alone is ~250 MB
+  # resident before the checkpoint loads. The instance was OOM-killed the first
+  # time /ml/fraud-score imported torch, which the backend saw only as three
+  # simultaneous "unreachable" warnings. It now runs on Cloud Run with 2 GB --
+  # see ML_SERVICE_URL below and ml-service/Dockerfile.
 
   # ── Backend API — also serves the frontend ────────────────────────────────
   - type: web
