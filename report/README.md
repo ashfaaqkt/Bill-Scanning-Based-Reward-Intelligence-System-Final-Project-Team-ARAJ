@@ -20,7 +20,7 @@ prepared for our supervisor.
 | `assets/` | Figures (`fig_*.png`) and every results CSV behind them |
 | `Team_ARAJ_Progress_Report_v5.pdf` | Progress report for Prof. Uma. Superseded revisions are not retained: v2 carried a transposed fraud-label split (genuine 64.5% / tampered 32.5%, when it is the reverse) that v3 corrected and stated openly; v4 added the collaborative filter, the reward evaluation and the integration defects found running the stack end to end; v5 records the final thresholds and the TC-26 result |
 
-## Results at a glance (Aug 19, 2026)
+## Results at a glance (Aug 23, 2026)
 
 | Model | Result | Target | Status |
 |---|---|---|---|
@@ -29,10 +29,10 @@ prepared for our supervisor.
 | Fraud CNN | AUC **0.805** · **0.864** on real receipts | 0.90 | ⚠️ Not met |
 | Recommender (SVD + content) | NDCG@5 **0.7984** *on synthetic interactions* | NDCG@5 0.70 | 🔸 Built & wired; target not claimed |
 
-Every figure regenerates from the commands in `fraud_test_report.md` §7. Model
-detail and limitations: [`model_cards/README.md`](model_cards/README.md).
+Every figure regenerates from the commands in `fraud_test_report.md` Section 7.
+Model detail and limitations: [`model_cards/README.md`](model_cards/README.md).
 
-> **Read `fraud_test_report.md` §6 alongside the fraud number.** The CNN and the
+> **Read `fraud_test_report.md` Section 6 alongside the fraud number.** The CNN and the
 > perceptual-hash check were both dead in the running pipeline until 19 Aug —
 > the upload path never passed the image, and no hash was ever stored. The
 > evaluation here was measured directly against the corpus and is unaffected, but
@@ -46,6 +46,6 @@ baseline built to test whether the CNN's ceiling was a property of the method or
 of the corpus. It reaches AUC 0.736 alone, and rank-average fusion with the CNN
 *lowers* the served result from 0.805 to 0.790. We keep the code because the
 negative result is part of the evidence; we do not serve it because serving it
-would make the system worse. Full working: `fraud_test_report.md` §4.
+would make the system worse. Full working: `fraud_test_report.md` Section 4.
 
 Documentation owner: Jyoti (structure + writing) · Ashfaaq (evaluation figures)

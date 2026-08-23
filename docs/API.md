@@ -1,6 +1,29 @@
 # API Reference — Team ARAJ
 
-## Backend (Node.js) — Base URL: http://localhost:3000
+## Base URLs
+
+The system is deployed. Both a live and a local base URL are given for every
+route below; the paths are identical.
+
+| Service | Live | Local |
+|---|---|---|
+| Web client | `https://araj-capstone.vercel.app` | any static server — see `docs/SETUP.md` step 4 |
+| **Backend API** | `https://araj-backend.onrender.com` | `http://localhost:3000` |
+| **ML service** | `https://araj-ml-service-1012478382071.asia-southeast1.run.app` | `http://localhost:5001` |
+
+The web client does not call the backend cross-origin: `frontend/vercel.json`
+rewrites `/api/*` to the backend, so the browser only ever talks to its own
+origin. The **ML service is internal** — the backend calls it via
+`ML_SERVICE_URL` and nothing else should. It is documented here because its
+contract is part of the system, not because it is meant to be called directly.
+
+**Both live services can be cold.** The backend sleeps after 15 minutes idle on
+Render's free tier (~50s to wake) and Cloud Run scales to zero. A first request
+after a quiet spell can pay both.
+
+---
+
+## Backend (Node.js) — `https://araj-backend.onrender.com` · `http://localhost:3000`
 
 ### Auth
 
@@ -92,7 +115,7 @@ cards are deliberately exempt, being lottery tickets rather than a named offer.
 
 ---
 
-## ML Service (Python Flask) — Base URL: http://localhost:5001
+## ML Service (Python Flask) — `https://araj-ml-service-1012478382071.asia-southeast1.run.app` · `http://localhost:5001`
 
 ### Health
 
