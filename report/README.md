@@ -1,16 +1,17 @@
 # Engineering & Evaluation Documentation
 
 This folder holds the written evaluation record for the project: the per-model
-cards, the fraud evaluation, the sprint summary, and the progress report
-prepared for our supervisor.
+cards, the fraud evaluation and the sprint summary, together with the figures
+and result files behind every number they quote.
 
 ## Structure
 
 > **Scope of this folder.** What lives here is engineering documentation —
 > written in Markdown, versioned alongside the code it describes, so a figure
 > quoted in a card can always be traced to the CSV and the script that produced
-> it. The academic submission documents are prepared and submitted separately
-> and are not part of this repository.
+> it. **No submission document lives here** — the report, the deck, the summary
+> report and every other assessed deliverable are prepared and submitted
+> separately, and none of them is tracked in this repository.
 
 | Path | Contents |
 |---|---|
@@ -18,7 +19,6 @@ prepared for our supervisor.
 | `fraud_test_report.md` | Full fraud-detection evaluation (Sprint 3) |
 | `sprint3_summary_report.md` | Sprint 3 summary — what changed and why |
 | `assets/` | Figures (`fig_*.png`) and every results CSV behind them |
-| `Team_ARAJ_Progress_Report_v5.pdf` | Progress report for Prof. Uma. Superseded revisions are not retained: v2 carried a transposed fraud-label split (genuine 64.5% / tampered 32.5%, when it is the reverse) that v3 corrected and stated openly; v4 added the collaborative filter, the reward evaluation and the integration defects found running the stack end to end; v5 records the final thresholds and the TC-26 result |
 
 ## Results at a glance (Aug 23, 2026)
 
