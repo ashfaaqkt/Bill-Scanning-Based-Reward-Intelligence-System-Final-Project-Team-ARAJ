@@ -64,5 +64,21 @@ fix: handle Gemini 429 rate limit in upload route
 
 - Never push directly to main
 - Never commit .env or serviceAccountKey.json
-- Never commit large model files without Git LFS
-- Never commit dataset images (use external storage)
+- **Never commit model binaries** — see below
+- Never commit dataset images (use external storage or Drive)
+
+## Model binaries are gitignored, and that is load-bearing
+
+`*.pkl`, `*.pt` and `*.joblib` under `ml-service/models/` are ignored on purpose.
+A committed checkpoint is what left one feature branch unmergeable — a 1.9 MB
+blob sits in its history and cannot be taken out without a rewrite, so those
+files were lifted across with `git checkout <branch> -- <paths>` instead.
+
+The trained weights are distributed as **release assets** on the `v1.0-fyp` tag.
+`ml-service/fetch_models.py` pulls them by exact filename at build time and
+**exits non-zero if any required binary is missing**, so a deployment either has
+its models or fails loudly. It is not Git LFS and should not become Git LFS.
+
+This matters more than it looks: without the binaries the service still starts
+happily, and every model quietly falls back to a baseline — the classifier defers
+to Gemini, and fraud and anomaly both return 0.05 for everything.

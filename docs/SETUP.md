@@ -1,5 +1,15 @@
 # Local Setup Guide — Team ARAJ
 
+> **You may not need any of this.** The system is deployed and live at
+> **[araj-capstone.vercel.app](https://araj-capstone.vercel.app)** — sign up and
+> upload a receipt. This guide is for running it on your own machine, for
+> development, retraining or offline demonstration.
+>
+> Live services: web client on Vercel, backend on Render
+> (`https://araj-backend.onrender.com`), ML service on Google Cloud Run
+> (`https://araj-ml-service-1012478382071.asia-southeast1.run.app`). Topology and
+> why it is split three ways: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 ## Prerequisites
 
 - Node.js 20+
@@ -216,7 +226,11 @@ Each team member owns specific modules. Here's what each person should implement
 
 **Key Implementation Tasks:**
 1. Train and validate classifier on CORD/SROIE receipt dataset
-2. Implement online learning for user profile updates
+2. Maintain the per-user interest vector as receipts arrive — a **decayed
+   weighting over categories already seen**, recomputed per upload. This is not
+   online learning and must not be described as such: every model in this system
+   is a static file loaded at startup, uploads run inference only, and no user
+   image is retained. Retraining is a manual step (the notebooks or `train_*.py`)
 3. Design reward ranking algorithm (collaborative filtering + content-based)
 4. Document model performance and accuracy metrics
 
@@ -229,17 +243,24 @@ Each team member owns specific modules. Here's what each person should implement
 - Test suites and validation scripts
 - 3 demo receipts (clean / blurry / tampered) for the viva
 
-**Status (Aug 7, 2026):** `fraud.py`, `anomaly.py` and the `/ml/fraud-score` +
+**Status (Aug 23, 2026):** `fraud.py`, `anomaly.py` and the `/ml/fraud-score` +
 `/ml/anomaly` endpoints are **implemented and live** — tamper CNN (AUC 0.805),
 perceptual-hash duplicates, and a trained Isolation Forest (FPR 13.2%). See
 [`report/model_cards/`](../report/model_cards/README.md).
 
+**Closed since:**
+- **End-to-end test through the live stack** — closed 19 Aug. The full chain ran
+  against live Firestore and live Gemini through `POST /api/upload`. That run is
+  what exposed the two dead seams (the tamper CNN never received the image; no
+  perceptual hash was ever stored).
+- **TC-26, the browser run** — closed 21 Aug. Six receipts in one session, three
+  genuine across three categories plus one tampered, one blurred and one
+  containing two bills. Every case behaved as specified, including both refusals.
+- **The 3 demo receipts** — captured in the same session.
+
 **Remaining:**
-1. Regression test suite covering all backend + ML routes
-2. **End-to-end test through the live stack** (Firestore + Gemini running) — every ML
-   route has been tested through Flask directly, but never end to end. This is the last
-   open Definition-of-Done item across all models.
-3. Prepare the 3 demo receipts
+1. Regression test suite covering all backend + ML routes (de-scoped at the
+   Aug 12 freeze; the whole-stack sessions carried the verification instead)
 
 ---
 
