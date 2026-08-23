@@ -15,7 +15,7 @@
 | **Real-receipt subset (n=94)** | **0.864** |
 | Mean fold AUC | 0.811 ± 0.091 (SD), 95% CI [0.730, 0.891] |
 | Dataset | 194 images from 103 source receipts |
-| Input resolution | **448 × 448** (see §4b) |
+| Input resolution | **448 × 448** (see Section 4b) |
 | Champion model | MobileNetV2, `ml-service/models/tamper_cnn_cv_normalized_448.pt` |
 
 **The 0.90 target was not met overall**, though the model reaches **0.864 on the 94

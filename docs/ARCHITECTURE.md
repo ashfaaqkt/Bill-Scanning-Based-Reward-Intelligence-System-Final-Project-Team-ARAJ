@@ -1,5 +1,54 @@
 # System Architecture — Team ARAJ
 
+> **Read this first.** The project's genre is **AI/ML**, not full-stack web
+> development. The architecture below exists to get a receipt image in front of
+> five models and to make what they decide visible. The web tier is a
+> demonstration surface; the ML service is the subject.
+
+## Deployment topology (live since 22 Aug 2026)
+
+```
+                  Browser
+                     │
+                     ▼
+  ┌──────────────────────────────────┐
+  │  araj-capstone.vercel.app        │  Vercel — static, never sleeps
+  │  frontend/ (HTML/CSS/JS)         │  vercel.json rewrites /api/* ──┐
+  └──────────────────────────────────┘                                │
+                                                                      │ same-origin
+                     ┌────────────────────────────────────────────────┘
+                     ▼
+  ┌──────────────────────────────────┐
+  │  araj-backend.onrender.com       │  Render — Node 20, free, Singapore
+  │  backend/server.js               │  sleeps after 15 min idle (~50s wake)
+  └──────────┬───────────────────────┘
+             │ ML_SERVICE_URL (public HTTPS — Render's private
+             │ network is unavailable between free services)
+             ▼
+  ┌──────────────────────────────────┐
+  │  araj-ml-service-….run.app       │  Cloud Run — 2 GB, asia-southeast1
+  │  ml-service/app.py               │  min 0 / max 2, concurrency 8
+  └──────────┬───────────────────────┘  scales to zero → cold starts
+             │
+             ▼
+     Firestore  ·  Gemini 2.5 Flash
+```
+
+**Three providers is a result, not a preference.** The ML service ran on Render
+until 22 Aug and could not stay: the free tier caps a service at 512 MB and
+torch is ~250 MB resident before the tamper checkpoint loads. It was OOM-killed
+the first time `/ml/fraud-score` imported torch — and **the failure was silent**,
+because the fraud, profile and recommend calls all degrade rather than error, so
+receipts were stored as Low risk with the 0.05 baseline. Hugging Face Spaces was
+tried next and produced the container; the tier that met the requirement was
+paid. Cloud Run has the memory. Full account:
+[`ml-service/SPACE_README.md`](../ml-service/SPACE_README.md).
+
+**Consequence for the design:** every backend → ML call now crosses the public
+internet between two regions rather than a loopback. Timeouts were retuned
+(3 seconds was tuned against localhost), and an unreachable ML service is a
+refusal rather than a default pass.
+
 ## High-Level Overview
 
 ```

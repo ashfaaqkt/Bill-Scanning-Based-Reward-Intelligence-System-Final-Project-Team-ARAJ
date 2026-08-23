@@ -73,10 +73,20 @@ across three spend categories, one tampered, one blurred, one containing two
 bills. Every case behaved as specified, including both refusals. Screenshots and
 a recorded walkthrough were captured in the same session.
 
-Across five such whole-stack runs between 17 and 21 August, **twenty-three
+Across six such whole-stack runs between 17 and 22 August, **twenty-seven
 integration defects** were found. None was found by a component test, and the
 component tests passed throughout. Two of them meant a model these very cards
 described as live had never executed on a real upload. That is why "tested
 end-to-end through the live stack" is a separate row in the table above and not
 folded into "wired into the pipeline": the first five criteria can all be
 satisfied by a model that never runs.
+
+**Four of the twenty-seven came from deployment itself** (22 Aug), and one of
+those is the sharpest version of the same lesson. When the ML service was
+OOM-killed on Render, `/ml/fraud-score` and `/ml/anomaly` degraded rather than
+errored — so receipts were written as **Low risk with the 0.05 baseline, no
+signals and no perceptual hash**. The cards on this page described models that,
+for the duration of that outage, were not running at all, and nothing in the
+stored record distinguished an unchecked receipt from a cleared one. Verification
+failure is now a refusal. **A model card describes a model; only the running
+system can tell you whether it ran.**
