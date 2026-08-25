@@ -85,6 +85,12 @@ The release carries the four model binaries, which are gitignored by design — 
 fresh clone has none of them, and `ml-service/fetch_models.py` pulls them by
 exact filename.
 
+**What is in that release, and what each binary backs:**
+[`RELEASE_NOTES_v1.0-fyp.md`](RELEASE_NOTES_v1.0-fyp.md) — every model with its
+result and its caveat, the pipeline in one paragraph, which file backs which
+figure, and the deployment account. The tag's own annotation is deliberately
+left frozen at tag time; the release notes are the current version.
+
 **TC-26 passed on 21 Aug 2026.** Six receipts driven through the browser in one
 session against live Firestore and the live extraction model: three genuine
 across three spend categories, one tampered, one blurred, one containing two
