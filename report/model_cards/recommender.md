@@ -186,3 +186,17 @@ and an import failure there is silent: the service would have served
 content-based rankings while appearing to have a collaborative model. The
 notebook asserts the exported arithmetic matches Surprise before writing the
 bundle (max deviation 9.25e-08).
+
+## Currency limitations
+
+*Added on the Research-Programs branch; not part of the v1.0-fyp card.*
+
+- Ranking uses spend category and a decayed category-interest vector. Amounts
+  and currency are not inputs, so the model needs no currency change.
+- The **offer catalogue** (`ml-service/offers.py`) and the **points formula**
+  (₹100 = 1 point, in `backend/server.js`) are priced in INR. If the v1.0 formula
+  were applied to the synthetic Gulf receipts with amounts read as rupees, the
+  base points would be about 29× (SAR), 31× (AED) and 32× (QAR) lower than after
+  converting with the static FX table. That figure is computed, not measured
+  (`research/results/models/multicurrency.md`, section C). `main` avoids it by
+  refusing non-INR receipts.

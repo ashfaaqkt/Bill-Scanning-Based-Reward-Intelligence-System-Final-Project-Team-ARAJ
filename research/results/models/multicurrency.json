@@ -1,0 +1,129 @@
+{
+  "fx_version": "2026-11-19.1",
+  "classifier": [
+    {
+      "model": "text_only (v1.0 features)",
+      "test_n": 216,
+      "accuracy": 0.9537037037037037,
+      "macro_f1": 0.9497225335771734,
+      "macro_f1_IDR": 0.6034384768400113,
+      "macro_f1_MYR": 0.9797844667409885
+    },
+    {
+      "model": "text + currency one-hot",
+      "test_n": 216,
+      "accuracy": 0.8981481481481481,
+      "macro_f1": 0.8309343865912169,
+      "macro_f1_IDR": 0.5739080950348555,
+      "macro_f1_MYR": 0.8618361967981257
+    }
+  ],
+  "classifier_disagree": 13,
+  "classifier_test_counts": {
+    "IDR": 69,
+    "MYR": 147
+  },
+  "anomaly": [
+    {
+      "strategy": "inr_only_reference",
+      "currency": "IDR",
+      "test_n": 198,
+      "fpr": 0.1717171717171717,
+      "recall@3x": 0.0,
+      "recall@10x": 1.0,
+      "recall@50x": 1.0
+    },
+    {
+      "strategy": "inr_only_reference",
+      "currency": "MYR",
+      "test_n": 243,
+      "fpr": 0.09876543209876543,
+      "recall@3x": 0.0,
+      "recall@10x": 1.0,
+      "recall@50x": 1.0
+    },
+    {
+      "strategy": "per_currency_median",
+      "currency": "IDR",
+      "test_n": 198,
+      "fpr": 0.16666666666666666,
+      "recall@3x": 0.0,
+      "recall@10x": 1.0,
+      "recall@50x": 1.0
+    },
+    {
+      "strategy": "per_currency_median",
+      "currency": "MYR",
+      "test_n": 243,
+      "fpr": 0.102880658436214,
+      "recall@3x": 0.0,
+      "recall@10x": 1.0,
+      "recall@50x": 1.0
+    }
+  ],
+  "anomaly_medians": {
+    "IDR": 47249.5,
+    "MYR": 26.1
+  },
+  "anomaly_train_counts": {
+    "IDR": 592,
+    "MYR": 729
+  },
+  "rewards": {
+    "AED": {
+      "n": 12,
+      "inr_only": 29,
+      "fx": 908,
+      "ratio": 31.310344827586206
+    },
+    "INR": {
+      "n": 12,
+      "inr_only": 216,
+      "fx": 216,
+      "ratio": 1.0
+    },
+    "QAR": {
+      "n": 12,
+      "inr_only": 20,
+      "fx": 633,
+      "ratio": 31.65
+    },
+    "SAR": {
+      "n": 12,
+      "inr_only": 31,
+      "fx": 896,
+      "ratio": 28.903225806451612
+    }
+  },
+  "tamper": [
+    {
+      "currency": "AED",
+      "n": 12,
+      "flagged_at_threshold": 0.0,
+      "median_probability": 0.05573219992220402,
+      "max_probability": 0.13310948014259338
+    },
+    {
+      "currency": "INR",
+      "n": 12,
+      "flagged_at_threshold": 0.0,
+      "median_probability": 0.06538110226392746,
+      "max_probability": 0.19271986186504364
+    },
+    {
+      "currency": "QAR",
+      "n": 12,
+      "flagged_at_threshold": 0.0,
+      "median_probability": 0.06838265061378479,
+      "max_probability": 0.11836124956607819
+    },
+    {
+      "currency": "SAR",
+      "n": 12,
+      "flagged_at_threshold": 0.0,
+      "median_probability": 0.061317067593336105,
+      "max_probability": 0.1377478688955307
+    }
+  ],
+  "tamper_threshold": 0.82
+}

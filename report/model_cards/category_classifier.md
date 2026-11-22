@@ -88,3 +88,20 @@ the score.
 jupyter nbconvert --execute notebooks/02_category_classifier.ipynb
 ml-service/.venv/bin/python ml-service/train_classifier.py   # regenerate served model
 ```
+
+## Currency limitations
+
+*Added on the Research-Programs branch; not part of the v1.0-fyp card.*
+
+- The model reads item and merchant **text only**. Amounts and currency never
+  enter it, so v1.0 has no INR assumption to remove.
+- Its training and test data are Indonesian (CORD, IDR) and Malaysian (SROIE,
+  MYR) receipts. **The test split contains no INR and no Gulf receipts**, and the
+  model has never seen Arabic text. Arabic item names reach it as unknown tokens,
+  and the backend then falls back to the extraction model's category (confidence
+  gate 0.65). That fallback was not measured on Arabic receipts.
+- Adding currency as a feature was measured and **rejected**. On the v1.0 split,
+  macro-F1 fell from 0.950 (text only, retrained in the research environment) to
+  0.831 with a currency one-hot. In this corpus, currency is a one-to-one proxy
+  for the source dataset, which v1.0 deliberately excluded from the features.
+  Full table: `research/results/models/multicurrency.md`.

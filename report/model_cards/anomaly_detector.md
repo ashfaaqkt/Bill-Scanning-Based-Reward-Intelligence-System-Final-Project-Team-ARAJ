@@ -124,3 +124,22 @@ ml-service/.venv/bin/python ml-service/train_anomaly.py   # serving env, for skl
 ```
 
 Results: `report/assets/anomaly_results.csv`.
+
+## Currency limitations
+
+*Added on the Research-Programs branch; not part of the v1.0-fyp card.*
+
+- The feature is `log(amount / reference)`, which is currency-free only if the
+  reference is in the same currency as the amount. At serving time a user with
+  fewer than five receipts is compared with `POPULATION_REFERENCE_INR = 2748`.
+  For any non-INR receipt that comparison is meaningless, which is one reason
+  `main` refuses non-INR receipts at the currency gate.
+- On the held-out real receipts (IDR and MYR, the only non-INR labels that
+  exist), a single global reference and per-currency medians gave nearly the same
+  false-positive rate. IDR: 17.2% vs 16.7%. MYR: 9.9% vs 10.3%. Pooled, the
+  per-currency figure is 13.2%, which matches this card. IDR is above the 15%
+  budget under both strategies. Recall on injected outliers was 0% at 3× and
+  100% at 10× and 50× in every cell.
+- **No Gulf amounts were evaluated**, because there are no real Gulf receipts.
+  FX normalisation (`research/config/fx_rates.json`, static, 19 Nov 2026) is
+  implemented for SAR, AED and QAR but has no labelled data to be measured on.

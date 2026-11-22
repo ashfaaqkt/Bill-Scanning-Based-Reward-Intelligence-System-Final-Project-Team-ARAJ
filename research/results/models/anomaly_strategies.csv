@@ -1,0 +1,5 @@
+strategy,currency,test_n,fpr,recall@3x,recall@10x,recall@50x
+inr_only_reference,IDR,198,0.1717171717171717,0.0,1.0,1.0
+inr_only_reference,MYR,243,0.09876543209876543,0.0,1.0,1.0
+per_currency_median,IDR,198,0.16666666666666666,0.0,1.0,1.0
+per_currency_median,MYR,243,0.102880658436214,0.0,1.0,1.0

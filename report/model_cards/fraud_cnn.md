@@ -157,3 +157,17 @@ python  ml-service/make_report_figures.py
 ```
 
 Full detail: `report/fraud_test_report.md`.
+
+## Currency limitations
+
+*Added on the Research-Programs branch; not part of the v1.0-fyp card.*
+
+- The CNN sees pixels only. Currency is not an input, but **script and layout
+  are**: it was trained on 103 Indian source receipts and has never seen
+  Arabic, RTL layouts or Eastern Arabic digits.
+- Smoke test only: on 48 **synthetic** untampered receipts (SAR, AED, QAR, INR),
+  none reached the 0.82 threshold, and the highest probability was 0.193. These
+  images are rendered, not photographed, so this says nothing about the
+  false-positive rate on real Gulf receipts. That is **not measured**.
+- There are no tampered Gulf receipts, synthetic or real, so tamper **recall**
+  across scripts and currencies is **not measured**.
