@@ -16,6 +16,8 @@ from google.genai import types as genai_types
 from PIL import Image
 from dotenv import load_dotenv
 
+from receipt_schema import validate_receipt_payload
+
 # HEIC/HEIF is the iPhone camera default, and the backend accepts it — but
 # neither OpenCV nor stock Pillow can decode it, so every iPhone upload failed
 # with "cannot identify image file". Registering the opener teaches Pillow the
@@ -188,11 +190,17 @@ RECEIPT_PROMPT = (
     "\"rawMerchant\": \"string\", "
     "\"date\": \"string (YYYY-MM-DD)\", "
     "\"total\": number, "
+    "\"currency\": \"string or null — ISO 4217 code of the amounts (e.g. INR, SAR, AED, QAR, USD)\", "
     "\"category\": \"string ('Supermarket / Grocery', 'Food & Beverage', or 'General Retail')\", "
     "\"items\": [{ \"name\": \"string\", \"price\": number }], "
     "\"handwritten_flag\": boolean, "
     "\"handwritten_details\": \"string or null\""
-    "}"
+    "}. "
+    "For currency: use the printed symbol or code (₹ / Rs / INR → INR, ر.س / SAR → SAR, "
+    "د.إ / AED → AED, ر.ق / QAR → QAR, $ → USD). If no symbol is printed, infer it only "
+    "from unambiguous country evidence on the receipt (an Indian GSTIN, +91 phone number "
+    "or Indian address → INR; a Saudi, UAE or Qatari VAT number or address → that "
+    "country's currency). If it still cannot be determined, return null — do not guess."
 )
 
 # ── BLUR SCORE ─────────────────────────────────────────────────
@@ -512,12 +520,10 @@ def extract_receipt_data(image_path):
                         f"({parse_err}) — treating as transient. "
                         f"Body began: {preview!r}")
 
-                # Ensure handwriting fields are always present in successful responses
+                # Give every successful response the same shape: currency is an
+                # ISO code or None, handwriting fields are always present.
+                result = validate_receipt_payload(result)
                 if "error" not in result:
-                    if "handwritten_flag" not in result:
-                        result["handwritten_flag"] = False
-                    if "handwritten_details" not in result:
-                        result["handwritten_details"] = None
 
                     # Programmatic density anomaly check supplements Gemini's judgment.
                     # Catches localised handwritten edits Gemini may miss or under-flag.
