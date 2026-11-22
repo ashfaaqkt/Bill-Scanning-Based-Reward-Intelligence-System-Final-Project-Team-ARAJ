@@ -1,0 +1,16 @@
+# Research-Programs branch only. Install into research/.venv with Python 3.13:
+#   python3.13 -m venv research/.venv
+#   research/.venv/bin/pip install -r requirements-research.txt
+# The serving stack (ml-service/requirements.txt) is included because the
+# harness runs the real ocr.py, fraud.py and anomaly.py.
+-r ml-service/requirements.txt
+
+# Versions below are the ones every number in research/results was produced with.
+matplotlib==3.11.2
+arabic-reshaper==3.1.0
+python-bidi==0.6.12
+fonttools==4.68.0
+rapidfuzz==3.14.6
+pytest==9.2.0
+pymupdf==2.1            # renders brief pages to PNG for the overflow check
+easyocr==1.7.2          # non-LLM baseline; downloads its ar+en weights (~100 MB) on first use
