@@ -1,0 +1,23 @@
+{
+  "version": "2026-11-19.1",
+  "as_of": "2026-11-19",
+  "base": "INR",
+  "note": "STATIC table for reproducibility only. Not for pricing real rewards. Values are INR per one unit of the listed currency.",
+  "sources": {
+    "USD_INR": "RBI reference rate for 19-Nov-2026, 93.3461 INR per USD, read from the MSEI archive of RBI reference rates (a third-party mirror; verify against rbi.org.in before citing).",
+    "SAR_USD": "Statutory peg, 3.75 SAR per USD (Saudi Central Bank).",
+    "AED_USD": "Statutory peg, 3.6725 AED per USD (Central Bank of the UAE).",
+    "QAR_USD": "Statutory peg, 3.64 QAR per USD (Qatar Central Bank)."
+  },
+  "excluded": {
+    "IDR": "No verified dated rate was obtained; CORD (IDR) rows are never FX-converted.",
+    "MYR": "No verified dated rate was obtained; SROIE (MYR) rows are never FX-converted."
+  },
+  "inr_per_unit": {
+    "INR": 1.0,
+    "USD": 93.3461,
+    "SAR": 24.892293,
+    "AED": 25.417590,
+    "QAR": 25.644533
+  }
+}
