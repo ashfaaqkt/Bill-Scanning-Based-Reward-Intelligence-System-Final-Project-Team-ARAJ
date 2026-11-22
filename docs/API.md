@@ -109,6 +109,21 @@ details). Each carries its own message, because the remedies differ: a blurred
 photo needs a steadier retake, while an unreadable one is usually cropped, in
 shadow, or not a receipt at all.
 
+**`POST /api/upload` also returns 422 from the currency gate**, with a different
+body shape — the code is in `error` and the sentence in `message`:
+
+```json
+{ "error": "UNSUPPORTED_CURRENCY", "message": "Only INR receipts are supported.",
+  "detectedCurrency": "SAR", "supportedCurrencies": ["INR"] }
+```
+
+`error` is `UNSUPPORTED_CURRENCY` when the receipt is in a currency outside
+`SUPPORTED_CURRENCIES` (default `INR`), or `CURRENCY_NOT_DETECTED`, with
+`detectedCurrency: null`, when no currency could be determined. Either way the
+check runs after extraction and before any Firestore read or write, so nothing
+is stored and no points are awarded. An accepted receipt is stored with a
+`currency` field.
+
 **`POST /api/claim-reward` returns 409 `REWARD_ALREADY_CLAIMED`** when a voucher
 has already been claimed by that account. A voucher is claimable once; scratch
 cards are deliberately exempt, being lottery tickets rather than a named offer.
@@ -147,9 +162,13 @@ Request:
 Response (success):
 ```json
 { "rawMerchant": "Reliance Fresh", "date": "2026-04-15", "total": 157.50,
+  "currency": "INR",
   "category": "Supermarket / Grocery", "items": [{ "name": "Milk", "price": 50.0 }],
   "handwritten_flag": false, "handwritten_details": null }
 ```
+
+`currency` is an ISO 4217 code, or `null` when the model could not determine it.
+The ML service reports it and never refuses on it; the backend decides.
 
 Rejections return HTTP 422 with `{ "error": "unreadable" }` (blur/unreadable) or
 `{ "error": "multi_bill_detected" }` (more than one receipt).

@@ -157,6 +157,31 @@ existed, which is exactly what the Hugging Face attempt produced.
 Each was set by measurement, not by assumption; the reasoning is in the model
 cards and beside each constant in the code.
 
+### Currency support
+
+**`main` supports INR receipts only, and refuses every other currency with HTTP
+422.** The extraction model now returns a `currency` field (an ISO 4217 code, or
+`null` when it cannot tell), and the backend checks it after extraction and
+**before anything is written to Firestore or any reward is computed**:
+
+| Case | Response |
+|---|---|
+| INR | processed as before |
+| any other currency (SAR, AED, QAR, USD, …) | `422 { "error": "UNSUPPORTED_CURRENCY", "message": "Only INR receipts are supported.", "detectedCurrency": "SAR", "supportedCurrencies": ["INR"] }` |
+| currency not detectable | `422 { "error": "CURRENCY_NOT_DETECTED", … }` |
+
+The refusal is deliberate: the points formula (₹100 = 1 point), the anomaly
+reference and the offer catalogue are all priced in INR, so a foreign-currency
+receipt would be scored wrongly rather than not at all. The supported list is one
+setting, `SUPPORTED_CURRENCIES` (default `INR`; see `.env.example`), enforced in
+one place, `backend/lib/currencyGate.js`.
+
+Amount and date parsing also understand Eastern Arabic digits (٠–٩), the Arabic
+decimal and thousands separators (٫ ٬), Gulf currency markers (ر.س, د.إ, ر.ق)
+and Arabic month names. Parsing them is not the same as supporting them: those
+receipts are still refused by the gate. Details:
+[`RELEASE_NOTES_v1.1-currency-fix.md`](RELEASE_NOTES_v1.1-currency-fix.md).
+
 ### What whole-stack testing found
 
 **Twenty-seven integration defects** across six sessions, 17–22 Aug. None was
