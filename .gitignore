@@ -99,3 +99,6 @@ research/artifacts/
 !research/results/**/*.png
 !report/research_brief/figures/*.png
 report/research_brief/pages/
+
+# Local-only tooling, never tracked
+research/report/
