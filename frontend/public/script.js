@@ -2010,6 +2010,32 @@ async function handleUpload() {
                     openErrorModal('Duplicate Receipt Detected', result.error || 'This receipt has already been processed.', '⚠️');
                 }
                 resetUI();
+            } else if (status === 422 && (result.error === 'UNSUPPORTED_CURRENCY'
+                                          || result.error === 'CURRENCY_NOT_DETECTED')) {
+                // The currency gate. Its body carries the code in `error` and the
+                // sentence in `message`, so it must not fall into the branch
+                // below, which would show the code itself as the message.
+                // Nothing was stored and no points were awarded.
+                stopOcrProgress();
+                const supported = (result.supportedCurrencies || ['INR']).join(', ');
+                if (result.error === 'UNSUPPORTED_CURRENCY') {
+                    openErrorModal(
+                        'Currency Not Supported',
+                        `This receipt appears to be in ${result.detectedCurrency || 'another currency'}. `
+                        + `Rewards are currently available for ${supported} receipts only, `
+                        + 'so nothing was saved and no points were added.',
+                        '💱'
+                    );
+                } else {
+                    openErrorModal(
+                        "Couldn't Tell the Currency",
+                        `We could not work out which currency this receipt is in. Rewards are available for `
+                        + `${supported} receipts only. Make sure the total and any currency symbol are in frame, `
+                        + 'then try again. Nothing was saved.',
+                        '💱'
+                    );
+                }
+                resetUI();
             } else if (status === 422) {
                 stopOcrProgress();
                 // Title the dialog after the actual problem. Every rejection used

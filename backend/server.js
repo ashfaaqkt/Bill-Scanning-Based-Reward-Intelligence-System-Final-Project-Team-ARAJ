@@ -79,6 +79,13 @@ const SUPPORTED_IMAGE_MIME_TYPES = new Set([  // Receipt image formats accepted 
 function initializeFirebaseAdmin() {
     if (admin.apps.length > 0) return;
 
+    // Tests import this module without credentials. A project id is enough to
+    // construct the client; no request is made until a test stubs the calls.
+    if (process.env.NODE_ENV === 'test') {
+        admin.initializeApp({ projectId: 'araj-test' });
+        return;
+    }
+
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
         admin.initializeApp();
         console.log("✅ Firebase Admin initialized using environment credentials.");
@@ -212,69 +219,11 @@ function looksLikeExpectedImageType(imageBuffer, mimeType) {
     return false;
 }
 
-/**
- * Normalizes various Indian receipt date formats to YYYY-MM-DD.
- * Handles: DD/MM/YYYY, DD-MM-YYYY, DD/MM/YY, "15 Apr 2026", "Apr 15, 2026", ISO.
- */
-function normalizeReceiptDate(dateStr) {
-    if (!dateStr) return null;
-    const s = String(dateStr).trim();
-
-    // Already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-    // DD/MM/YYYY or DD-MM-YYYY
-    const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (dmy) {
-        const [, d, m, y] = dmy;
-        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-
-    // DD/MM/YY or DD-MM-YY
-    const dmyShort = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
-    if (dmyShort) {
-        const [, d, m, y] = dmyShort;
-        const fullYear = parseInt(y) > 50 ? `19${y}` : `20${y}`;
-        return `${fullYear}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-
-    // DD MMM YYYY (e.g. "15 Apr 2026")
-    const MONTHS = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
-    const dmyText = s.match(/^(\d{1,2})\s+([a-zA-Z]{3,})\s+(\d{4})$/);
-    if (dmyText) {
-        const [, d, mon, y] = dmyText;
-        const m = MONTHS[mon.slice(0, 3).toLowerCase()];
-        if (m) return `${y}-${String(m).padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-
-    // MMM DD, YYYY (e.g. "Apr 15, 2026")
-    const mdyText = s.match(/^([a-zA-Z]{3,})\s+(\d{1,2}),?\s+(\d{4})$/);
-    if (mdyText) {
-        const [, mon, d, y] = mdyText;
-        const m = MONTHS[mon.slice(0, 3).toLowerCase()];
-        if (m) return `${y}-${String(m).padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-
-    // Last resort: native Date parse
-    const parsed = new Date(s);
-    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
-
-    return null;
-}
-
-/**
- * Strips currency symbols (₹, Rs., INR, $, €, commas) and returns a clean float.
- */
-function sanitizeCurrencyValue(val) {
-    if (typeof val === 'number') return val;
-    const cleaned = String(val)
-        .replace(/Rs\.?/gi, '')
-        .replace(/INR/gi, '')
-        .replace(/[₹$€£,\s]/g, '')
-        .trim();
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : parsed;
-}
+// Date and amount parsing live in lib/ so they can be unit-tested without
+// Firestore. Both understand Eastern Arabic digits; see each module's header.
+const { normalizeReceiptDate } = require('./lib/dates');
+const { sanitizeCurrencyValue } = require('./lib/currency');
+const { requireSupportedCurrency } = require('./lib/currencyGate');
 
 /**
  * Validates all required fields on the extracted receipt object.
@@ -837,6 +786,7 @@ function describeOcrFailure(payload) {
 // POST /api/upload — the core receipt pipeline:
 //  1. Validate base64 image + MIME type
 //  2. Forward image to ML service /ml/ocr (ocr.py) → rate-limit gate + Gemini extraction
+//  2b. Currency gate — non-supported or undetected currency → 422, nothing stored
 //  3. Sanitise currency + validate required fields
 //  4. Per-user and cross-user duplicate fingerprint check
 //  5. Calculate reward points (category × tier × streak multipliers)
@@ -854,7 +804,9 @@ function describeOcrFailure(payload) {
 // every write at step 7 lands in a single batch — three waits instead of about
 // eleven. Anything added here should join one of those groups, not become a
 // fourth. ml-service is fast enough that it is not the thing to optimise.
-app.post('/api/upload', authenticateToken, async (req, res) => {
+// Stage 1 of /api/upload: validate the image and run extraction. Leaves the
+// extracted receipt on req.receiptData for the stages after it.
+async function extractReceiptStage(req, res, next) {
     try {
         if (!req.body || !req.body.receipt) {
             return res.status(400).json({ error: 'No image data provided.' });
@@ -926,6 +878,34 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             console.error('[ERROR] OCR extraction failed:', receiptData);
             return res.status(502).json({ error: 'The AI model could not process this receipt. Please try again.' });
         }
+
+        req.receiptData = receiptData;
+        return next();
+    } catch (error) {
+        return handleUploadError(error, res);
+    }
+}
+
+// Shared by both stages: the v1.0 catch-all for an upload that threw.
+function handleUploadError(error, res) {
+    console.error('OCR Error:', error);
+
+    // Handle Google API Rate Limiting Graciously
+    if (error.status === 429 || (error.error && error.error.code === 429)) {
+        return res.status(429).json({ error: 'AI processing quota has been exceeded. Please wait a moment and try again.' });
+    }
+
+    return res.status(500).json({ error: 'Internal server error processing the receipt.' });
+}
+
+// Stage 2 is requireSupportedCurrency (lib/currencyGate.js): a receipt in a
+// currency the reward engine does not price is refused with 422 here, before
+// any Firestore read or write and before any reward or ML scoring.
+//
+// Stage 3, below, is the v1.0 pipeline unchanged.
+app.post('/api/upload', authenticateToken, extractReceiptStage, requireSupportedCurrency(), async (req, res) => {
+    try {
+        const receiptData = req.receiptData;
 
         // Sanitize currency symbols from total and every item price
         receiptData.total = sanitizeCurrencyValue(receiptData.total);
@@ -1329,6 +1309,7 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
             merchant_id: merchantRef.id,
             date: receiptDate,
             total: total,
+            currency: receiptData.currency,   // ISO 4217, set by the currency gate
             category: receiptData.category,
             points_earned: rewardResult.points,
             receipt_fingerprint: receiptFingerprint,
@@ -1456,15 +1437,13 @@ app.post('/api/upload', authenticateToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('OCR Error:', error);
-
-        // Handle Google API Rate Limiting Graciously
-        if (error.status === 429 || (error.error && error.error.code === 429)) {
-            return res.status(429).json({ error: 'AI processing quota has been exceeded. Please wait a moment and try again.' });
-        }
-
-        res.status(500).json({ error: 'Internal server error processing the receipt.' });
+        return handleUploadError(error, res);
     }
 });
 
-app.listen(port, () => console.log(`🚀 Server running dynamically on http://localhost:${port}`));
+// Listen only when run directly (`node server.js`); tests import the app.
+if (require.main === module) {
+    app.listen(port, () => console.log(`🚀 Server running dynamically on http://localhost:${port}`));
+}
+
+module.exports = { app, db, JWT_SECRET };
