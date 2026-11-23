@@ -59,11 +59,13 @@ New in this change. Neither tier had an automated suite before.
   route.
 - `ml-service/test_fraud.py` (v1.0) still passes.
 
-**Not measured:** how often the live extraction model returns `currency: null`
-for genuine Indian receipts that print no ₹ symbol. Those receipts would now be
-refused with `CURRENCY_NOT_DETECTED`. The prompt tells the model to infer INR
-from a GSTIN, a +91 number or an Indian address, but nobody has run it against
-the 100 real receipts. Do that before relying on this in production.
+**Observed after deployment (owner's live tests, 22 Nov 2026):** non-INR
+receipts are refused as intended. Genuine Indian receipts that print **no ₹ or
+Rs** are refused too, with `CURRENCY_NOT_DETECTED`: the GSTIN / +91 hint in the
+prompt does not rescue them. This was reviewed and **accepted as intended**.
+Refusing a receipt whose currency cannot be established is the safer failure,
+because crediting a foreign amount as rupees is what v1.0 got wrong. How often
+it happens across the 100 real Indian receipts has **not been measured**.
 
 ## Deploying
 
