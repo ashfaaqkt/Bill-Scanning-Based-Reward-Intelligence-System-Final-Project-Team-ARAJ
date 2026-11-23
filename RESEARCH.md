@@ -81,15 +81,17 @@ in `research/results/comparison.md` and `research/results/models/multicurrency.m
 | 2026-11-22 | Reward points, INR formula vs FX | Synthetic SAR/AED/QAR earn about 29×/31×/32× fewer base points if their amounts are read as INR (computed, not measured) |
 | 2026-11-22 | Tamper CNN on synthetic receipts | 0 of 48 flagged at 0.82, maximum 0.193. Smoke test on rendered images only |
 | 2026-11-22 | `fetch_models.py` | All five v1.0-fyp release binaries match the local `ml-service/models` byte for byte (SHA-256) |
+| 2026-11-22 | Live production check (owner, by hand) | Non-INR receipts refused as intended. Indian receipts with **no ₹/Rs printed are also refused** (`CURRENCY_NOT_DETECTED`), and that is accepted as intended. Rate not measured |
 
 ## Open questions
 
 1. How much of the 97.9% survives **real** Arabic OCR? Run `make live` first on
    the synthetic set, then on real receipts once they exist.
 2. Does the Arabic-hints prompt measurably help, or only lengthen the prompt?
-3. How often does the shipped prompt return `currency: null` for genuine Indian
-   receipts that print no ₹? Those are now refused on `main`. Measure on the 100
-   real Indian receipts.
+3. Indian receipts that print no ₹ **are** refused in production (observed in
+   the owner's live tests, accepted as intended). Still open: **how many** of
+   the 100 real Indian receipts this affects, and whether a stricter GSTIN /
+   +91 rule could rescue them without crediting foreign amounts as INR.
 4. Should the blur gate's contrast stretch use a wider percentile band, or an
    ink-coverage floor, so sparse receipts are not scored as blank pages?
 5. Does the tamper CNN transfer to Arabic script at all? That needs a tampered
